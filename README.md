@@ -65,6 +65,8 @@ Orbit-AI-Project/
 
 ## 🚀 How to Run
 
+> 📖 **Full step-by-step guide (with prerequisites & troubleshooting): [`HOW_TO_RUN.md`](HOW_TO_RUN.md)**
+
 ### Option 1 — Frontend only (fastest, for a demo)
 Just open **`frontend/index.html`** in any modern browser. Data is stored in the
 browser. Use the demo logins shown on the sign-in screen.
