@@ -70,6 +70,88 @@ To reset all backend data, delete the file `backend/data.json` and start again.
 
 ---
 
+## 🖥️ Full setup on localhost (step-by-step in the terminal)
+
+This is the complete, proper way to run **both** the backend **and** the frontend on
+`localhost` using the terminal. You will use **two terminal windows** — one for each.
+
+### 0) Install Node.js (once)
+Download the **LTS** version from https://nodejs.org and install it. Then open a new
+terminal and confirm:
+```bash
+node -v
+npm -v
+```
+Both should print a version number.
+
+### 1) Get the project onto your computer
+**Option A — clone with Git:**
+```bash
+git clone https://github.com/yugalgarg157-glitch/orbit-ai-project-tracker.git
+cd orbit-ai-project-tracker
+```
+**Option B — download the ZIP** from GitHub (green **Code ▸ Download ZIP**), unzip it,
+then `cd` into the unzipped folder.
+
+Opening a terminal *in the project folder*:
+- **Windows:** open the folder in File Explorer → click the address bar → type `cmd` → Enter.
+- **Mac:** right-click the folder in Finder → *New Terminal at Folder* (enable it in
+  System Settings ▸ Keyboard ▸ Shortcuts ▸ Services if needed).
+
+### 2) Terminal 1 — start the BACKEND (port 4000)
+```bash
+cd backend
+npm install
+npm start
+```
+Wait for:
+```
+🚀 Orbit API running at http://localhost:4000
+```
+Test it: open **http://localhost:4000** in your browser — you should see
+`{"ok":true,"service":"Orbit AI API",...}`. **Leave this terminal running.**
+
+### 3) Terminal 2 — serve the FRONTEND on localhost
+Open a **second** terminal in the project folder (don't close the first). Pick any one:
+
+**Easiest (uses Node, no install):**
+```bash
+npx serve frontend
+```
+It prints a URL like `http://localhost:3000` — open that in your browser.
+
+**Or with Python (already on most Macs/Linux):**
+```bash
+cd frontend
+python3 -m http.server 5500      # Windows: python -m http.server 5500
+```
+Then open **http://localhost:5500**.
+
+**Or in VS Code:** install the **Live Server** extension, right-click
+`frontend/index.html` → **Open with Live Server**.
+
+> Why serve it instead of double-clicking? Opening over `http://localhost` (not
+> `file://`) is the correct way for a web app and is required for the frontend to call
+> the backend API without browser security errors.
+
+### 4) You now have both running
+| Part | URL | Terminal |
+|------|-----|----------|
+| Backend API | http://localhost:4000 | Terminal 1 |
+| Frontend app | http://localhost:3000 (or :5500) | Terminal 2 |
+
+Sign in with a demo account (`aarav@college.edu` / `student123`).
+
+### 5) Stop everything
+Press **Ctrl + C** in **each** terminal.
+
+> **Connecting the app to the API:** by default the frontend uses browser storage. To
+> make it read/write through the backend on localhost:4000, add the small `api()`
+> adapter from [`backend/README.md`](backend/README.md) and set `const API =
+> 'http://localhost:4000'`. CORS is already enabled on the backend for local use.
+
+---
+
 ## 🧪 Test the backend without the app (optional)
 ```bash
 # log in and get a token
