@@ -7,6 +7,9 @@ Data Science, Semester 3**.
 Team members (Team Lead, Developer, Tester, QnA) collaborate on subject-wise task
 boards; faculty supervise groups and leave review remarks.
 
+> 💻 **Runs on any Windows PC, Mac, or Linux** — the frontend is a single HTML file and
+> the backend is pure JavaScript (Node.js), with no database to install and no build tools.
+
 ---
 
 ## ✨ Key Features
@@ -31,10 +34,11 @@ boards; faculty supervise groups and leave review remarks.
 └──────────────────────┘  ◀───────────────────────  └───────────┬──────────────┘
                                                                  │
                                                         ┌────────▼─────────┐
-                                                        │  SQLite (orbit.db)│
+                                                        │  JSON store       │
+                                                        │  (data.json)      │
                                                         │  profiles, groups,│
-                                                        │  tasks, comments, │
-                                                        │  activity, remarks│
+                                                        │  tasks, activity, │
+                                                        │  remarks          │
                                                         └───────────────────┘
 ```
 
@@ -104,8 +108,8 @@ Full reference with request/response details: **`backend/README.md`**.
 | Layer | Technology |
 |-------|-----------|
 | Frontend | HTML, CSS, Vanilla JavaScript (single-page app, no framework) |
-| Backend | Node.js, Express |
-| Database | SQLite (via better-sqlite3) |
+| Backend | Node.js, Express (pure JavaScript, no native modules) |
+| Database | JSON file store (`data.json`) — zero-install, cross-platform |
 | Auth | JWT (jsonwebtoken) + bcrypt password hashing |
 | Hosting (suggested) | Netlify / Vercel / GitHub Pages (frontend) · Render / Railway (backend) |
 

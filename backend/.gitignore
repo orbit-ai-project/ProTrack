@@ -1,6 +1,4 @@
 node_modules/
 .env
-orbit.db
-orbit.db-shm
-orbit.db-wal
+data.json
 *.log

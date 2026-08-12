@@ -1,16 +1,18 @@
 {
   "name": "orbit-backend",
   "version": "1.0.0",
-  "description": "Backend API for the Orbit AI project tracker (Express + SQLite + JWT)",
+  "description": "Backend API for the Orbit AI project tracker (Express + JWT + JSON store). Pure JavaScript — runs on any PC or Mac with Node.js, no build tools.",
   "type": "commonjs",
   "main": "server.js",
+  "engines": {
+    "node": ">=16"
+  },
   "scripts": {
     "start": "node server.js",
     "dev": "node --watch server.js"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
-    "better-sqlite3": "^11.3.0",
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
     "express": "^4.21.0",

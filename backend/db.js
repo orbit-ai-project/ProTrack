@@ -1,87 +1,16 @@
 /* ============================================================
-   db.js — SQLite database: schema + first-run seed
-   Uses better-sqlite3 (synchronous, simple). Creates orbit.db
-   in this folder on first run.
+   db.js — pure-JavaScript data store (no native modules)
+   Data lives in a plain JSON file (data.json) next to this file,
+   so the backend runs on ANY PC or Mac with just Node.js — no
+   database to install, no C/C++ build tools needed.
    ============================================================ */
+const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 const bcrypt = require('bcryptjs');
-const Database = require('better-sqlite3');
 
-const db = new Database(path.join(__dirname, 'orbit.db'));
-db.pragma('journal_mode = WAL');
-db.pragma('foreign_keys = ON');
-
+const DATA_FILE = path.join(__dirname, 'data.json');
 const uid = () => crypto.randomUUID();
-
-/* ---------- schema ---------- */
-db.exec(`
-CREATE TABLE IF NOT EXISTS profiles (
-  id         TEXT PRIMARY KEY,
-  name       TEXT NOT NULL,
-  email      TEXT UNIQUE NOT NULL,
-  pass_hash  TEXT NOT NULL,
-  role       TEXT NOT NULL,
-  group_id   TEXT,
-  color      TEXT DEFAULT '#5A6BD8',
-  created_at INTEGER DEFAULT (strftime('%s','now')*1000)
-);
-
-CREATE TABLE IF NOT EXISTS groups (
-  id          TEXT PRIMARY KEY,
-  name        TEXT NOT NULL,
-  project     TEXT,
-  subject     TEXT,
-  course_code TEXT,
-  lead_id     TEXT,
-  created_at  INTEGER DEFAULT (strftime('%s','now')*1000)
-);
-
-CREATE TABLE IF NOT EXISTS group_faculty (
-  group_id   TEXT NOT NULL,
-  faculty_id TEXT NOT NULL,
-  PRIMARY KEY (group_id, faculty_id)
-);
-
-CREATE TABLE IF NOT EXISTS tasks (
-  id          TEXT PRIMARY KEY,
-  group_id    TEXT NOT NULL,
-  assignee_id TEXT,
-  title       TEXT NOT NULL,
-  descr       TEXT,
-  status      TEXT DEFAULT 'todo',
-  progress    INTEGER DEFAULT 0,
-  prio        TEXT DEFAULT 'med',
-  course_code TEXT,
-  due         INTEGER,
-  created_at  INTEGER DEFAULT (strftime('%s','now')*1000),
-  updated_at  INTEGER DEFAULT (strftime('%s','now')*1000)
-);
-
-CREATE TABLE IF NOT EXISTS comments (
-  id      TEXT PRIMARY KEY,
-  task_id TEXT NOT NULL,
-  user_id TEXT,
-  text    TEXT NOT NULL,
-  ts      INTEGER DEFAULT (strftime('%s','now')*1000)
-);
-
-CREATE TABLE IF NOT EXISTS activity (
-  id       TEXT PRIMARY KEY,
-  group_id TEXT NOT NULL,
-  user_id  TEXT,
-  text     TEXT,
-  ts       INTEGER DEFAULT (strftime('%s','now')*1000)
-);
-
-CREATE TABLE IF NOT EXISTS remarks (
-  id       TEXT PRIMARY KEY,
-  group_id TEXT NOT NULL,
-  by_name  TEXT,
-  text     TEXT,
-  ts       INTEGER DEFAULT (strftime('%s','now')*1000)
-);
-`);
 
 /* ---------- Semester-3 subjects (Amrita Faridabad, B.Tech AI & DS) ---------- */
 const SUBJECTS = [
@@ -95,32 +24,36 @@ const SUBJECTS = [
   { code: '23LSE201', name: 'Life Skills for Engineers I', cr: 'P/F', cat: 'Humanities' },
 ];
 
-/* ---------- first-run seed (only if empty) ---------- */
-function seed() {
-  const count = db.prepare('SELECT COUNT(*) AS n FROM profiles').get().n;
-  if (count > 0) return;
+/* ---------- in-memory store (persisted to data.json) ---------- */
+let store = { profiles: [], groups: [], tasks: [], activity: [], remarks: [] };
 
+function save() {
+  fs.writeFileSync(DATA_FILE, JSON.stringify(store, null, 2));
+}
+
+function load() {
+  if (fs.existsSync(DATA_FILE)) {
+    try { store = JSON.parse(fs.readFileSync(DATA_FILE, 'utf8')); return; }
+    catch (e) { console.warn('data.json unreadable, reseeding…'); }
+  }
+  seed();
+  save();
+  console.log('✓ data seeded (demo faculty + 3 groups + tasks) -> data.json');
+}
+
+/* ---------- first-run demo data ---------- */
+function seed() {
   const now = Date.now(), day = 864e5;
   const AVC = ['#5A6BD8','#2E8A6B','#B0651A','#A64A6E','#3C7FBF','#7A5AB8','#B0573F','#4A7A45'];
   const ROLES = ['Team Lead', 'Developer', 'Tester', 'QnA'];
   const facHash = bcrypt.hashSync('faculty123', 10);
   const stuHash = bcrypt.hashSync('student123', 10);
 
-  const insUser = db.prepare(
-    `INSERT INTO profiles (id,name,email,pass_hash,role,group_id,color,created_at)
-     VALUES (@id,@name,@email,@pass,@role,@group_id,@color,@created_at)`);
-  const insGroup = db.prepare(
-    `INSERT INTO groups (id,name,project,subject,course_code,lead_id,created_at)
-     VALUES (@id,@name,@project,@subject,@course_code,@lead_id,@created_at)`);
-  const insGF = db.prepare('INSERT INTO group_faculty (group_id,faculty_id) VALUES (?,?)');
-  const insTask = db.prepare(
-    `INSERT INTO tasks (id,group_id,assignee_id,title,descr,status,progress,prio,course_code,due,created_at,updated_at)
-     VALUES (@id,@group_id,@assignee_id,@title,@descr,@status,@progress,@prio,@course_code,@due,@created_at,@updated_at)`);
-  const insAct = db.prepare('INSERT INTO activity (id,group_id,user_id,text,ts) VALUES (@id,@group_id,@user_id,@text,@ts)');
+  store = { profiles: [], groups: [], tasks: [], activity: [], remarks: [] };
 
   const facId = 'u-fac1';
-  insUser.run({ id: facId, name: 'Dr. Anjali Sharma', email: 'sharma@college.edu', pass: facHash,
-    role: 'Faculty', group_id: null, color: '#5A6BD8', created_at: now - 40*day });
+  store.profiles.push({ id: facId, name: 'Dr. Anjali Sharma', email: 'sharma@college.edu',
+    passHash: facHash, role: 'Faculty', groupId: null, color: '#5A6BD8', createdAt: now - 40*day });
 
   const defs = [
     { g: 'g1', name: 'Group 01', project: 'Smart Attendance System', course: '23AID205',
@@ -134,15 +67,14 @@ function seed() {
   defs.forEach((d, gi) => {
     const ids = d.ms.map(([name, email], i) => {
       const id = 'u-' + d.g + i;
-      insUser.run({ id, name, email, pass: stuHash, role: ROLES[i], group_id: d.g,
-        color: AVC[(gi*4+i) % AVC.length], created_at: now - (30-i)*day });
+      store.profiles.push({ id, name, email, passHash: stuHash, role: ROLES[i],
+        groupId: d.g, color: AVC[(gi*4+i) % AVC.length], createdAt: now - (30-i)*day });
       return id;
     });
     const c = SUBJECTS.find(s => s.code === d.course);
-    insGroup.run({ id: d.g, name: d.name, project: d.project,
-      subject: c ? `${c.code} · ${c.name}` : '—', course_code: d.course,
-      lead_id: ids[0], created_at: now - 30*day });
-    if (gi < 2) insGF.run(d.g, facId);   // faculty already supervises g1, g2
+    store.groups.push({ id: d.g, name: d.name, project: d.project,
+      subject: c ? `${c.code} · ${c.name}` : '—', courseCode: d.course,
+      leadId: ids[0], facultyIds: gi < 2 ? [facId] : [], createdAt: now - 30*day });
   });
 
   const rows = [
@@ -166,18 +98,18 @@ function seed() {
     ['g3',1,'Build the calendar sync','Two-way sync with a calendar provider.','todo',0,'med',8],
   ];
   const CORE = ['23AID205','23AID204','23AID201','23AID203'];
-  rows.forEach(([g, mi, title, descr, status, progress, prio, dd], i) => {
-    insTask.run({ id: 't'+i, group_id: g, assignee_id: 'u-'+g+mi, title, descr, status, progress, prio,
-      course_code: CORE[i % CORE.length], due: now + dd*day,
-      created_at: now - (10 - i%7)*day, updated_at: now - (i%5)*36e5 });
+  rows.forEach(([g, mi, title, desc, status, progress, prio, dd], i) => {
+    store.tasks.push({ id: 't'+i, groupId: g, assigneeId: 'u-'+g+mi, title, desc, status, progress, prio,
+      courseCode: CORE[i % CORE.length], due: now + dd*day,
+      createdAt: now - (10 - i%7)*day, updatedAt: now - (i%5)*36e5, comments: [] });
   });
 
-  insAct.run({ id: uid(), group_id: 'g1', user_id: 'u-g11', text: 'moved <b>Build face-recognition module</b> to In Progress', ts: now - 3*36e5 });
-  insAct.run({ id: uid(), group_id: 'g2', user_id: 'u-g21', text: 'updated progress on <b>Restaurant listing and cart screens</b> to 72%', ts: now - 1*36e5 });
-
-  console.log('✓ database seeded (demo faculty + 3 groups + tasks)');
+  store.activity.push(
+    { id: uid(), groupId: 'g1', userId: 'u-g11', text: 'moved <b>Build face-recognition module</b> to In Progress', ts: now - 3*36e5 },
+    { id: uid(), groupId: 'g2', userId: 'u-g21', text: 'updated progress on <b>Restaurant listing and cart screens</b> to 72%', ts: now - 1*36e5 },
+  );
 }
 
-seed();
+load();
 
-module.exports = { db, uid, SUBJECTS };
+module.exports = { store, save, uid, SUBJECTS };

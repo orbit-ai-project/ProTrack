@@ -1,7 +1,5 @@
 node_modules/
 .env
+data.json
 *.log
-orbit.db
-orbit.db-shm
-orbit.db-wal
 .DS_Store

@@ -1,12 +1,16 @@
 # Orbit AI — Backend API
 
-A real backend for the Orbit project tracker: **Node.js + Express + SQLite**, with
-**JWT authentication** and **bcrypt-hashed passwords**. No external database to install —
-SQLite creates a local `orbit.db` file automatically and seeds demo data on first run.
+A real backend for the Orbit project tracker: **Node.js + Express**, with
+**JWT authentication** and **bcrypt-hashed passwords**. Data is kept in a simple
+`data.json` file that is created and seeded automatically on first run.
+
+> **Runs on any PC or Mac.** Every dependency is **pure JavaScript** — there is no
+> native module and no database to install, so `npm install` never needs C/C++ build
+> tools. If you have Node.js, it runs.
 
 ## Stack
 - **Express** — HTTP server / REST API
-- **better-sqlite3** — embedded SQL database (file: `orbit.db`)
+- **JSON file store** (`data.json`) — zero-install persistence, pure JS
 - **jsonwebtoken** — login tokens (JWT)
 - **bcryptjs** — secure password hashing
 
@@ -17,10 +21,10 @@ npm install
 npm start
 ```
 The API starts at **http://localhost:4000**. First run prints
-`✓ database seeded` and creates `orbit.db`.
+`✓ data seeded` and creates `data.json`.
 
 > Optional: copy `.env.example` to `.env` and set a real `JWT_SECRET`.
-> Delete `orbit.db` any time to reset all data.
+> Delete `data.json` any time to reset all data.
 
 ## Demo logins (same as the app)
 | Role | Email | Password |
@@ -69,10 +73,10 @@ TOKEN=$(curl -s -X POST http://localhost:4000/api/auth/login \
 curl -s http://localhost:4000/api/bootstrap -H "Authorization: Bearer $TOKEN"
 ```
 
-## Database tables
-`profiles` · `groups` · `group_faculty` · `tasks` · `comments` · `activity` · `remarks`
-(see `db.js` for the exact schema — it mirrors the frontend's data model, including
-`course_code` on tasks so every task belongs to a subject).
+## Data model (`data.json`)
+Collections: `profiles` · `groups` (with `facultyIds`) · `tasks` (with `comments`) ·
+`activity` · `remarks`. See `db.js` — it mirrors the frontend's data model, including
+`courseCode` on every task so each task belongs to a subject.
 
 ---
 
@@ -124,10 +128,11 @@ then `loadAll()` to refresh. The response fields already use the frontend's name
 
 ## Deploying the backend
 - **Render / Railway / Fly.io** (free tiers) — push this folder, set `JWT_SECRET`,
-  start command `npm start`. Note: SQLite needs a persistent disk; on ephemeral hosts
-  use their volume feature, or switch to their managed Postgres.
+  start command `npm start`. `data.json` is written to disk; on hosts with an
+  ephemeral filesystem, attach a small persistent volume (or move to a managed
+  database) so data survives restarts.
 - Point the frontend's `const API = ...` at your deployed URL, then host the frontend
-  on Netlify/Vercel (see `../DEPLOYMENT_GUIDE.md`).
+  on Netlify/Vercel (see `../docs/DEPLOYMENT_GUIDE.md`).
 
 ## Security notes
 - Passwords are hashed with bcrypt — never stored in plaintext.

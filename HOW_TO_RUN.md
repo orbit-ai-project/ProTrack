@@ -3,6 +3,10 @@
 Two ways to run it. **Way 1** needs nothing but a browser (great for a demo/viva).
 **Way 2** runs the real backend too.
 
+> 💻 **Works on any Windows PC, Mac, or Linux.** The backend is pure JavaScript — no
+> database to install and no build tools needed. If Node.js is installed, `npm install`
+> just works.
+
 ---
 
 ## ✅ Prerequisites
@@ -45,7 +49,7 @@ npm start
 ```
 You should see:
 ```
-✓ database seeded (demo faculty + 3 groups + tasks)
+✓ data seeded (demo faculty + 3 groups + tasks) -> data.json
 🚀 Orbit API running at http://localhost:4000
 ```
 Leave this terminal running. The API is now live at **http://localhost:4000**.
@@ -62,7 +66,7 @@ Open **`frontend/index.html`** in your browser (same as Way 1).
 
 ### Step 3 — Stop the backend
 In the backend terminal, press **Ctrl + C**.
-To reset all backend data, delete the file `backend/orbit.db` and start again.
+To reset all backend data, delete the file `backend/data.json` and start again.
 
 ---
 
@@ -84,9 +88,9 @@ curl http://localhost:4000/api/bootstrap -H "Authorization: Bearer PASTE_TOKEN_H
 | Problem | Fix |
 |--------|-----|
 | `command not found: node` / `npm` | Install Node.js from https://nodejs.org, then reopen the terminal. |
-| `npm start` fails on install | Delete `backend/node_modules` and run `npm install` again. |
-| Port 4000 already in use | Set another port: `PORT=5000 npm start` (or edit `backend/.env`). |
-| Want a clean database | Delete `backend/orbit.db` and restart the backend. |
+| `npm install` fails | Delete `backend/node_modules` and run `npm install` again. (No build tools are needed — every dependency is pure JavaScript.) |
+| Port 4000 already in use | Windows: `set PORT=5000 && npm start` · Mac/Linux: `PORT=5000 npm start` (or edit `backend/.env`). |
+| Want a clean database | Delete `backend/data.json` and restart the backend. |
 | App looks empty after login | Click **"Reset demo data"** in the app to reseed the demo. |
 
 ---
