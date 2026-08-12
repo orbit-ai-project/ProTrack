@@ -325,6 +325,8 @@ tbody tr:hover{background:var(--surface-2)}
 .chip{height:28px;padding:0 11px;border-radius:99px;border:1px solid var(--line);background:var(--surface);
   font-size:12px;color:var(--ink-2);font-weight:450;transition:background .12s,border-color .12s}
 .chip:hover{background:var(--accent-soft);border-color:var(--accent-line);color:var(--accent)}
+.chip.on{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:500}
+.chip.on:hover{background:var(--accent-h);color:#fff}
 .chatin{display:flex;gap:8px;padding:12px 14px;border-top:1px solid var(--line-2);background:var(--surface-2)}
 
 /* ============ NOTIFICATIONS ============ */
@@ -557,7 +559,7 @@ document.addEventListener('pointerdown', e=>{ if(e.target.closest('button,.tc,.g
 /* ============================================================
    constants
    ============================================================ */
-const K_STATE='orbit.db.v4', K_SESSION='orbit.session.v4', K_PRESENCE='orbit.presence.v4';
+const K_STATE='orbit.db.v5', K_SESSION='orbit.session.v5', K_PRESENCE='orbit.presence.v5';
 const ROLES=['Team Lead','Developer','Tester','QnA'];
 const ROLE_DESC={'Team Lead':'Plans the project, assigns work and owns delivery','Developer':'Builds the features and fixes the defects','Tester':'Writes and runs test cases, reports defects','QnA':'Reviews quality, documentation and acceptance'};
 const STATUSES=[
@@ -608,21 +610,37 @@ function seed(){
   U.push({id:'u-fac1',name:'Dr. Anjali Sharma',email:'sharma@college.edu',pass:hash('faculty123'),role:'Faculty',groupId:null,color:'#5A6BD8',createdAt:t-40*day});
 
   const defs=[
-    {g:'g1',name:'Group 01',project:'Smart Attendance System',course:'23AID205',
+    {g:'g1',name:'Group 01',project:'Smart Attendance System',
+     subs:['23AID205','23AID204','23AID203'],
+     topics:{'23AID205':['Face dataset & preprocessing','Model training','Accuracy evaluation'],
+             '23AID204':['Core data structures','Complexity analysis'],
+             '23AID203':['Protocol design','Signal testing']},
      ms:[['Aarav Mehta','aarav@college.edu'],['Diya Sharma','diya@college.edu'],['Kabir Nair','kabir@college.edu'],['Ishita Rao','ishita@college.edu']]},
-    {g:'g2',name:'Group 02',project:'Campus Food Delivery App',course:'23AID204',
+    {g:'g2',name:'Group 02',project:'Campus Food Delivery App',
+     subs:['23AID204','23AID206','23AID201'],
+     topics:{'23AID204':['Cart data model','Search optimisation'],
+             '23AID206':['API networking','Load testing'],
+             '23AID201':['Order simulation','Analytics']},
      ms:[['Rohan Gupta','rohan@college.edu'],['Sanya Kapoor','sanya@college.edu'],['Vivaan Joshi','vivaan@college.edu'],['Meera Iyer','meera@college.edu']]},
-    {g:'g3',name:'Group 03',project:'AI Study Planner',course:'23AID201',
+    {g:'g3',name:'Group 03',project:'AI Study Planner',
+     subs:['23AID201','23AID205','23MAT204'],
+     topics:{'23AID201':['Scheduling model','Constraint checks'],
+             '23AID205':['Feature engineering','Bias audit'],
+             '23MAT204':['Optimisation maths']},
      ms:[['Aditya Verma','aditya@college.edu'],['Nisha Bansal','nisha@college.edu'],['Arjun Reddy','arjun@college.edu'],['Tara Menon','tara@college.edu']]}
   ];
+  const topicsBy={};
   defs.forEach((d,gi)=>{
     const ids=d.ms.map(([n,e],i)=>{
       const id='u-'+d.g+i;
       U.push({id,name:n,email:e,pass:hash('student123'),role:ROLES[i],groupId:d.g,color:AVC[(gi*4+i)%AVC.length],createdAt:t-(30-i)*day});
       return id;
     });
-    const c=SEM3.find(s=>s.code===d.course);
-    G.push({id:d.g,name:d.name,project:d.project,subject:c?c.code+' · '+c.name:'—',courseCode:d.course,leadId:ids[0],facultyIds:gi<2?['u-fac1']:[],createdAt:t-30*day});
+    topicsBy[d.g]=d;
+    const c=SEM3.find(s=>s.code===d.subs[0]);
+    G.push({id:d.g,name:d.name,project:d.project,subject:c?c.code+' · '+c.name:'—',
+      courseCode:d.subs[0],subjects:d.subs.slice(),topics:JSON.parse(JSON.stringify(d.topics)),
+      leadId:ids[0],facultyIds:gi<2?['u-fac1']:[],createdAt:t-30*day});
   });
   const uidOf=(g,i)=>'u-'+g+i;
 
@@ -649,10 +667,14 @@ function seed(){
     ['g3',0,'Weekly progress report for the guide','Summarise blockers and the plan for next week.','review',80,'low',1],
     ['g3',1,'Build the calendar sync','Two-way sync with an external calendar provider.','todo',0,'med',8]
   ];
-  const CORE=['23AID205','23AID204','23AID201','23AID203'];
+  const gCount={};
   rows.forEach(([g,mi,title,desc,status,progress,prio,dd],i)=>{
+    const d=topicsBy[g], subs=d.subs; gCount[g]=(gCount[g]||0);
+    const code=subs[gCount[g]%subs.length];
+    const tl=d.topics[code]||[]; const topic=tl.length?tl[gCount[g]%tl.length]:null;
+    gCount[g]++;
     T.push({id:'t'+i,groupId:g,assigneeId:uidOf(g,mi),title,desc,status,progress,prio,
-      courseCode:CORE[i%CORE.length],
+      courseCode:code, topic,
       due:t+dd*day, createdAt:t-(10-i%7)*day, updatedAt:t-(i%5)*36e5, comments:[]});
   });
   [['g1','u-g11','moved <b>Build face-recognition module</b> to In Progress',3.2],
@@ -713,6 +735,9 @@ const myGroups=()=>DB.s.groups.filter(g=>(g.facultyIds||[]).includes(App.me.id))
 const canSeeGroup=gid=>App.isFaculty?(group(gid)&&(group(gid).facultyIds||[]).includes(App.me.id)):App.me.groupId===gid;
 const tasksOf=gid=>DB.s.tasks.filter(t=>t.groupId===gid);
 const tasksFor=uidv=>DB.s.tasks.filter(t=>t.assigneeId===uidv);
+/* subjects the team has taken up, and the topics defined under each */
+const groupSubjects=g=>(g&&g.subjects&&g.subjects.length)?g.subjects:(g&&g.courseCode?[g.courseCode]:[]);
+const groupTopics=(g,code)=>((g&&g.topics&&g.topics[code])||[]);
 const stat=id=>STATUSES.find(s=>s.id===id)||STATUSES[0];
 const prio=id=>PRIOS.find(p=>p.id===id)||PRIOS[1];
 const pctOf=l=>l.length?Math.round(l.reduce((a,t)=>a+(t.status==='done'?100:t.progress),0)/l.length):0;
@@ -905,7 +930,8 @@ const Auth={
     const gid='g-'+uid(), uidv='u-'+uid();
     const c=SEM3.find(s=>s.code===subj);
     DB.s.users.push({id:uidv,name,email,pass:hash(pw),role:'Team Lead',groupId:gid,color:AVC[DB.s.users.length%AVC.length],createdAt:now()});
-    DB.s.groups.push({id:gid,name:gname,project:proj,subject:c?c.code+' · '+c.name:'—',courseCode:c?c.code:null,leadId:uidv,createdAt:now()});
+    DB.s.groups.push({id:gid,name:gname,project:proj,subject:c?c.code+' · '+c.name:'—',
+      courseCode:c?c.code:null,subjects:c?[c.code]:[],topics:{},leadId:uidv,createdAt:now()});
     DB.save();
     App.signIn(uidv);
     setTimeout(()=>toast(I.check(15),'Team created. Add your members next.'),300);
@@ -930,7 +956,7 @@ const Auth={
    APP
    ============================================================ */
 const App={
-  me:null, tab:'dashboard', openGroup:null, openSubjectCode:null,
+  me:null, tab:'dashboard', openGroup:null, openSubjectCode:null, topicFilter:null,
 
   boot(){
     DB.load(); Sync.init(); FX.paint();
@@ -960,9 +986,11 @@ const App={
     Modal.close(); Auth.go('signin');
   },
 
-  go(t){ App.tab=t; App.openGroup=null; App.openSubjectCode=null; FX.tap('med'); App.render(); },
+  go(t){ App.tab=t; App.openGroup=null; App.openSubjectCode=null; App.topicFilter=null; FX.tap('med'); App.render(); },
   openG(id){ App.openGroup=id; App.tab='group'; FX.tap('med'); App.render(); document.getElementById('view').scrollTop=0; },
-  openSubject(code){ App.openSubjectCode=code; App.tab='subject'; FX.tap('med'); App.render(); document.getElementById('view').scrollTop=0; },
+  openSubject(code){ App.openSubjectCode=code; App.topicFilter=null; App.tab='subject'; FX.tap('med'); App.render(); document.getElementById('view').scrollTop=0; },
+  filterTopicIdx(i){ const g=group(App.me.groupId), tops=groupTopics(g,App.openSubjectCode);
+    App.topicFilter = i<0 ? null : (tops[i]||null); FX.tap('light'); App.render(); },
 
   navItems(){
     if(App.isFaculty){
@@ -1054,6 +1082,44 @@ const Page={
           <div style="flex:1;min-width:0"><div style="font-weight:500;font-size:12.5px;line-height:1.35">${esc(s.name)}</div>
             <div style="font-size:11px;color:var(--muted)">${esc(s.cat)} · ${s.cr==='P/F'?'Pass / Fail':s.cr+' credit'+(s.cr===1?'':'s')}${on?' · <span style="color:var(--accent);font-weight:600">your project</span>':''}</div></div>
         </div>`;}).join('')}
+      </div>
+    </div>`;
+  },
+
+  /* team's chosen subjects + topics, managed from the dashboard (lead) */
+  projectSubjects(g){
+    const subs=groupSubjects(g), lead=App.isLead, ts=tasksOf(g.id);
+    return `<div class="card" style="margin-bottom:16px">
+      <div class="ch">${I.cap(16)}<h3>Project subjects &amp; topics</h3><div class="sp"></div>
+        <span style="font-size:12px;color:var(--muted)">${esc(PROGRAM)} · Sem 3</span>
+        ${lead?`<button class="btn sm" onclick="Modal.selectSubjects('${g.id}')">${I.edit(14)} Select subjects</button>`:''}</div>
+      <div class="cb">
+        ${subs.length?`<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:11px">
+          ${subs.map(code=>{
+            const c=SEM3.find(s=>s.code===code)||{code,name:code};
+            const st=ts.filter(t=>t.courseCode===code), done=st.filter(t=>t.status==='done').length, tops=groupTopics(g,code);
+            return `<div style="border:1px solid var(--line);border-radius:var(--r2);padding:12px">
+              <div style="display:flex;align-items:center;gap:9px">
+                <span class="mono" style="background:var(--accent-soft);color:var(--accent);border:1px solid var(--accent-line);border-radius:5px;padding:3px 6px;font-size:10.5px;font-weight:600;flex:none">${esc(code)}</span>
+                <div style="flex:1;min-width:0;font-weight:600;font-size:12.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(c.name)}</div>
+                ${ring(pctOf(st),36,'accent')}
+              </div>
+              <div style="display:flex;gap:5px;flex-wrap:wrap;margin-top:10px;min-height:20px">
+                ${tops.length?tops.slice(0,4).map(tp=>`<span class="tag" style="background:var(--gray-s);color:var(--ink-2)">${esc(tp)}</span>`).join(''):`<span style="font-size:11.5px;color:var(--faint)">No topics yet</span>`}
+                ${tops.length>4?`<span style="font-size:11px;color:var(--faint);align-self:center">+${tops.length-4}</span>`:''}
+              </div>
+              <div style="display:flex;align-items:center;gap:6px;margin-top:11px;padding-top:9px;border-top:1px solid var(--line-2)">
+                <span style="font-size:11.5px;color:var(--muted)">${st.length} task${st.length===1?'':'s'} · ${done} done</span>
+                <span class="sp" style="flex:1"></span>
+                ${lead?`<button class="btn sm gho" onclick="Modal.manageTopics('${g.id}','${code}')">${I.list(13)} Topics</button>`:''}
+                <button class="btn sm gho" onclick="App.openSubject('${code}')">Open ${I.chev(13)}</button>
+              </div>
+            </div>`;
+          }).join('')}
+        </div>`
+        :`<div class="empty" style="padding:22px">${I.cap(24)}<div class="h">No subjects selected yet</div>
+          <p>${lead?'Select the subjects your team is doing projects for, then add topics under each.':'Your team lead has not selected any subjects yet.'}</p>
+          ${lead?`<button class="btn pri" style="margin-top:10px" onclick="Modal.selectSubjects('${g.id}')">${I.plus(14)} Select subjects</button>`:''}</div>`}
       </div>
     </div>`;
   },
@@ -1314,7 +1380,7 @@ const Page={
       ${AI.metricsCard()}
     </div>
 
-    ${Page.subjects((group(App.me.groupId)||{}).courseCode)}
+    ${Page.projectSubjects(g)}
 
     <div class="split">
       <div style="display:grid;gap:16px">
@@ -1371,32 +1437,46 @@ const Page={
   /* ---------- SUBJECTS hub ---------- */
   subjectsHub(){
     const g=group(App.me.groupId); if(!g) return Page.noGroup();
-    const ts=tasksOf(g.id), subs=SEM3.filter(s=>s.code!=='—');
+    const ts=tasksOf(g.id), lead=App.isLead, sel=groupSubjects(g);
+    const card=code=>{
+      const s=SEM3.find(x=>x.code===code)||{code,name:code,cat:'',cr:''};
+      const st=ts.filter(t=>t.courseCode===code), mine=st.filter(t=>t.assigneeId===App.me.id);
+      const done=st.filter(t=>t.status==='done').length, tops=groupTopics(g,code), p=pctOf(st);
+      return `<div class="gcard" onclick="App.openSubject('${code}')">
+        <div style="display:flex;gap:12px;align-items:flex-start">
+          <div style="flex:1;min-width:0">
+            <span class="mono" style="background:var(--accent-soft);color:var(--accent);border:1px solid var(--accent-line);border-radius:5px;padding:2px 6px;font-size:10.5px;font-weight:600">${esc(code)}</span>
+            <div style="font-weight:600;font-size:13.5px;margin-top:7px;line-height:1.3">${esc(s.name)}</div>
+            <div style="color:var(--muted);font-size:12px;margin-top:2px">${esc(s.cat)}${s.cr?' · '+(s.cr==='P/F'?'Pass/Fail':s.cr+' cr'):''} · ${tops.length} topic${tops.length===1?'':'s'}</div>
+          </div>
+          ${ring(p,52,p>=70?'green':p>=35?'accent':'amber')}
+        </div>
+        <div style="margin-top:12px;padding-top:11px;border-top:1px solid var(--line-2);display:flex;gap:5px;flex-wrap:wrap;align-items:center">
+          ${st.length?tag(st.length+' task'+(st.length===1?'':'s'),'gray'):''}
+          ${done?tag(done+' done','green'):''}
+          ${mine.length?tag(mine.length+' for you','accent'):''}
+          ${!st.length?`<span style="font-size:11.5px;color:var(--faint)">No tasks yet</span>`:''}
+          <span class="sp" style="flex:1"></span>${I.chev(15)}
+        </div>
+      </div>`;
+    };
+    const unsel=SEM3.filter(s=>s.code!=='—'&&!sel.includes(s.code));
     return `<div class="ph"><div><h1>Subjects</h1>
-        <p>${esc(g.name)} · ${esc(PROGRAM)} · Semester 3 — open a subject to see its tasks and reports</p></div></div>
-      <div class="grid3">${subs.map(s=>{
-        const st=ts.filter(t=>t.courseCode===s.code);
-        const mine=st.filter(t=>t.assigneeId===App.me.id);
-        const done=st.filter(t=>t.status==='done').length;
-        const p=pctOf(st), isProj=g.courseCode===s.code;
-        return `<div class="gcard" onclick="App.openSubject('${s.code}')">
-          <div style="display:flex;gap:12px;align-items:flex-start">
-            <div style="flex:1;min-width:0">
-              <span class="mono" style="background:var(--accent-soft);color:var(--accent);border:1px solid var(--accent-line);border-radius:5px;padding:2px 6px;font-size:10.5px;font-weight:600">${esc(s.code)}</span>
-              <div style="font-weight:600;font-size:13.5px;margin-top:7px;line-height:1.3">${esc(s.name)}</div>
-              <div style="color:var(--muted);font-size:12px;margin-top:2px">${esc(s.cat)} · ${s.cr==='P/F'?'Pass/Fail':s.cr+' cr'}${isProj?' · <span style="color:var(--accent);font-weight:600">project subject</span>':''}</div>
-            </div>
-            ${ring(p,52,p>=70?'green':p>=35?'accent':'amber')}
-          </div>
-          <div style="margin-top:12px;padding-top:11px;border-top:1px solid var(--line-2);display:flex;gap:5px;flex-wrap:wrap;align-items:center">
-            ${st.length?tag(st.length+' task'+(st.length===1?'':'s'),'gray'):''}
-            ${done?tag(done+' done','green'):''}
-            ${mine.length?tag(mine.length+' for you','accent'):''}
-            ${!st.length?`<span style="font-size:11.5px;color:var(--faint)">No tasks yet</span>`:''}
-            <span class="sp" style="flex:1"></span>${I.chev(15)}
-          </div>
-        </div>`;
-      }).join('')}</div>`;
+        <p>${esc(g.name)} · ${esc(PROGRAM)} · Semester 3 — the subjects your team is working on</p></div>
+        <div class="sp"></div>
+        ${lead?`<button class="btn pri" onclick="Modal.selectSubjects('${g.id}')">${I.edit(15)} Select subjects</button>`:''}</div>
+      ${sel.length?`<div class="grid3">${sel.map(card).join('')}</div>`
+        :`<div class="card"><div class="empty">${I.cap(24)}<div class="h">No subjects selected yet</div>
+          <p>${lead?'Select the subjects your team is doing projects for to get started.':'Your team lead has not selected any subjects yet.'}</p>
+          ${lead?`<button class="btn pri" style="margin-top:10px" onclick="Modal.selectSubjects('${g.id}')">${I.plus(14)} Select subjects</button>`:''}</div></div>`}
+      ${lead&&unsel.length?`<div class="sec" style="margin:20px 0 9px">Add more subjects</div>
+        <div class="grid3">${unsel.map(s=>`<div class="gcard" style="border-style:dashed" onclick="Modal.addSubject('${g.id}','${s.code}')">
+          <div style="display:flex;align-items:center;gap:10px">
+            <div class="av sm" style="background:var(--gray-s);color:var(--faint);border-radius:7px">${I.plus(14)}</div>
+            <div style="flex:1;min-width:0"><div style="font-weight:600;font-size:12.5px">${esc(s.name)}</div>
+              <div style="font-size:11px;color:var(--faint)"><span class="mono">${esc(s.code)}</span> · ${esc(s.cat)}</div></div>
+            <span class="btn sm">Add</span>
+          </div></div>`).join('')}</div>`:''}`;
   },
 
   /* ---------- SUBJECT detail: tasks + reports ---------- */
@@ -1407,13 +1487,16 @@ const Page={
     const mine=all.filter(t=>t.assigneeId===App.me.id);
     const ms=membersOf(g.id);
     const remarks=DB.s.remarks.filter(r=>r.groupId===g.id);
+    const lead=App.isLead, tops=groupTopics(g,code), filter=App.topicFilter;
+    const shown=filter?all.filter(t=>(t.topic||'')===filter):all;
     return `
     <div class="ph">
       <button class="btn ico" onclick="App.go('subjects')">${I.chev(15)}</button>
       <div><h1>${esc(c.name)}</h1>
-        <p><span class="mono">${esc(c.code)}</span> · ${esc(PROGRAM)} · ${all.length} task${all.length===1?'':'s'}${g.courseCode===code?' · project subject':''}</p></div>
+        <p><span class="mono">${esc(c.code)}</span> · ${esc(PROGRAM)} · ${all.length} task${all.length===1?'':'s'} · ${tops.length} topic${tops.length===1?'':'s'}</p></div>
       <div class="sp"></div>
-      ${App.isLead?`<button class="btn pri" onclick="Modal.taskForm(null,'todo','${code}')">${I.plus(15)} Assign task</button>`:''}
+      ${lead?`<button class="btn" onclick="Modal.manageTopics('${g.id}','${code}')">${I.list(14)} Manage topics</button>
+              <button class="btn pri" onclick="Modal.taskForm(null,'todo','${code}')">${I.plus(15)} Assign task</button>`:''}
     </div>
 
     <div class="kpis">
@@ -1423,10 +1506,17 @@ const Page={
       ${Page.kpi('Blocked',all.filter(t=>t.status==='blocked').length,'',all.some(t=>t.status==='blocked')?'red':'green')}
     </div>
 
-    <div class="sec" style="margin-bottom:9px">Tasks — ${esc(c.code)}</div>
-    ${all.length?Board.html(all,App.isLead)
-      :`<div class="card"><div class="empty">${I.inbox(24)}<div class="h">No tasks under this subject yet</div>
-        <p>${App.isLead?'Assign the first task with the button above.':'Your team lead has not assigned any tasks for this subject.'}</p></div></div>`}
+    <div style="display:flex;align-items:center;gap:8px;margin:2px 0 11px;flex-wrap:wrap">
+      <div class="sec" style="margin-right:2px">Topics</div>
+      <button class="chip ${!filter?'on':''}" onclick="App.filterTopicIdx(-1)">All · ${all.length}</button>
+      ${tops.map((tp,i)=>{const n=all.filter(t=>(t.topic||'')===tp).length;
+        return `<button class="chip ${filter===tp?'on':''}" onclick="App.filterTopicIdx(${i})">${esc(tp)} <span style="opacity:.55">${n}</span></button>`;}).join('')}
+      ${!tops.length?`<span style="font-size:11.5px;color:var(--faint)">No topics yet${lead?' — add with “Manage topics”':''}</span>`:''}
+    </div>
+    <div class="sec" style="margin-bottom:9px">Tasks — ${esc(c.code)}${filter?` · ${esc(filter)}`:''}</div>
+    ${shown.length?Board.html(shown,lead)
+      :`<div class="card"><div class="empty">${I.inbox(24)}<div class="h">${filter?'No tasks under this topic':'No tasks under this subject yet'}</div>
+        <p>${lead?'Assign a task with the button above.':'Your team lead has not assigned any tasks here.'}</p></div></div>`}
 
     <div class="split" style="margin-top:16px">
       <div class="card">
@@ -1506,15 +1596,20 @@ const Page={
         <div>Only the Team Lead (<b>${esc(user(g.leadId)?user(g.leadId).name:'—')}</b>) can add or remove members.</div></div>`}
 
     <div class="card" style="margin-bottom:16px">
-      <div class="ch">${I.cap(15)}<h3>Project subject</h3><div class="sp"></div>
-        ${lead?`<button class="btn sm" onclick="Modal.selectSubject('${g.id}')">${g.courseCode?`${I.edit(14)} Change`:`${I.plus(14)} Select subject`}</button>`:''}</div>
+      <div class="ch">${I.cap(15)}<h3>Project subjects</h3><div class="sp"></div>
+        <span style="font-size:12px;color:var(--muted)">${groupSubjects(g).length} selected</span>
+        ${lead?`<button class="btn sm" onclick="Modal.selectSubjects('${g.id}')">${I.edit(14)} Manage</button>`:''}</div>
       <div class="cb">
-        ${g.courseCode?(()=>{const c=SEM3.find(s=>s.code===g.courseCode)||{};return `<div style="display:flex;align-items:center;gap:11px">
-          <span class="mono" style="background:var(--accent-soft);color:var(--accent);border:1px solid var(--accent-line);border-radius:6px;padding:5px 9px;font-size:12.5px;font-weight:600;flex:none">${esc(g.courseCode)}</span>
-          <div style="min-width:0"><div style="font-weight:600;font-size:13px">${esc(c.name||g.subject)}</div>
-            <div style="font-size:11.5px;color:var(--muted)">${esc(PROGRAM)} · Semester 3${c.cr?(c.cr==='P/F'?' · Pass/Fail':' · '+c.cr+' credits'):''}</div></div>
-        </div>`;})()
-        :`<div style="font-size:12.5px;color:var(--muted)">${lead?'No subject selected yet — pick the course this project is for.':'Your team lead has not selected the project subject yet.'}</div>`}
+        ${groupSubjects(g).length?`<div style="display:flex;flex-direction:column;gap:8px">${groupSubjects(g).map(code=>{
+          const c=SEM3.find(s=>s.code===code)||{code,name:code}; const tops=groupTopics(g,code);
+          return `<div style="display:flex;align-items:center;gap:11px;padding:9px 10px;border:1px solid var(--line);border-radius:var(--r2)">
+            <span class="mono" style="background:var(--accent-soft);color:var(--accent);border:1px solid var(--accent-line);border-radius:6px;padding:4px 8px;font-size:12px;font-weight:600;flex:none">${esc(code)}</span>
+            <div style="flex:1;min-width:0"><div style="font-weight:600;font-size:12.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(c.name)}</div>
+              <div style="font-size:11px;color:var(--muted)">${tops.length} topic${tops.length===1?'':'s'}${tops.length?': '+esc(tops.slice(0,3).join(', '))+(tops.length>3?'…':''):''}</div></div>
+            ${lead?`<button class="btn sm gho" onclick="Modal.manageTopics('${g.id}','${code}')">${I.list(13)} Topics</button>`:''}
+            <button class="btn sm gho" onclick="App.openSubject('${code}')">Open</button>
+          </div>`;}).join('')}</div>`
+        :`<div style="font-size:12.5px;color:var(--muted)">${lead?'No subjects selected yet — use Manage to pick the courses your team is working on.':'Your team lead has not selected any subjects yet.'}</div>`}
       </div>
     </div>
 
@@ -1807,7 +1902,7 @@ const Board={
     const pc=t.status==='done'?100:t.progress, can=Board.canEdit(t);
     return `<div class="tc ${t.status==='done'?'is-done':''} ${t.id===Board.flash?'flash':''} ${can?'drag':''}" ${can?'draggable="true"':''} data-id="${t.id}" onclick="Modal.task('${t.id}')">
       <div class="t">${esc(t.title)}</div>
-      <div style="display:flex;gap:5px;flex-wrap:wrap">${tag(p.n,p.c)}${m?`<span class="tag" style="background:var(--gray-s);color:var(--muted)">${esc(m.role)}</span>`:''}</div>
+      <div style="display:flex;gap:5px;flex-wrap:wrap">${tag(p.n,p.c)}${m?`<span class="tag" style="background:var(--gray-s);color:var(--muted)">${esc(m.role)}</span>`:''}${t.topic?`<span class="tag" style="background:var(--accent-soft);color:var(--accent)">${esc(t.topic)}</span>`:''}</div>
       <div style="margin-top:9px;display:flex;align-items:center;gap:7px">
         <div style="flex:1">${bar(pc,s.c==='gray'?'accent':s.c)}</div>
         <span style="font-size:11px;color:var(--muted);font-weight:500">${pc}%</span></div>
@@ -2455,26 +2550,89 @@ const Modal={
     toast(I.trash(15),`Stopped supervising ${g.name}`);
   },
 
-  /* ---- team lead picks the project's subject / course ---- */
-  selectSubject(gid){
-    if(!App.isLead){ FX.tap('error'); return toast(I.lock(15),'Only the Team Lead can set the subject'); }
-    const g=group(gid||App.me.groupId), opts=SEM3.filter(s=>s.code!=='—');
+  /* ---- team lead selects the subjects the team works on ---- */
+  selectSubjects(gid){
+    if(!App.isLead){ FX.tap('error'); return toast(I.lock(15),'Only the Team Lead can select subjects'); }
+    const g=group(gid||App.me.groupId), sel=groupSubjects(g), opts=SEM3.filter(s=>s.code!=='—');
     Modal.open(`
-      <div class="mh"><h3>Project subject</h3><button class="btn ico sm gho" onclick="Modal.close()">${I.x(15)}</button></div>
+      <div class="mh"><h3>Select project subjects</h3><button class="btn ico sm gho" onclick="Modal.close()">${I.x(15)}</button></div>
       <div class="mb">
-        <div class="banner info">${I.cap(16)}<div>Choose the course this project is submitted for. ${esc(PROGRAM)} · ${esc(INSTITUTE)} · Semester 3.</div></div>
-        <div class="field"><label>Course / subject</label>
-          <select class="inp" id="sub_pick">${opts.map(s=>`<option value="${s.code}" ${g.courseCode===s.code?'selected':''}>${s.code} — ${esc(s.name)}${s.cr==='P/F'?'':' ('+s.cr+' cr)'}</option>`).join('')}</select></div>
+        <div class="banner info">${I.cap(16)}<div>Tick every course your team is doing a project for. ${esc(PROGRAM)} · ${esc(INSTITUTE)} · Semester 3. You can add topics under each afterwards.</div></div>
+        <div style="display:grid;gap:7px">
+          ${opts.map(s=>`<label style="display:flex;align-items:center;gap:10px;padding:9px 11px;border:1px solid var(--line);border-radius:var(--r2);cursor:pointer">
+            <input type="checkbox" class="sub_ck" value="${s.code}" ${sel.includes(s.code)?'checked':''} style="width:16px;height:16px;accent-color:var(--accent);flex:none"/>
+            <span class="mono" style="background:var(--accent-soft);color:var(--accent);border:1px solid var(--accent-line);border-radius:5px;padding:2px 6px;font-size:10.5px;font-weight:600;flex:none">${s.code}</span>
+            <span style="flex:1;min-width:0;font-size:12.5px;font-weight:500">${esc(s.name)}</span>
+            <span style="font-size:11px;color:var(--faint);white-space:nowrap">${esc(s.cat)}${s.cr==='P/F'?'':' · '+s.cr+' cr'}</span>
+          </label>`).join('')}
+        </div>
+        <div id="sub_err"></div>
       </div>
       <div class="mf"><div class="sp"></div><button class="btn" onclick="Modal.close()">Cancel</button>
-        <button class="btn pri" onclick="Modal.saveSubject('${g.id}')">Save subject</button></div>`);
+        <button class="btn pri" onclick="Modal.saveSubjects('${g.id}')">Save subjects</button></div>`);
   },
-  saveSubject(gid){
-    const code=document.getElementById('sub_pick').value, c=SEM3.find(s=>s.code===code);
-    if(!c) return;
-    const g=group(gid); g.courseCode=code; g.subject=c.code+' · '+c.name;
-    log(gid,`set the project subject to <b>${esc(c.code)} ${esc(c.name)}</b>`);
-    DB.save(); FX.tap('done'); Modal.close(); App.render(); toast(I.check(15),`Subject set to ${c.code}`);
+  saveSubjects(gid){
+    const g=group(gid);
+    const picked=[...document.querySelectorAll('.sub_ck:checked')].map(x=>x.value);
+    if(!picked.length) return Modal.err('sub_err','Select at least one subject.');
+    g.subjects=picked; g.topics=g.topics||{};
+    Object.keys(g.topics).forEach(k=>{ if(!picked.includes(k)) delete g.topics[k]; });
+    g.courseCode=picked[0]; const c0=SEM3.find(s=>s.code===picked[0]); g.subject=c0?c0.code+' · '+c0.name:g.subject;
+    log(gid,`updated the team's subjects to <b>${esc(picked.join(', '))}</b>`);
+    DB.save(); FX.tap('done'); Modal.close(); App.render();
+    toast(I.check(15),`${picked.length} subject${picked.length===1?'':'s'} selected`);
+  },
+  addSubject(gid,code){
+    if(!App.isLead){ FX.tap('error'); return; }
+    const g=group(gid); g.subjects=groupSubjects(g).slice();
+    if(!g.subjects.includes(code)) g.subjects.push(code);
+    g.topics=g.topics||{}; g.courseCode=g.courseCode||code;
+    const c=SEM3.find(s=>s.code===code)||{};
+    log(gid,`added subject <b>${esc(code)} ${esc(c.name||'')}</b>`);
+    DB.save(); FX.tap('done'); App.render(); toast(I.check(15),`Added ${code}`);
+  },
+
+  /* ---- team lead defines topics under a subject ---- */
+  manageTopics(gid,code){
+    if(!App.isLead){ FX.tap('error'); return toast(I.lock(15),'Only the Team Lead can manage topics'); }
+    const c=SEM3.find(s=>s.code===code)||{code,name:code};
+    Modal.open(`
+      <div class="mh"><h3>Topics — ${esc(c.code)}</h3><button class="btn ico sm gho" onclick="Modal.close();App.render()">${I.x(15)}</button></div>
+      <div class="mb">
+        <div style="font-size:12.5px;color:var(--muted);line-height:1.5">${esc(c.name)} — break this subject into topics; tasks can then be assigned under a topic.</div>
+        <div id="topList" style="display:grid;gap:7px">${Modal._topicRows(gid,code)}</div>
+        <div style="display:flex;gap:7px">
+          <input class="inp" id="topIn" placeholder="e.g. Model training" onkeydown="if(event.key==='Enter')Modal.addTopic('${gid}','${code}')"/>
+          <button class="btn pri" onclick="Modal.addTopic('${gid}','${code}')">${I.plus(14)} Add</button>
+        </div>
+      </div>
+      <div class="mf"><div class="sp"></div><button class="btn pri" onclick="Modal.close();App.render()">Done</button></div>`);
+  },
+  _topicRows(gid,code){
+    const tops=groupTopics(group(gid),code);
+    if(!tops.length) return `<div style="font-size:12px;color:var(--faint);padding:4px 0">No topics yet — add the first one below.</div>`;
+    return tops.map((tp,i)=>`<div style="display:flex;align-items:center;gap:9px;padding:8px 10px;border:1px solid var(--line);border-radius:var(--r2)">
+      <span class="pt" style="width:7px;height:7px;background:var(--accent)"></span>
+      <span style="flex:1;font-size:12.5px;font-weight:500">${esc(tp)}</span>
+      <button class="btn ico sm gho" title="Remove topic" onclick="Modal.removeTopic('${gid}','${code}',${i})">${I.trash(14)}</button>
+    </div>`).join('');
+  },
+  addTopic(gid,code){
+    const el=document.getElementById('topIn'), txt=(el.value||'').trim(); if(!txt) return;
+    const g=group(gid); g.topics=g.topics||{}; g.topics[code]=g.topics[code]||[];
+    if(g.topics[code].some(x=>x.toLowerCase()===txt.toLowerCase())){ FX.tap('error'); el.value=''; return; }
+    g.topics[code].push(txt);
+    log(gid,`added topic <b>${esc(txt)}</b> under ${esc(code)}`);
+    DB.save(); FX.tap('med'); el.value='';
+    const list=document.getElementById('topList'); if(list) list.innerHTML=Modal._topicRows(gid,code);
+  },
+  removeTopic(gid,code,i){
+    const g=group(gid); if(!g.topics||!g.topics[code]) return;
+    const removed=g.topics[code][i]; g.topics[code].splice(i,1);
+    DB.s.tasks.forEach(t=>{ if(t.groupId===gid&&t.courseCode===code&&t.topic===removed) t.topic=null; });
+    log(gid,`removed topic <b>${esc(removed||'')}</b> from ${esc(code)}`);
+    DB.save(); FX.tap('error');
+    const list=document.getElementById('topList'); if(list) list.innerHTML=Modal._topicRows(gid,code);
   },
 
   /* ---- tasks ---- */
@@ -2489,6 +2647,7 @@ const Modal={
       <div class="mb">
         <div style="display:flex;gap:5px;flex-wrap:wrap">${tag(s.n,s.c)}${tag(p.n+' priority',p.c)}
           ${t.courseCode?`<span class="tag mono" style="background:var(--accent-soft);color:var(--accent)">${esc(t.courseCode)}</span>`:''}
+          ${t.topic?`<span class="tag" style="background:var(--gray-s);color:var(--ink-2)">${esc(t.topic)}</span>`:''}
           <span class="tag" style="background:var(--gray-s);color:var(--muted)">${esc(g.name)}</span>
           <span class="tag" style="background:var(--gray-s);color:var(--muted)">Due ${dstr(t.due)}</span></div>
 
@@ -2553,19 +2712,34 @@ const Modal={
     DB.save(); FX.tap('med'); App.render(); Modal.task(id);
   },
 
+  _topicOpts(code,cur){
+    const tops=groupTopics(group(App.me.groupId),code);
+    return `<option value="">— No topic —</option>`+tops.map(tp=>`<option value="${esc(tp)}" ${cur===tp?'selected':''}>${esc(tp)}</option>`).join('');
+  },
+  syncTopics(){
+    const sc=document.getElementById('f_subject'), tp=document.getElementById('f_topic');
+    if(sc&&tp) tp.innerHTML=Modal._topicOpts(sc.value,null);
+  },
   taskForm(id,status='todo',preCode){
     if(!App.isLead){ FX.tap('error'); return toast(I.lock(15),'Only the Team Lead can create or edit tasks'); }
     const t=id?DB.s.tasks.find(x=>x.id===id):null;
     const ms=membersOf(App.me.groupId);
     const due=t?t.due:now()+5*864e5;
-    const curCode=t?t.courseCode:(preCode||(group(App.me.groupId)||{}).courseCode);
+    const g0=group(App.me.groupId), gsubs=groupSubjects(g0);
+    const subjList=gsubs.length?SEM3.filter(s=>gsubs.includes(s.code)):SEM3.filter(s=>s.code!=='—');
+    const curCode=t?t.courseCode:(preCode||gsubs[0]||(g0||{}).courseCode);
+    const curTopic=t?t.topic:null;
     Modal.open(`
       <div class="mh"><h3>${t?'Edit task':'New task'}</h3><button class="btn ico sm gho" onclick="Modal.close()">${I.x(15)}</button></div>
       <div class="mb">
         <div class="field"><label>Title</label><input class="inp" id="f_title" value="${t?esc(t.title):''}" placeholder="What needs to be done?"/></div>
         <div class="field"><label>Description</label><textarea class="inp" id="f_desc" placeholder="Describe what done looks like">${t?esc(t.desc):''}</textarea></div>
-        <div class="field"><label>Subject</label>
-          <select class="inp" id="f_subject">${SEM3.filter(s=>s.code!=='—').map(s=>`<option value="${s.code}" ${curCode===s.code?'selected':''}>${s.code} — ${esc(s.name)}</option>`).join('')}</select></div>
+        <div class="two">
+          <div class="field"><label>Subject</label>
+            <select class="inp" id="f_subject" onchange="Modal.syncTopics()">${subjList.map(s=>`<option value="${s.code}" ${curCode===s.code?'selected':''}>${s.code} — ${esc(s.name)}</option>`).join('')}</select></div>
+          <div class="field"><label>Topic <span style="color:var(--faint);font-weight:400">(optional)</span></label>
+            <select class="inp" id="f_topic">${Modal._topicOpts(curCode,curTopic)}</select></div>
+        </div>
         <div class="field"><label>Assign to</label>
           <select class="inp" id="f_ass">${ms.map(m=>`<option value="${m.id}" ${t&&t.assigneeId===m.id?'selected':''}>${esc(m.name)} — ${m.role}</option>`).join('')}</select></div>
         <div class="two">
@@ -2586,17 +2760,18 @@ const Modal={
     const prioV=document.getElementById('f_prio').value;
     const status=document.getElementById('f_status').value;
     const courseCode=document.getElementById('f_subject').value;
+    const topic=(document.getElementById('f_topic')||{}).value||null;
     const dv=document.getElementById('f_due').value;
     const due=dv?new Date(dv+'T12:00:00').getTime():now();
     const m=user(assigneeId);
     if(id){
       const t=DB.s.tasks.find(x=>x.id===id), re=t.assigneeId!==assigneeId;
-      Object.assign(t,{title,desc,assigneeId,prio:prioV,status,due,courseCode,updatedAt:now()});
+      Object.assign(t,{title,desc,assigneeId,prio:prioV,status,due,courseCode,topic,updatedAt:now()});
       if(status==='done') t.progress=100;
       log(t.groupId, re?`reassigned <b>${esc(title)}</b> to <b>${esc(m.name)}</b> (${m.role})`:`updated <b>${esc(title)}</b>`);
       toast(I.check(15),'Task updated');
     }else{
-      DB.s.tasks.push({id:uid(),groupId:App.me.groupId,assigneeId,title,desc,status,prio:prioV,due,courseCode,
+      DB.s.tasks.push({id:uid(),groupId:App.me.groupId,assigneeId,title,desc,status,prio:prioV,due,courseCode,topic,
         progress:status==='done'?100:0,createdAt:now(),updatedAt:now(),comments:[]});
       log(App.me.groupId,`assigned <b>${esc(title)}</b> to <b>${esc(m.name)}</b> (${m.role})`);
       toast(I.check(15),`Assigned to ${m.name.split(' ')[0]}`);
