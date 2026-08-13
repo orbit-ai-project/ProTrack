@@ -3460,10 +3460,9 @@ const Modal={
   sendSupervisionRequest(){
     const facSubj = App.me.subjectCode || '23AID205';
     const subjObj = SEM3.find(s => s.code === facSubj) || { code: facSubj, name: 'Subject' };
-
-    // Show loading modal while we fetch groups from backend
     Modal.open(`
-      <div class="mh">${I.mail(18)} <h3>Send Supervision Request</h3>
+      <div class="mh">
+        ${I.mail(18)} <h3>Send Supervision Request</h3>
         <button class="btn ico sm gho" onclick="Modal.close()">${I.x(15)}</button>
       </div>
       <div class="mb">
@@ -3471,83 +3470,88 @@ const Modal={
           ${I.cap(16)}
           <div><b>Teaching Subject:</b> <span class="mono">${esc(subjObj.code)}</span> · ${esc(subjObj.name)}</div>
         </div>
-        <div id="req_groups_area">
-          <div style="text-align:center;padding:20px;color:var(--muted)">⏳ Loading groups from server...</div>
+        <div class="field">
+          <label>Target Group Number or Team Lead Name</label>
+          <input class="inp" id="req_group_input" placeholder="e.g. 03, Group 03, or yugal" autofocus/>
+          <span class="hint">Type the Group Name (e.g. "03" / "Group 03") or the Team Lead's name.</span>
         </div>
         <div id="req_err"></div>
       </div>
       <div class="mf">
         <div class="sp"></div>
         <button class="btn" onclick="Modal.close()">Cancel</button>
-        <button class="btn pri" id="req_send_btn" disabled onclick="Modal.doSendSupervisionRequest()">${I.mail(14)} Send Request</button>
+        <button class="btn pri" id="req_send_btn" onclick="Modal.doSendSupervisionRequest()">${I.mail(14)} Send Request</button>
       </div>
     `);
-
-    // Fetch all groups from backend to show real options
-    fetch(API_URL + '/api/sync')
-      .then(r => r.ok ? r.json() : null)
-      .then(data => {
-        const allGroups = (data && data.groups) || DB.s.groups || [];
-        // Merge with local groups ensuring no duplicates
-        const localGroups = DB.s.groups || [];
-        const merged = [...allGroups];
-        localGroups.forEach(lg => { if (!merged.find(g => g.id === lg.id)) merged.push(lg); });
-        // Update local data with server data
-        if (data && data.groups) { DB.s.groups = merged; DB.s.invites = data.invites || DB.s.invites || []; }
-
-        const area = document.getElementById('req_groups_area');
-        if (!area) return;
-        if (!merged.length) {
-          area.innerHTML = '<p style="color:var(--red);font-size:12.5px">No groups found. Ensure the backend server is running.</p>';
-          return;
-        }
-        area.innerHTML = `
-          <div class="field">
-            <label>Select Group to Supervise</label>
-            <select class="inp" id="req_group_sel" onchange="document.getElementById('req_send_btn').disabled=!this.value">
-              <option value="">— Pick a group —</option>
-              ${merged.map(g => {
-                const lead = (data?.users||DB.s.users||[]).find(u => u.id === g.leadId);
-                return `<option value="${g.id}">${esc(g.name)}${g.project&&g.project!=='—'?' · '+esc(g.project):''}${lead?' (Lead: '+esc(lead.name)+')':''}</option>`;
-              }).join('')}
-            </select>
-            <span class="hint">Select the group you want to supervise. Request goes to their Team Lead.</span>
-          </div>`;
-      })
-      .catch(() => {
-        // Fallback to localStorage groups if backend not reachable
-        const area = document.getElementById('req_groups_area');
-        if (!area) return;
-        const groups = DB.s.groups || [];
-        if (!groups.length) { area.innerHTML = '<p style="color:var(--red);font-size:12.5px">No groups found. Cannot reach server.</p>'; return; }
-        area.innerHTML = `
-          <div class="field">
-            <label>Select Group (local data — server offline)</label>
-            <select class="inp" id="req_group_sel" onchange="document.getElementById('req_send_btn').disabled=!this.value">
-              <option value="">— Pick a group —</option>
-              ${groups.map(g => `<option value="${g.id}">${esc(g.name)}${g.project&&g.project!=='—'?' · '+esc(g.project):''}</option>`).join('')}
-            </select>
-          </div>`;
-      });
   },
 
   async doSendSupervisionRequest(){
-    const sel = document.getElementById('req_group_sel');
-    if (!sel || !sel.value) return Modal.err('req_err', 'Please select a group.');
-    const groupId = sel.value;
-    const facSubj = App.me.subjectCode || '23AID205';
-
-    // Check if already pending in local data
-    DB.s.invites = DB.s.invites || [];
-    const alreadyLocal = DB.s.invites.find(i => i.groupId === groupId && i.facultyId === App.me.id && i.status === 'pending');
-    if (alreadyLocal) return Modal.err('req_err', 'You already have a pending request for this group.');
+    const inputEl = document.getElementById('req_group_input');
+    if (!inputEl) return;
+    const q = inputEl.value.trim();
+    if (!q) return Modal.err('req_err', 'Please enter a group number or Team Lead name.');
 
     const btn = document.getElementById('req_send_btn');
     if (btn) { btn.disabled = true; btn.textContent = 'Sending…'; }
 
+    // Always fetch latest state first to ensure we match against fresh backend data
+    try {
+      const res = await fetch(API_URL + '/api/sync');
+      if (res.ok) {
+        const data = await res.json();
+        if (data && data.users) {
+          DB.s = data;
+          localStorage.setItem(K_STATE, JSON.stringify(DB.s));
+        }
+      }
+    } catch(e) {}
+
+    const cleanStr = s => s.toLowerCase().replace(/^group\s*/i, '').trim();
+    const targetQ = cleanStr(q);
+
+    // 1. Try to find group by group name or group ID matching
+    let matchedGroup = DB.s.groups.find(g => {
+      const gNameClean = cleanStr(g.name);
+      return (
+        g.name.toLowerCase() === q.toLowerCase() ||
+        g.id.toLowerCase() === q.toLowerCase() ||
+        gNameClean === targetQ ||
+        ('0' + gNameClean) === targetQ ||
+        gNameClean === ('0' + targetQ)
+      );
+    });
+
+    // 2. If not matched, try to find by Team Lead's name
+    if (!matchedGroup) {
+      const matchedLead = DB.s.users.find(u => 
+        u.role === 'Team Lead' && 
+        (u.name.toLowerCase() === q.toLowerCase() || 
+         u.name.toLowerCase().includes(q.toLowerCase()))
+      );
+      if (matchedLead && matchedLead.groupId) {
+        matchedGroup = DB.s.groups.find(g => g.id === matchedLead.groupId);
+      }
+    }
+
+    if (!matchedGroup) {
+      if (btn) { btn.disabled = false; btn.innerHTML = `${I.mail(14)} Send Request`; }
+      return Modal.err('req_err', `No group or Team Lead matches '${q}'. Try '03' or 'yugal'.`);
+    }
+
+    const groupId = matchedGroup.id;
+    const facSubj = App.me.subjectCode || '23AID205';
+
+    // Check if already pending locally/in DB
+    DB.s.invites = DB.s.invites || [];
+    const alreadyLocal = DB.s.invites.find(i => i.groupId === groupId && i.facultyId === App.me.id && i.status === 'pending');
+    if (alreadyLocal) {
+      if (btn) { btn.disabled = false; btn.innerHTML = `${I.mail(14)} Send Request`; }
+      return Modal.err('req_err', `You already have a pending request for ${matchedGroup.name}.`);
+    }
+
     let sent = false;
 
-    // Try backend first (works if server is running on localhost:4000)
+    // Try backend direct invite
     try {
       const res = await fetch(API_URL + '/api/invites/direct', {
         method: 'POST',
@@ -3565,32 +3569,26 @@ const Modal={
         if (btn) { btn.disabled = false; btn.innerHTML = `${I.mail(14)} Send Request`; }
         return Modal.err('req_err', data.error || 'Failed to send request.');
       }
-      // Success via backend — refresh all data
       sent = true;
       await API.check();
-    } catch(e) {
-      // Backend not reachable — fall back to localStorage only
-    }
+    } catch(e) {}
 
     if (!sent) {
-      // Fallback: save in localStorage only
-      const g = DB.s.groups.find(x => x.id === groupId);
-      if (!g) return Modal.err('req_err', 'Group not found.');
+      // Offline fallback
       const inv = {
         id: 'inv-' + uid().slice(0, 8),
-        groupId: g.id, groupName: g.name,
+        groupId: matchedGroup.id, groupName: matchedGroup.name,
         facultyId: App.me.id, facultyName: App.me.name, facultyEmail: App.me.email,
         subjectCode: facSubj, status: 'pending', ts: now()
       };
       DB.s.invites.unshift(inv);
-      log(g.id, `sent a supervision request for subject <b>${esc(facSubj)}</b>`);
+      log(matchedGroup.id, `sent a supervision request for subject <b>${esc(facSubj)}</b>`);
       DB.save();
     }
 
     FX.tap('done');
     Modal.close();
-    const g = DB.s.groups.find(x => x.id === groupId);
-    toast(I.check(15), `Supervision request sent to ${g ? g.name : 'group'}!`);
+    toast(I.check(15), `Supervision request sent to ${matchedGroup.name}!`);
     App.render();
   },
 
