@@ -1,4 +1,4 @@
-# 🛰️ Orbit AI — College Project Tracker
+# 🛰️ Pro Track — College Project Tracker
 
 [![Live Demo](https://img.shields.io/badge/%F0%9F%9A%80_Live_Demo-Open_App-4C5FD5?style=for-the-badge)](https://orbit-ai-project.github.io/orbit-ai-project-tracker/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-1E8A5C.svg?style=for-the-badge)](LICENSE)

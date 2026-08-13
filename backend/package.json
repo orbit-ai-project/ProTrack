@@ -1,7 +1,7 @@
 {
-  "name": "orbit-backend",
+  "name": "pro-track-backend",
   "version": "1.0.0",
-  "description": "Backend API for the Orbit AI project tracker (Express + JWT + JSON store). Pure JavaScript — runs on any PC or Mac with Node.js, no build tools.",
+  "description": "Backend API for Pro Track project tracker (Express + JWT + JSON store). Pure JavaScript — runs on any PC or Mac with Node.js, no build tools.",
   "type": "commonjs",
   "main": "server.js",
   "engines": {

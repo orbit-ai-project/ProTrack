@@ -1,4 +1,4 @@
-# ▶️ How to Run Orbit AI
+# ▶️ How to Run Pro Track
 
 Two ways to run it. **Way 1** needs nothing but a browser (great for a demo/viva).
 **Way 2** runs the real backend too.
@@ -55,7 +55,7 @@ You should see:
 Leave this terminal running. The API is now live at **http://localhost:4000**.
 
 Quick check — open http://localhost:4000 in a browser, you should see:
-`{"ok":true,"service":"Orbit AI API",...}`
+`{"ok":true,"service":"Pro Track API",...}`
 
 ### Step 2 — Open the frontend
 Open **`frontend/index.html`** in your browser (same as Way 1).
@@ -109,7 +109,7 @@ Wait for:
 🚀 Orbit API running at http://localhost:4000
 ```
 Test it: open **http://localhost:4000** in your browser — you should see
-`{"ok":true,"service":"Orbit AI API",...}`. **Leave this terminal running.**
+`{"ok":true,"service":"Pro Track API",...}`. **Leave this terminal running.**
 
 ### 3) Terminal 2 — serve the FRONTEND on localhost
 Open a **second** terminal in the project folder (don't close the first). Pick any one:
