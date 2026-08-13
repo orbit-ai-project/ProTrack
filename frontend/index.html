@@ -1135,6 +1135,7 @@ const App={
       const gs=myGroups();
       return [
         ['dashboard','Dashboard',I.home],
+        ['assistant','AI Assistant',I.spark],
         ['analytics','Analytics',I.chart],
         ['calendar','Calendar',I.cal],
         ['groups','Groups',I.folder,gs.length],
@@ -1145,6 +1146,7 @@ const App={
     const my=tasksFor(App.me.id).filter(t=>t.status!=='done').length;
     return [
       ['dashboard','Dashboard',I.home],
+      ['assistant','AI Assistant',I.spark],
       ['subjects','Subjects',I.cap],
       ['calendar','Calendar',I.cal],
       ['board','Task Board',I.board],
@@ -1168,7 +1170,7 @@ const App={
        <div style="flex:1;min-width:0"><div class="nm">${esc(App.me.name)}</div><div class="rl">${esc(App.me.role)}</div></div>
        ${I.chev(14)}`;
 
-    const titles={dashboard:'Dashboard',analytics:'Analytics',subjects:'Subjects',calendar:'Calendar',groups:'Groups',people:'People',activity:'Activity',
+    const titles={dashboard:'Dashboard',assistant:'AI Assistant',analytics:'Analytics',subjects:'Subjects',calendar:'Calendar',groups:'Groups',people:'People',activity:'Activity',
       board:'Task Board',mytasks:'My Tasks',team:'My Team',groupactivity:'Activity',group:'Group'};
     const g=App.openGroup?group(App.openGroup):null;
     const subC=App.openSubjectCode?SEM3.find(s=>s.code===App.openSubjectCode):null;
@@ -1184,6 +1186,7 @@ const App={
     Board._rects=Board.capture();
     v.innerHTML=`<div class="wrap">${
       App.tab==='dashboard' ? (App.isFaculty?Page.facDash():Page.stuDash()) :
+      App.tab==='assistant' ? Page.assistant() :
       App.tab==='analytics' ? Page.analytics() :
       App.tab==='subjects'  ? Page.subjectsHub() :
       App.tab==='subject'   ? Page.subjectDetail(App.openSubjectCode) :
@@ -1304,11 +1307,6 @@ const Page={
       ${Page.kpi('Blocked',blocked.length,blocked.length?'awaiting resolution':'nothing stuck',blocked.length?'red':'green')}
       ${Page.kpi('Overdue',overdue.length,overdue.length?'past due date':'all on schedule',overdue.length?'amber':'green')}
       ${Page.kpi('Online now',onlineN,'students signed in','green')}
-    </div>
-
-    <div style="display:grid;grid-template-columns:1fr 320px;gap:16px;align-items:start;margin-bottom:16px">
-      ${AI.insightsCard()}
-      ${AI.metricsCard()}
     </div>
 
     <div class="split">
