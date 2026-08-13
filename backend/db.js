@@ -9,7 +9,7 @@ const path = require('path');
 const crypto = require('crypto');
 const bcrypt = require('bcryptjs');
 
-const DATA_FILE = path.join(__dirname, 'data.json');
+const DATA_FILE = process.env.DATA_FILE || path.join(__dirname, 'data.json');
 const uid = () => crypto.randomUUID();
 
 /* ---------- Semester-3 subjects (Amrita Faridabad, B.Tech AI & DS) ---------- */

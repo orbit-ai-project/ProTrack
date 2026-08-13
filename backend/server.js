@@ -11,18 +11,33 @@ const express = require('express');
 const cors = require('cors');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const { store, save, uid, SUBJECTS } = require('./db');
+const rateLimit = require('express-rate-limit');
+const { store, save: dbSave, uid, SUBJECTS } = require('./db');
 
 const app = express();
 const PORT = process.env.PORT || 4000;
 const SECRET = process.env.JWT_SECRET || 'dev-secret-change-me';
+if (process.env.NODE_ENV !== 'test' && SECRET === 'dev-secret-change-me') {
+  console.warn('⚠️  JWT_SECRET is not set — using an insecure default. Copy .env.example to .env and set a real secret before deploying anywhere.');
+}
 
-const UPLOADS_DIR = path.join(__dirname, 'uploads');
+const UPLOADS_DIR = process.env.UPLOADS_DIR || path.join(__dirname, 'uploads');
 if (!fs.existsSync(UPLOADS_DIR)) fs.mkdirSync(UPLOADS_DIR);
 
 app.use(cors());
 app.use(express.json({ limit: '4mb' })); // photos arrive as base64 JSON, need headroom over the default 100kb
 app.use('/uploads', express.static(UPLOADS_DIR));
+
+/* ---------- rate limiting — brute-force / spam protection ----------
+   Login keeps its real limit even under test (the test suite verifies it
+   actually engages). Register/password-reset are relaxed under test since
+   the test fixtures legitimately create many accounts in a short span. */
+const isTest = process.env.NODE_ENV === 'test';
+const rateLimited = (req, res) => res.status(429).json({ error: 'Too many attempts. Please wait a bit and try again.' });
+const loginLimiter = rateLimit({ windowMs: 10 * 60 * 1000, max: 8, standardHeaders: true, legacyHeaders: false, handler: rateLimited });
+const registerLimiter = rateLimit({ windowMs: 60 * 60 * 1000, max: isTest ? 10000 : 5, standardHeaders: true, legacyHeaders: false, handler: rateLimited });
+const passwordLimiter = rateLimit({ windowMs: 60 * 60 * 1000, max: isTest ? 10000 : 10, standardHeaders: true, legacyHeaders: false, handler: rateLimited });
+const aiLimiter = rateLimit({ windowMs: 10 * 60 * 1000, max: isTest ? 10000 : 20, standardHeaders: true, legacyHeaders: false, handler: rateLimited });
 
 /* ---------- helpers ---------- */
 const now = () => Date.now();
@@ -53,6 +68,18 @@ function logAct(groupId, userId, text) {
 const presence = new Map();
 const ONLINE_WINDOW = 12000;
 
+/* ---------- live updates over SSE — one connection per signed-in tab.
+   Broadcasting to everyone (not just the affected group) keeps this simple and
+   correct at this app's scale: clients just re-fetch their own scoped bootstrap,
+   which is cheap, so there's no need to compute exactly who's affected. ---------- */
+const sseClients = new Set();
+function broadcastChange() {
+  for (const res of sseClients) { try { res.write('data: changed\n\n'); } catch (e) {} }
+}
+/* every mutation in this file calls save() (imported as dbSave + wrapped here),
+   so this one wrapper is all it takes to notify every connected client. */
+function save() { dbSave(); broadcastChange(); }
+
 /* ---------- auth middleware ---------- */
 function auth(req, res, next) {
   const h = req.headers.authorization || '';
@@ -73,7 +100,7 @@ function auth(req, res, next) {
 /* ============================================================
    AUTH
    ============================================================ */
-app.post('/api/auth/login', (req, res) => {
+app.post('/api/auth/login', loginLimiter, (req, res) => {
   const { email, password } = req.body || {};
   if (!email || !password) return res.status(400).json({ error: 'Enter email and password.' });
   const u = byEmail(email);
@@ -83,7 +110,7 @@ app.post('/api/auth/login', (req, res) => {
   res.json({ token: sign(u.id), user: publicUser(u) });
 });
 
-app.post('/api/auth/register-lead', (req, res) => {
+app.post('/api/auth/register-lead', registerLimiter, (req, res) => {
   const { name, email, password, groupName, project, courseCode } = req.body || {};
   if (!name) return res.status(400).json({ error: 'Enter your full name.' });
   if (!emailOk(email)) return res.status(400).json({ error: 'Enter a valid email address.' });
@@ -104,7 +131,7 @@ app.post('/api/auth/register-lead', (req, res) => {
   res.json({ token: sign(userId), user: publicUser(u) });
 });
 
-app.post('/api/auth/register-faculty', (req, res) => {
+app.post('/api/auth/register-faculty', registerLimiter, (req, res) => {
   const { name, email, password, subjectCode } = req.body || {};
   if (!name) return res.status(400).json({ error: 'Enter your full name.' });
   if (!emailOk(email)) return res.status(400).json({ error: 'Enter a valid email address.' });
@@ -130,7 +157,7 @@ app.patch('/api/me', auth, (req, res) => {
   res.json(publicUser(req.user));
 });
 
-app.post('/api/me/change-password', auth, (req, res) => {
+app.post('/api/me/change-password', passwordLimiter, auth, (req, res) => {
   const { oldPassword, newPassword } = req.body || {};
   if (!bcrypt.compareSync(oldPassword || '', req.user.passHash))
     return res.status(400).json({ error: 'Your current password is incorrect.' });
@@ -168,6 +195,25 @@ app.delete('/api/me/photo', auth, (req, res) => {
 });
 
 app.post('/api/presence/beat', auth, (req, res) => { presence.set(req.user.id, now()); res.json({ ok: true }); });
+
+/* EventSource can't send an Authorization header, so the token comes in the query
+   string here instead — same JWT, just a different transport for this one route. */
+app.get('/api/events', (req, res) => {
+  let user;
+  try { user = findUser(jwt.verify(req.query.token || '', SECRET).id); } catch (e) {}
+  if (!user) return res.status(401).end();
+  presence.set(user.id, now());
+
+  res.writeHead(200, {
+    'Content-Type': 'text/event-stream',
+    'Cache-Control': 'no-cache',
+    Connection: 'keep-alive',
+  });
+  res.write('retry: 3000\n\n');
+  sseClients.add(res);
+  const beat = setInterval(() => { try { res.write(': ping\n\n'); } catch (e) {} }, 20000);
+  req.on('close', () => { clearInterval(beat); sseClients.delete(res); });
+});
 
 /* ============================================================
    BOOTSTRAP — everything the signed-in user can see, in one call
@@ -231,7 +277,7 @@ app.post('/api/members', auth, (req, res) => {
   res.json(publicUser(u));
 });
 
-app.post('/api/members/:id/reset-password', auth, (req, res) => {
+app.post('/api/members/:id/reset-password', passwordLimiter, auth, (req, res) => {
   if (!isLead(req.user)) return res.status(403).json({ error: 'Only the Team Lead can reset passwords.' });
   const m = findUser(req.params.id);
   if (!m || m.groupId !== req.user.groupId) return res.status(404).json({ error: 'Member not found.' });
@@ -508,6 +554,67 @@ app.post('/api/remarks', auth, (req, res) => {
   res.json(r);
 });
 
+/* ============================================================
+   AI ASSISTANT — proxies to Anthropic so the API key never reaches the
+   browser. Requires ANTHROPIC_API_KEY in .env; the frontend falls back
+   to its built-in rule-based answers if this isn't configured.
+   ============================================================ */
+app.post('/api/ai/ask', aiLimiter, auth, async (req, res) => {
+  const question = (req.body && req.body.question || '').trim();
+  if (!question) return res.status(400).json({ error: 'Ask something first.' });
+  if (!process.env.ANTHROPIC_API_KEY)
+    return res.status(501).json({ error: 'AI assistant is not configured on this server (missing ANTHROPIC_API_KEY).' });
+  if (question.length > 2000) return res.status(400).json({ error: 'That question is too long.' });
+
+  const gids = scopeGroupIds(req.user);
+  const groups = store.groups.filter(g => gids.includes(g.id));
+  const tasks = store.tasks.filter(t => gids.includes(t.groupId));
+  const summary = groups.map(g => {
+    const gTasks = tasks.filter(t => t.groupId === g.id);
+    const rows = gTasks.map(t => {
+      const assignee = findUser(t.assigneeId);
+      const due = new Date(t.due).toISOString().slice(0, 10);
+      return `- "${t.title}" [${t.status}, ${t.progress}%, due ${due}${assignee ? ', assigned to ' + assignee.name : ''}]`;
+    }).join('\n');
+    return `${g.name} — ${g.project}:\n${rows || '(no tasks)'}`;
+  }).join('\n\n');
+
+  try {
+    const upstream = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'x-api-key': process.env.ANTHROPIC_API_KEY,
+        'anthropic-version': '2023-06-01',
+        'content-type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-5',
+        max_tokens: 500,
+        system: `You are the AI assistant built into "Pro Track", a college project-tracker app. `
+          + `You're talking to ${req.user.name.split(' ')[0]}, a ${isFaculty(req.user) ? 'faculty supervisor' : 'student team member'}. `
+          + `Answer using ONLY the project data below — don't invent tasks, people, or dates that aren't listed. `
+          + `Keep it tight: short paragraphs or a brief bullet list, no markdown headers, under ~120 words unless asked to go deeper.\n\n`
+          + `Project data:\n${summary || '(no tasks yet)'}`,
+        messages: [{ role: 'user', content: question }],
+      }),
+    });
+    if (!upstream.ok) {
+      const errBody = await upstream.json().catch(() => ({}));
+      return res.status(502).json({ error: (errBody.error && errBody.error.message) || 'The AI service returned an error.' });
+    }
+    const data = await upstream.json();
+    const answer = (data.content || []).map(b => b.text || '').join('').trim();
+    res.json({ answer: answer || "I couldn't come up with an answer for that." });
+  } catch (e) {
+    res.status(502).json({ error: 'Could not reach the AI service.' });
+  }
+});
+
 /* ---------- health + start ---------- */
 app.get('/', (req, res) => res.json({ ok: true, service: 'Orbit AI API', endpoints: '/api/*' }));
-app.listen(PORT, () => console.log(`\n🚀 Orbit API running at http://localhost:${PORT}\n`));
+
+/* tests import `app` and start their own ephemeral listener instead */
+if (require.main === module) {
+  app.listen(PORT, () => console.log(`\n🚀 Orbit API running at http://localhost:${PORT}\n`));
+}
+module.exports = app;
