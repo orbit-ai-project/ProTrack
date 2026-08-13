@@ -1,5 +1,5 @@
 /* ============================================================
-   server.js — Orbit AI REST API
+   server.js — Pro Track REST API
    Express + JWT auth (bcrypt) + a pure-JS JSON store.
    No native modules, no database install — runs on any
    PC or Mac with just Node.js.  Run:  npm install && npm start
@@ -29,7 +29,7 @@ const findGroup = id => store.groups.find(g => g.id === id);
 const findTask  = id => store.tasks.find(t => t.id === id);
 
 const publicUser = u => ({ id: u.id, name: u.name, email: u.email, role: u.role,
-  groupId: u.groupId, color: u.color, createdAt: u.createdAt });
+  groupId: u.groupId, color: u.color, photo: u.photo, createdAt: u.createdAt });
 
 const isFaculty = u => u.role === 'Faculty';
 const isLead    = u => u.role === 'Team Lead';
@@ -278,7 +278,44 @@ app.post('/api/remarks', auth, (req, res) => {
   save();
   res.json({ ok: true });
 });
+const sseClients = new Set();
+app.get('/api/events', (req, res) => {
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Connection', 'keep-alive');
+  res.flushHeaders();
+  sseClients.add(res);
+  req.on('close', () => sseClients.delete(res));
+});
+
+function broadcastSync() {
+  for (const client of sseClients) {
+    try { client.write('data: {"type":"sync"}\n\n'); } catch (e) {}
+  }
+}
+
+app.post('/api/sync', (req, res) => {
+  const { users, groups, tasks, activity, remarks } = req.body || {};
+  if (users) store.profiles = users;
+  if (groups) store.groups = groups;
+  if (tasks) store.tasks = tasks;
+  if (activity) store.activity = activity;
+  if (remarks) store.remarks = remarks;
+  save();
+  broadcastSync();
+  res.json({ ok: true });
+});
+app.get('/api/sync', (req, res) => {
+  res.json({
+    users: store.profiles,
+    groups: store.groups,
+    tasks: store.tasks,
+    activity: store.activity,
+    remarks: store.remarks
+  });
+});
+
 
 /* ---------- health + start ---------- */
-app.get('/', (req, res) => res.json({ ok: true, service: 'Orbit AI API', endpoints: '/api/*' }));
-app.listen(PORT, () => console.log(`\n🚀 Orbit API running at http://localhost:${PORT}\n`));
+app.get('/', (req, res) => res.json({ ok: true, service: 'ProTrack API', endpoints: '/api/*' }));
+app.listen(PORT, () => console.log(`\n🚀 ProTrack API running at http://localhost:${PORT}\n`));
