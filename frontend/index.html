@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Orbit AI — Project Tracker</title>
+<title>Pro Track — Project Tracker</title>
 <style>
 :root{
   --bg:#F1F3F4;
@@ -403,29 +403,215 @@ tbody tr:hover{background:var(--surface-2)}
 .ni .nts{font-size:11px;color:var(--faint);margin-top:2px}
 .ni .undot{position:absolute;top:14px;right:12px;width:7px;height:7px;border-radius:50%;background:var(--accent)}
 
-/* ============ CALENDAR ============ */
-.cal{background:var(--surface);border:1px solid var(--line);border-radius:var(--r2);box-shadow:var(--sh1);overflow:hidden}
-.cal .cbar{display:flex;align-items:center;gap:10px;padding:12px 14px;border-bottom:1px solid var(--line-2)}
-.cal .cbar h3{font-size:14px;font-weight:600;min-width:150px}
-.cgrid{display:grid;grid-template-columns:repeat(7,1fr)}
-.cgrid .dow{padding:8px 10px;font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;
-  color:var(--faint);text-align:left;border-bottom:1px solid var(--line-2);border-right:1px solid var(--line-2)}
-.cgrid .dow:nth-child(7n){border-right:none}
-.cell{min-height:96px;padding:6px 7px;border-bottom:1px solid var(--line-2);border-right:1px solid var(--line-2);
-  display:flex;flex-direction:column;gap:4px;overflow:hidden}
-.cell:nth-child(7n){border-right:none}
-.cell.pad{background:var(--surface-2)}
-.cell .dnum{font-size:11.5px;font-weight:500;color:var(--ink-2);width:22px;height:22px;display:grid;place-items:center;border-radius:6px}
-.cell.today .dnum{background:var(--accent);color:#fff;font-weight:600}
-.cell.wknd{background:#FCFCFD}
-.cev{font-size:11px;padding:3px 6px;border-radius:5px;cursor:pointer;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
-  border-left:2.5px solid var(--gray);background:var(--surface-2);color:var(--ink-2);font-weight:450}
-.cev:hover{filter:brightness(.97)}
-.cev.late{border-left-color:var(--red);background:var(--red-s);color:var(--red)}
-.cev .cd{display:inline-block;width:5px;height:5px;border-radius:50%;margin-right:4px;vertical-align:middle}
-.cmore{font-size:10.5px;color:var(--faint);padding-left:4px}
-.callist .cli{display:flex;gap:9px;align-items:center;padding:9px 10px;border:1px solid var(--line);border-radius:var(--r2);cursor:pointer}
-.callist .cli:hover{border-color:#D2D7DF;background:var(--surface-2)}
+/* ============ ANIMATED 3D CALENDAR ============ */
+.cal {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r2);
+  box-shadow: var(--sh2);
+  overflow: hidden;
+  perspective: 1000px;
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.3s ease;
+}
+.cal:hover {
+  box-shadow: var(--sh3);
+}
+
+.cal .cbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--line-2);
+  background: var(--surface);
+}
+.cal .cbar h3 {
+  font-size: 15px;
+  font-weight: 700;
+  min-width: 160px;
+  letter-spacing: -0.015em;
+  color: var(--ink);
+}
+
+.cal-widget-card {
+  transition: transform 0.2s cubic-bezier(0.16,1,0.3,1), border-color 0.2s ease, box-shadow 0.2s ease;
+}
+.cal-widget-card:hover {
+  transform: translateY(-2px);
+  border-color: var(--accent);
+  box-shadow: var(--sh2);
+}
+.widget-day {
+  height: 24px;
+  width: 24px;
+  margin: 0 auto;
+  display: grid;
+  place-items: center;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--ink-2);
+  border-radius: 50%;
+  transition: background 0.12s, color 0.12s, transform 0.12s;
+  position: relative;
+  cursor: pointer;
+}
+.widget-day:hover:not(.today) {
+  background: var(--surface-2);
+  transform: scale(1.1);
+}
+.widget-day.today {
+  background: var(--accent);
+  color: #fff !important;
+  font-weight: 700;
+  box-shadow: 0 2px 6px rgba(255, 122, 69, 0.4);
+}
+.widget-dot {
+  position: absolute;
+  bottom: 2px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 3px;
+  height: 3px;
+  background: var(--accent);
+  border-radius: 50%;
+}
+
+.cgrid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  animation: calGridIn 0.42s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+@keyframes calGridIn {
+  from { opacity: 0; transform: perspective(800px) rotateX(12deg) translateY(12px) scale(0.98); }
+  to { opacity: 1; transform: none; }
+}
+
+.cgrid .dow {
+  padding: 10px 12px;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+  text-align: left;
+  background: var(--surface-2);
+  border-bottom: 1px solid var(--line-2);
+  border-right: 1px solid var(--line-2);
+}
+.cgrid .dow:nth-child(7n) { border-right: none; }
+
+.cell {
+  min-height: 102px;
+  padding: 8px 9px;
+  border-bottom: 1px solid var(--line-2);
+  border-right: 1px solid var(--line-2);
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  overflow: hidden;
+  background: var(--surface);
+  transition: background 0.18s ease, transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s ease;
+  position: relative;
+  z-index: 1;
+}
+.cell:hover:not(.pad) {
+  background: var(--surface-2);
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.06);
+  z-index: 5;
+  border-radius: 6px;
+}
+.cell:nth-child(7n) { border-right: none; }
+.cell.pad { background: var(--surface-2); opacity: 0.55; }
+
+.cell .dnum {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink-2);
+  width: 24px;
+  height: 24px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  transition: transform 0.15s ease, background 0.15s ease;
+}
+.cell.today .dnum {
+  background: var(--accent);
+  color: #fff !important;
+  font-weight: 700;
+  box-shadow: 0 0 0 3px rgba(255, 122, 69, 0.25), 0 2px 8px rgba(255, 122, 69, 0.4);
+  animation: todayGlow 2.5s infinite ease-in-out;
+}
+@keyframes todayGlow {
+  0%, 100% { box-shadow: 0 0 0 3px rgba(255, 122, 69, 0.25), 0 2px 8px rgba(255, 122, 69, 0.4); }
+  50% { box-shadow: 0 0 0 6px rgba(255, 122, 69, 0.12), 0 4px 14px rgba(255, 122, 69, 0.5); }
+}
+
+.cell.wknd { background: rgba(0, 0, 0, 0.015); }
+
+.cev {
+  font-size: 11px;
+  padding: 4px 8px;
+  border-radius: 6px;
+  cursor: pointer;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  border-left: 3px solid var(--accent);
+  background: var(--surface-2);
+  color: var(--ink);
+  font-weight: 500;
+  transition: transform 0.15s ease, filter 0.15s ease, box-shadow 0.15s ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  animation: evIn 0.3s ease both;
+}
+@keyframes evIn {
+  from { opacity: 0; transform: translateY(4px) scale(0.96); }
+  to { opacity: 1; transform: none; }
+}
+.cev:hover {
+  transform: translateX(2px) scale(1.02);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  filter: brightness(0.98);
+}
+.cev.late {
+  border-left-color: var(--red);
+  background: var(--red-s);
+  color: var(--red);
+  font-weight: 600;
+}
+.cev .cd {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  margin-right: 5px;
+  vertical-align: middle;
+}
+.cmore {
+  font-size: 10.5px;
+  color: var(--accent);
+  font-weight: 600;
+  padding-left: 4px;
+  cursor: pointer;
+}
+.callist .cli {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  padding: 11px 13px;
+  border: 1px solid var(--line);
+  border-radius: var(--r2);
+  cursor: pointer;
+  transition: transform 0.18s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.18s ease, box-shadow 0.18s ease;
+  background: var(--surface);
+}
+.callist .cli:hover {
+  border-color: var(--accent);
+  background: var(--surface-2);
+  transform: translateX(4px);
+  box-shadow: var(--sh2);
+}
 
 /* ============ MOTION — minimal, subtle ============ */
 @keyframes rise{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
@@ -525,7 +711,7 @@ tbody tr:hover{background:var(--surface-2)}
 <div id="shell" class="hidden">
   <aside class="side">
     <div class="sh">
-      <div class="logo"><div class="m" id="logoMark"></div><span>Orbit</span><span class="aibadge" style="margin-left:2px">AI</span></div>
+      <div class="logo"><div class="m" id="logoMark"></div><span style="font-weight:800;letter-spacing:-0.02em;color:var(--ink);">Pro Track</span></div>
     </div>
     <nav class="nav" id="nav"></nav>
     <div class="sf">
@@ -536,6 +722,11 @@ tbody tr:hover{background:var(--surface-2)}
     <div class="top">
       <h2 id="topTitle"></h2>
       <div class="sp"></div>
+      <div style="position:relative; width:220px; margin-right:8px;">
+        <input type="text" id="globalSearchInp" placeholder="Search tasks, members..." onkeyup="GlobalSearch.onKey(event)" style="width:100%; padding:6px 10px 6px 30px; font-size:12px; border-radius:20px; border:1px solid var(--line); background:var(--surface-2); color:var(--ink); outline:none;">
+        <span style="position:absolute; left:10px; top:50%; transform:translateY(-50%); opacity:0.55; display:flex; pointer-events:none;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg></span>
+        <div id="globalSearchResults" style="display:none; position:absolute; top:36px; left:0; right:0; background:var(--surface); border:1px solid var(--line); border-radius:var(--r2); box-shadow:var(--sh3); z-index:999; max-height:280px; overflow-y:auto; padding:6px;"></div>
+      </div>
       <div class="live"><i></i>Live</div>
       <div class="bellwrap"><button class="btn ico sm gho" id="bellBtn" title="Notifications" onclick="event.stopPropagation();Notify.toggle()"></button></div>
       <button class="btn ico sm gho" id="fxBtn" title="Sound &amp; haptics" onclick="FX.toggle()"></button>
@@ -552,6 +743,8 @@ tbody tr:hover{background:var(--surface-2)}
    ============================================================ */
 const I = {
   _(d,s){ return `<svg width="${s||16}" height="${s||16}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">${d}</svg>`; },
+  search:s=>I._(`<circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/>`,s),
+  link:s=>I._(`<path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>`,s),
   orbit:s=>I._(`<circle cx="12" cy="12" r="3"/><ellipse cx="12" cy="12" rx="10" ry="4.5" transform="rotate(-30 12 12)"/>`,s),
   home:s=>I._(`<path d="M4 11 12 4l8 7"/><path d="M6 9.5V20h12V9.5"/><path d="M10 20v-5h4v5"/>`,s),
   board:s=>I._(`<rect x="3" y="4" width="5" height="16" rx="1.3"/><rect x="9.5" y="4" width="5" height="10" rx="1.3"/><rect x="16" y="4" width="5" height="13" rx="1.3"/>`,s),
@@ -759,11 +952,52 @@ function seed(){
   return {users:U,groups:G,tasks:T,activity:A,remarks:[]};
 }
 
+const API_URL = 'http://localhost:4000';
+const API = {
+  active: false,
+  async check() {
+    try {
+      const res = await fetch(API_URL + '/api/sync');
+      if (res.ok) {
+        API.active = true;
+        const data = await res.json();
+        if (data && data.users) {
+          DB.s = data;
+          localStorage.setItem(K_STATE, JSON.stringify(DB.s));
+          if (App.me) App.render();
+        }
+      }
+    } catch(e) {}
+  },
+  async push() {
+    if (!API.active) return;
+    try {
+      await fetch(API_URL + '/api/sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(DB.s)
+      });
+    } catch (e) {}
+  }
+};
+
+if (typeof window !== 'undefined' && 'EventSource' in window) {
+  try {
+    const ev = new EventSource(API_URL + '/api/events');
+    ev.onmessage = e => {
+      try {
+        const msg = JSON.parse(e.data);
+        if (msg.type === 'sync') API.check();
+      } catch (err) {}
+    };
+  } catch (e) {}
+}
+
 const DB={
   s:null,
   load(){ try{ DB.s=JSON.parse(localStorage.getItem(K_STATE)); }catch(e){ DB.s=null; }
     if(!DB.s||!DB.s.users){ DB.s=seed(); localStorage.setItem(K_STATE,JSON.stringify(DB.s)); } return DB.s; },
-  save(bc=true){ localStorage.setItem(K_STATE,JSON.stringify(DB.s)); if(bc) Sync.push(); },
+  save(bc=true){ localStorage.setItem(K_STATE,JSON.stringify(DB.s)); if (API.active) API.push(); if(bc) Sync.push(); },
   reset(){ DB.s=seed(); DB.save(); }
 };
 
@@ -918,6 +1152,77 @@ const Charts={
   }
 };
 
+const GlobalSearch = {
+  onKey(e) {
+    const q = (e.target.value || '').trim().toLowerCase();
+    const resEl = document.getElementById('globalSearchResults');
+    if (!resEl) return;
+    if (!q) { resEl.style.display = 'none'; return; }
+
+    const { tasks } = AI.scope();
+    const matchedTasks = tasks.filter(t => t.title.toLowerCase().includes(q) || (t.desc || '').toLowerCase().includes(q)).slice(0, 5);
+    const matchedMembers = DB.s.users.filter(u => u.name.toLowerCase().includes(q) || u.role.toLowerCase().includes(q)).slice(0, 3);
+
+    if (!matchedTasks.length && !matchedMembers.length) {
+      resEl.innerHTML = `<div style="padding:10px; font-size:12px; color:var(--muted); text-align:center;">No results found</div>`;
+      resEl.style.display = 'block';
+      return;
+    }
+
+    let html = '';
+    if (matchedTasks.length) {
+      html += `<div style="font-size:10px; font-weight:700; color:var(--muted); text-transform:uppercase; margin:4px 6px;">Tasks</div>`;
+      html += matchedTasks.map(t => `
+        <div onclick="Modal.task('${t.id}'); document.getElementById('globalSearchResults').style.display='none';" style="cursor:pointer; padding:6px 8px; border-radius:4px; font-size:12px; display:flex; justify-content:space-between; align-items:center;" onmouseover="this.style.background='var(--surface-2)'" onmouseout="this.style.background='none'">
+          <span style="font-weight:500; color:var(--ink); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:140px;">${esc(t.title)}</span>
+          <span style="font-size:10px; color:var(--accent);">${stat(t.status).n}</span>
+        </div>
+      `).join('');
+    }
+    if (matchedMembers.length) {
+      html += `<div style="font-size:10px; font-weight:700; color:var(--muted); text-transform:uppercase; margin:6px 6px 4px;">Members</div>`;
+      html += matchedMembers.map(u => `
+        <div onclick="App.go('team'); document.getElementById('globalSearchResults').style.display='none';" style="cursor:pointer; padding:6px 8px; border-radius:4px; font-size:12px; display:flex; align-items:center; gap:8px;" onmouseover="this.style.background='var(--surface-2)'" onmouseout="this.style.background='none'">
+          ${av(u, 'xs')}
+          <div>
+            <div style="font-weight:500; color:var(--ink);">${esc(u.name)}</div>
+            <div style="font-size:10px; color:var(--muted);">${esc(u.role)}</div>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    resEl.innerHTML = html;
+    resEl.style.display = 'block';
+  }
+};
+document.addEventListener('click', (e) => {
+  const resEl = document.getElementById('globalSearchResults');
+  const inp = document.getElementById('globalSearchInp');
+  if (resEl && e.target !== inp && !resEl.contains(e.target)) {
+    resEl.style.display = 'none';
+  }
+});
+document.addEventListener('keydown', (e) => {
+  if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+    e.preventDefault();
+    const inp = document.getElementById('globalSearchInp');
+    if (inp) { inp.focus(); inp.select(); }
+  }
+});
+
+function liveCountdown(ts) {
+  const diff = ts - now();
+  if (diff <= 0) return `<span class="tag" style="background:var(--red-s);color:var(--red)">Overdue</span>`;
+  const hrs = Math.floor(diff / 36e5);
+  const mins = Math.floor((diff % 36e5) / 6e4);
+  const secs = Math.floor((diff % 6e4) / 1000);
+  if (hrs < 24) {
+    return `<span class="tag" style="background:var(--accent-soft);color:var(--accent);font-weight:600">⏳ ${hrs}h ${mins}m ${secs}s left</span>`;
+  }
+  return null;
+}
+
 const online=()=>Sync.online();
 const dot=on=>on?`<span style="position:absolute;bottom:-1px;right:-1px;width:9px;height:9px;background:var(--green);border:2px solid #fff;border-radius:50%"></span>`:'';
 
@@ -938,7 +1243,7 @@ const Auth={
     const f=box.querySelector('input'); if(f) setTimeout(()=>f.focus(),60);
   },
 
-  head(){ return `<div class="logo"><div class="m">${I.orbit(15)}</div><span>Orbit</span><span class="aibadge" style="margin-left:2px">${I.spark(11)}AI</span></div>`; },
+  head(){ return `<div class="logo"><div class="m">${I.orbit(15)}</div><span style="font-weight:800;letter-spacing:-0.02em;color:var(--ink);">Pro Track</span></div>`; },
 
   signinHTML(){
     return `${Auth.head()}
@@ -1101,6 +1406,7 @@ const App={
 
   boot(){
     DB.load(); Sync.init(); FX.paint();
+    API.check();
     const sid=localStorage.getItem(K_SESSION);
     if(sid && user(sid)) App.signIn(sid, true); else Auth.render();
   },
@@ -1280,6 +1586,64 @@ const Page={
     }).join('')}</div>`;
   },
 
+  renderCompactWidget(){
+    if(Cal.y==null) Cal.init();
+    const y=Cal.y, m=Cal.m;
+    const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    const curMonth = monthNames[m];
+    const curYear = y;
+
+    const td = new Date();
+    const isCurMonth = td.getFullYear()===y && td.getMonth()===m;
+    const curDay = td.getDate();
+
+    const firstDay = new Date(y, m, 1).getDay();
+    const totalDays = new Date(y, m + 1, 0).getDate();
+
+    const {tasks} = AI.scope();
+    const tasksByDay = {};
+    tasks.forEach(t => {
+      const d = new Date(t.due);
+      if (d.getFullYear() === y && d.getMonth() === m) {
+        (tasksByDay[d.getDate()] = tasksByDay[d.getDate()] || []).push(t);
+      }
+    });
+
+    let cells = '';
+    for (let i = 0; i < firstDay; i++) cells += `<div></div>`;
+    for (let day = 1; day <= totalDays; day++) {
+      const isToday = isCurMonth && day === curDay;
+      const dayTasks = tasksByDay[day] || [];
+      const hasTasks = dayTasks.length > 0;
+      cells += `<div class="widget-day ${isToday ? 'today' : ''} ${hasTasks ? 'has-task' : ''}"
+                     onclick="event.stopPropagation(); Cal.selectDate(${y}, ${m}, ${day});"
+                     title="${hasTasks ? dayTasks.length + ' task(s) due' : 'Day ' + day}">
+        ${day}
+        ${hasTasks && !isToday ? `<span class="widget-dot"></span>` : ''}
+      </div>`;
+    }
+
+    return `<div class="card cal-widget-card" style="padding: 14px; border-radius: var(--r2);">
+      <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom: 10px;">
+        <div style="display:flex; align-items:center; gap:4px;">
+          <button class="btn sm gho ico" style="height:22px;width:22px;padding:0" title="Previous month" onclick="event.stopPropagation(); Cal.shift(-1);">${I.chev(11)}</button>
+          <span style="color:var(--accent); font-weight:700; font-size:12px; text-transform:uppercase; letter-spacing:0.04em;">${curMonth} ${curYear}</span>
+          <button class="btn sm gho ico" style="height:22px;width:22px;padding:0;transform:rotate(180deg)" title="Next month" onclick="event.stopPropagation(); Cal.shift(1);">${I.chev(11)}</button>
+        </div>
+        <div style="display:flex; align-items:center; gap:6px;">
+          <button class="btn sm gho" style="font-size:10.5px;padding:2px 7px;height:22px;" onclick="event.stopPropagation(); Cal.today();">Today</button>
+          <button class="btn sm gho ico" title="Open full calendar" onclick="App.go('calendar')">${I.chev(12)}</button>
+        </div>
+      </div>
+      <div style="display:grid; grid-template-columns: repeat(7, 1fr); text-align:center; font-size:9.5px; font-weight:700; color:var(--muted); margin-bottom:6px;">
+        <div>S</div><div>M</div><div>T</div><div>W</div><div>T</div><div>F</div><div>S</div>
+      </div>
+      <div style="display:grid; grid-template-columns: repeat(7, 1fr); gap:4px; text-align:center;">
+        ${cells}
+      </div>
+    </div>`;
+  },
+
   /* ---------- FACULTY ---------- */
   facDash(){
     const gs=myGroups(), on=online();
@@ -1309,9 +1673,12 @@ const Page={
         <div class="sec" style="margin-bottom:9px">Groups you supervise</div>
         <div class="grid3">${gs.map(g=>Page.groupCard(g,on)).join('')}</div>
       </div>
-      <div class="card">
-        <div class="ch"><h3>Recent activity</h3><div class="sp"></div><div class="live"><i></i>Live</div></div>
-        ${Page.feed(DB.s.activity.filter(a=>ids.includes(a.groupId)).slice(0,20))}
+      <div style="display:grid;gap:16px">
+        ${Page.renderCompactWidget()}
+        <div class="card">
+          <div class="ch"><h3>Recent activity</h3><div class="sp"></div><div class="live"><i></i>Live</div></div>
+          ${Page.feed(DB.s.activity.filter(a=>ids.includes(a.groupId)).slice(0,20))}
+        </div>
       </div>
     </div>`;
   },
@@ -1554,8 +1921,10 @@ const Page={
     </div>
 
     ${remarks.length?`<div class="card" style="margin-bottom:16px">
-      <div class="ch"><h3>Faculty remarks</h3></div>
-      <div class="cb">${remarks.map(r=>`<div class="tl"><div style="font-size:12.5px;line-height:1.5">${esc(r.text)}</div>
+      <div class="ch"><h3>Faculty remarks &amp; Evaluation</h3></div>
+      <div class="cb">${remarks.map(r=>`<div class="tl">
+        ${r.grade || r.score ? `<div style="display:flex;gap:6px;margin-bottom:4px">${r.grade?`<span class="tag" style="background:var(--accent-soft);color:var(--accent);font-weight:700">Grade: ${esc(r.grade)}</span>`:''}${r.score?`<span class="tag" style="background:var(--green-s);color:var(--green);font-weight:700">Score: ${esc(r.score)}</span>`:''}</div>`:''}
+        <div style="font-size:12.5px;line-height:1.5">${esc(r.text)}</div>
         <div style="font-size:11px;color:var(--faint);margin-top:3px">${esc(r.by)} · ${ago(r.ts)}</div></div>`).join('')}</div>
     </div>`:''}
 
@@ -1652,6 +2021,7 @@ const Page={
       </div>
 
       <div style="display:grid;gap:16px">
+        ${Page.renderCompactWidget()}
         ${remarks.length?`<div class="card"><div class="ch"><h3>Faculty remarks</h3></div>
           <div class="cb">${remarks.map(r=>`<div class="tl"><div style="font-size:12.5px;line-height:1.5">${esc(r.text)}</div>
             <div style="font-size:11px;color:var(--faint);margin-top:3px">${esc(r.by)} · ${ago(r.ts)}</div></div>`).join('')}</div></div>`:''}
@@ -1784,6 +2154,7 @@ const Page={
         <div><h1>Task Board</h1><p>${esc(g.name)} · ${esc(g.project)}</p></div>
         <div class="sp"></div>
         <span style="font-size:12px;color:var(--muted)">${App.isLead?'You can move and edit every task':'You can move only your own tasks'}</span>
+        <button class="btn sm gho" onclick="Export.toCSV('${g.id}')">📥 Export Board (CSV)</button>
         ${App.isLead?`<button class="btn pri" onclick="Modal.taskForm()">${I.plus(15)} New task</button>`:''}
       </div>
       ${Board.html(ts,App.isLead)}`;
@@ -1846,6 +2217,8 @@ const Page={
         :`<div style="font-size:12.5px;color:var(--muted)">${lead?'No subjects selected yet — use Manage to pick the courses your team is working on.':'Your team lead has not selected any subjects yet.'}</div>`}
       </div>
     </div>
+
+    ${renderGamifiedLeaderboard(g.id)}
 
     <div class="card" style="margin-bottom:16px">
       <div class="ch"><h3>Members</h3><div class="sp"></div><span style="font-size:12px;color:var(--muted)">${ms.length} of 4</span></div>
@@ -2281,7 +2654,7 @@ const AI={
     const overdue=tasks.filter(t=>t.status!=='done'&&t.due<now()).length;
     const blocked=tasks.filter(t=>t.status==='blocked').length;
     const nm=App.me.name.split(' ')[0];
-    AI.msgs=[{r:'a',html:`Hi ${esc(nm)} 👋 I'm your Orbit AI assistant. I've scanned ${App.isFaculty?'the groups you supervise':'your project'} — <b>${tasks.length}</b> tasks in total${overdue?`, <b>${overdue}</b> overdue`:''}${blocked?` and <b>${blocked}</b> blocked`:''}. Ask me anything, or tap a suggestion below.`}];
+    AI.msgs=[{r:'a',html:`Hi ${esc(nm)} 👋 I'm your Pro Track AI assistant. I've scanned ${App.isFaculty?'the groups you supervise':'your project'} — <b>${tasks.length}</b> tasks in total${overdue?`, <b>${overdue}</b> overdue`:''}${blocked?` and <b>${blocked}</b> blocked`:''}. Ask me anything, or tap a suggestion below.`}];
   },
 
   bubble(msg){
@@ -2516,12 +2889,155 @@ const Notify={
 /* ============================================================
    CALENDAR
    ============================================================ */
+const Export = {
+  toCSV(gid) {
+    const targetGid = gid || (App.me && App.me.groupId);
+    const g = group(targetGid);
+    if (!g) {
+      toast(I.alert(15), 'No group selected to export');
+      return;
+    }
+    const tasks = tasksOf(g.id);
+    if (!tasks.length) {
+      toast(I.alert(15), 'No tasks to export in this group');
+      return;
+    }
+
+    const headers = ['Task Title', 'Description', 'Subject Code', 'Assignee', 'Role', 'Status', 'Priority', 'Progress %', 'Due Date'];
+    const rows = tasks.map(t => {
+      const u = user(t.assigneeId);
+      const s = stat(t.status);
+      const p = prio(t.prio);
+      const d = dueOf(t.due);
+      return [
+        `"${(t.title || '').replace(/"/g, '""')}"`,
+        `"${(t.desc || '').replace(/"/g, '""')}"`,
+        `"${t.courseCode || ''}"`,
+        `"${u ? u.name : 'Unassigned'}"`,
+        `"${u ? u.role : ''}"`,
+        `"${s ? s.n : t.status}"`,
+        `"${p ? p.n : t.prio}"`,
+        `"${t.progress || 0}%"`,
+        `"${d ? d.t : ''}"`
+      ];
+    });
+
+    const csvContent = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', `ProTrack_Report_${(g.name || 'Group').replace(/\s+/g, '_')}_${new Date().toISOString().slice(0, 10)}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    FX.tap('done');
+    toast(I.check(15), `Exported ${tasks.length} tasks to CSV spreadsheet!`);
+  }
+};
+
+function renderGamifiedLeaderboard(gid) {
+  const ms = membersOf(gid);
+  if (!ms.length) return '';
+
+  const memberStats = ms.map(m => {
+    const mt = tasksFor(m.id);
+    const done = mt.filter(t => t.status === 'done');
+    const blocked = mt.filter(t => t.status === 'blocked');
+    const pct = pctOf(mt);
+    return { member: m, total: mt.length, doneCount: done.length, blockedCount: blocked.length, pct };
+  });
+
+  memberStats.sort((a, b) => b.doneCount - a.doneCount || b.pct - a.pct);
+
+  const rankBadges = ['🥇 #1 MVP', '🥈 #2 Runner-up', '🥉 #3 Contributor', '🏅 Team Member'];
+  const rankColors = ['var(--accent)', '#3C7FBF', '#2E8A6B', 'var(--muted)'];
+
+  return `
+    <div class="card" style="margin-bottom:16px;">
+      <div class="ch">
+        <div style="display:flex;align-items:center;gap:8px">
+          <span style="font-size:16px">🏆</span> <h3>Team Performance Leaderboard</h3>
+        </div>
+        <div class="sp"></div>
+        <button class="btn sm gho" onclick="Export.toCSV('${gid}')">📥 Export Tasks (CSV)</button>
+      </div>
+      <div class="cb" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap:12px;">
+        ${memberStats.map((st, idx) => {
+          const rankLabel = rankBadges[Math.min(idx, 3)];
+          const rankColor = rankColors[Math.min(idx, 3)];
+          return `
+            <div style="padding:12px; border:1px solid var(--line); border-radius:var(--r2); background:var(--surface-2); display:flex; flex-direction:column; gap:8px;">
+              <div style="display:flex; justify-content:space-between; align-items:center;">
+                <span class="tag" style="background:rgba(255,122,69,0.12); color:${rankColor}; font-weight:700;">${rankLabel}</span>
+                <span style="font-size:11px; font-weight:700; color:var(--ink);">${st.doneCount}/${st.total} Done</span>
+              </div>
+              <div style="display:flex; align-items:center; gap:10px; margin-top:4px;">
+                ${av(st.member, 'sm')}
+                <div style="min-width:0; flex:1;">
+                  <div style="font-weight:600; font-size:13px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${esc(st.member.name)}</div>
+                  <div style="font-size:11px; color:var(--muted);">${esc(st.member.role)}</div>
+                </div>
+              </div>
+              <div style="margin-top:2px;">
+                ${bar(st.pct, idx === 0 ? 'accent' : 'blue')}
+              </div>
+            </div>
+          `;
+        }).join('')}
+      </div>
+    </div>
+  `;
+}
+
 const Cal={
   y:null, m:null,
   init(){ const d=new Date(); Cal.y=d.getFullYear(); Cal.m=d.getMonth(); },
   shift(d){ if(Cal.y==null) Cal.init(); let m=Cal.m+d,y=Cal.y;
     while(m<0){ m+=12; y--; } while(m>11){ m-=12; y++; } Cal.m=m; Cal.y=y; FX.tap('med'); App.render(); },
-  today(){ Cal.init(); FX.tap('med'); App.render(); }
+  today(){ Cal.init(); FX.tap('med'); App.render(); },
+  selectDate(y, m, day){
+    Cal.selectedDate = { y, m, day };
+    const d = new Date(y, m, day);
+    const dateStr = d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+    const { tasks } = AI.scope();
+    const matched = tasks.filter(t => {
+      const td = new Date(t.due);
+      return td.getFullYear() === y && td.getMonth() === m && td.getDate() === day;
+    });
+
+    FX.tap('light');
+    const dueTimestamp = d.getTime();
+
+    Modal.open(`
+      <div class="mh">
+        ${I.cal(18)} <h3>Tasks for ${dateStr}</h3>
+        <button class="btn ico sm gho" onclick="Modal.close()">${I.x(15)}</button>
+      </div>
+      <div class="mb" style="display:grid; gap:8px;">
+        ${matched.length ? matched.map(t => {
+          const s = stat(t.status), p = prio(t.prio);
+          return `<div class="cli" onclick="Modal.task('${t.id}')" style="cursor:pointer; display:flex; align-items:center; justify-content:space-between; padding:10px 12px; border:1px solid var(--line); border-radius:var(--r2); background:var(--surface-2)">
+            <div>
+              <div style="font-weight:600; font-size:13px; color:var(--ink)">${esc(t.title)}</div>
+              <div style="font-size:11.5px; color:var(--muted); margin-top:2px">${esc(t.desc)}</div>
+            </div>
+            <div style="display:flex; gap:6px; align-items:center">
+              ${tag(s.n, s.c)} ${tag(p.n, p.c)}
+            </div>
+          </div>`;
+        }).join('') : `<div class="empty" style="padding:16px">${I.cal(24)}<div class="h">No tasks scheduled</div><p style="font-size:12px;color:var(--muted)">No tasks are set for ${dateStr}.</p></div>`}
+      </div>
+      <div class="mf">
+        ${App.isLead ? `<button class="btn sm pri" onclick="Modal.close(); Modal.taskForm(null, 'todo', null, ${dueTimestamp});">${I.plus(14)} Add task for this day</button>` : ''}
+        <button class="btn sm gho" onclick="App.go('calendar'); Modal.close();">Full Calendar</button>
+        <div class="sp"></div>
+        <button class="btn sm" onclick="Modal.close()">Close</button>
+      </div>
+    `);
+    App.render();
+  }
 };
 
 /* ============================================================
@@ -3001,11 +3517,11 @@ const Modal={
     const sc=document.getElementById('f_subject'), tp=document.getElementById('f_topic');
     if(sc&&tp) tp.innerHTML=Modal._topicOpts(sc.value,null);
   },
-  taskForm(id,status='todo',preCode){
+  taskForm(id,status='todo',preCode,preDue){
     if(!App.isLead){ FX.tap('error'); return toast(I.lock(15),'Only the Team Lead can create or edit tasks'); }
     const t=id?DB.s.tasks.find(x=>x.id===id):null;
     const ms=membersOf(App.me.groupId);
-    const due=t?t.due:now()+5*864e5;
+    const due=t?t.due:(preDue||(now()+5*864e5));
     const g0=group(App.me.groupId), gsubs=groupSubjects(g0);
     const subjList=gsubs.length?SEM3.filter(s=>gsubs.includes(s.code)):SEM3.filter(s=>s.code!=='—');
     const curCode=t?t.courseCode:(preCode||gsubs[0]||(g0||{}).courseCode);
@@ -3074,19 +3590,39 @@ const Modal={
   },
 
   remark(gid){
-    Modal.open(`<div class="mh"><h3>Remark for ${esc(group(gid).name)}</h3><button class="btn ico sm gho" onclick="Modal.close()">${I.x(15)}</button></div>
-      <div class="mb"><div class="field"><label>Feedback for this group</label>
-        <textarea class="inp" id="rk_txt" placeholder="e.g. The regression run has been blocked for three days. Please escalate in tomorrow's stand-up."></textarea></div>
-        <div id="rk_err"></div></div>
+    Modal.open(`<div class="mh"><h3>Review Remark & Evaluation Grade for ${esc(group(gid).name)}</h3><button class="btn ico sm gho" onclick="Modal.close()">${I.x(15)}</button></div>
+      <div class="mb">
+        <div class="two" style="margin-bottom:10px">
+          <div class="field"><label>Evaluation Grade <span style="color:var(--faint);font-weight:400">(optional)</span></label>
+            <select class="inp" id="rk_grade">
+              <option value="">No Grade</option>
+              <option value="A+ (95-100%)">A+ (95-100%)</option>
+              <option value="A (85-94%)">A (85-94%)</option>
+              <option value="B+ (75-84%)">B+ (75-84%)</option>
+              <option value="B (65-74%)">B (65-74%)</option>
+              <option value="C (50-64%)">C (50-64%)</option>
+            </select>
+          </div>
+          <div class="field"><label>Marks / Score <span style="color:var(--faint);font-weight:400">(e.g. 19/20)</span></label>
+            <input class="inp" id="rk_score" placeholder="e.g. 19/20"/>
+          </div>
+        </div>
+        <div class="field"><label>Review Remark &amp; Feedback</label>
+          <textarea class="inp" id="rk_txt" placeholder="e.g. Excellent progress on the AI module. Ensure test coverage is complete before final review." style="min-height:90px"></textarea>
+        </div>
+        <div id="rk_err"></div>
+      </div>
       <div class="mf"><div class="sp"></div><button class="btn" onclick="Modal.close()">Cancel</button>
-        <button class="btn pri" onclick="Modal.saveRemark('${gid}')">Post remark</button></div>`);
+        <button class="btn pri" onclick="Modal.saveRemark('${gid}')">Submit Evaluation</button></div>`);
   },
   saveRemark(gid){
     const txt=document.getElementById('rk_txt').value.trim();
+    const grade=document.getElementById('rk_grade').value;
+    const score=document.getElementById('rk_score').value.trim();
     if(!txt) return Modal.err('rk_err','Write your remark first.');
-    DB.s.remarks.unshift({id:uid(),groupId:gid,text:txt,by:App.me.name,ts:now()});
-    log(gid,'posted a review remark');
-    DB.save(); FX.tap('done'); Modal.close(); toast(I.pin(15),'Remark posted'); App.render();
+    DB.s.remarks.unshift({id:uid(),groupId:gid,text:txt,grade:grade||null,score:score||null,by:App.me.name,ts:now()});
+    log(gid,'posted a faculty evaluation remark');
+    DB.save(); FX.tap('done'); Modal.close(); toast(I.pin(15),'Faculty evaluation submitted'); App.render();
   },
 
   confirmReset(){
