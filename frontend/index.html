@@ -949,7 +949,7 @@ function seed(){
    ['g2','u-g23','sent <b>Verify order-status edge cases</b> for review',2.2]
   ].forEach(([g,who,text,h],i)=>A.push({id:'a'+i,groupId:g,userId:who,text,ts:t-h*36e5}));
 
-  return {users:U,groups:G,tasks:T,activity:A,remarks:[]};
+  return {users:U,groups:G,tasks:T,activity:A,remarks:[],invites:[]};
 }
 
 const API_URL = 'http://localhost:4000';
@@ -962,6 +962,8 @@ const API = {
         API.active = true;
         const data = await res.json();
         if (data && data.users) {
+          // Preserve local invites if server doesn't have them yet
+          data.invites = data.invites || DB.s?.invites || [];
           DB.s = data;
           localStorage.setItem(K_STATE, JSON.stringify(DB.s));
           if (App.me) App.render();
@@ -1411,7 +1413,12 @@ const App={
 
   boot(){
     DB.load(); Sync.init(); FX.paint();
+    // Initial check — renders stale state first, then re-renders with fresh server data
     API.check();
+    // Poll server every 8 seconds to pick up invites from other sessions
+    setInterval(() => { if (App.me) API.check(); }, 8000);
+    // Re-fetch when user switches back to this tab
+    document.addEventListener('visibilitychange', () => { if (!document.hidden && App.me) API.check(); });
     const sid=localStorage.getItem(K_SESSION);
     if(sid && user(sid)) App.signIn(sid, true); else Auth.render();
   },
@@ -1458,6 +1465,7 @@ const App={
       ];
     }
     const my=tasksFor(App.me.id).filter(t=>t.status!=='done').length;
+    const pendingReqs = (DB.s.invites||[]).filter(i=> i.groupId===App.me.groupId && i.status==='pending').length;
     return [
       ['dashboard','Dashboard',I.home],
       ['assistant','AI Assistant',I.spark],
@@ -1466,6 +1474,7 @@ const App={
       ['board','Task Board',I.board],
       ['mytasks','My Tasks',I.list,my],
       ['team','My Team',I.users,membersOf(App.me.groupId).length],
+      ['requests','Supervision Requests',I.mail,pendingReqs||null],
       ['groupactivity','Activity',I.activity]
     ];
   },
@@ -1512,6 +1521,7 @@ const App={
       App.tab==='board'     ? Page.board() :
       App.tab==='mytasks'   ? Page.mytasks() :
       App.tab==='team'      ? Page.team() :
+      App.tab==='requests'   ? Page.requestsPage() :
       App.tab==='groupactivity' ? Page.activity(App.me.groupId) : ''
     }</div>`;
     v.scrollTop=sc;
@@ -2019,6 +2029,95 @@ const Page={
       <div class="ch"><h3>Group activity</h3></div>
       ${Page.feed(DB.s.activity.filter(a=>a.groupId===gid).slice(0,20))}
     </div>`;
+  },
+
+  /* ---------- SUPERVISION REQUESTS PAGE (Team Lead / Members) ---------- */
+  requestsPage(){
+    const g = group(App.me.groupId);
+    if (!g) return Page.noGroup();
+
+    DB.s.invites = DB.s.invites || [];
+
+    const pending  = DB.s.invites.filter(i => i.groupId === g.id && i.status === 'pending');
+    const accepted = DB.s.invites.filter(i => i.groupId === g.id && i.status === 'accepted');
+    const declined = DB.s.invites.filter(i => i.groupId === g.id && i.status === 'declined');
+
+    const renderRow = (inv, showActions) => {
+      const c = SEM3.find(s => s.code === inv.subjectCode) || { code: inv.subjectCode, name: 'Subject' };
+      const fUser = user(inv.facultyId);
+      const statusTag = inv.status === 'accepted'
+        ? `<span class="tag" style="background:var(--green-s);color:var(--green)">✓ Accepted</span>`
+        : inv.status === 'declined'
+        ? `<span class="tag" style="background:var(--red-s);color:var(--red)">✗ Declined</span>`
+        : `<span class="tag" style="background:var(--amber-s);color:var(--amber)">⏳ Pending</span>`;
+
+      return `
+        <div style="display:flex;align-items:center;gap:14px;padding:14px 16px;border:1px solid var(--line);border-radius:var(--r2);background:var(--surface);margin-bottom:9px">
+          <div style="width:42px;height:42px;border-radius:50%;background:var(--accent-soft);display:grid;place-items:center;flex:none;font-size:18px">👩‍🏫</div>
+          <div style="flex:1;min-width:0">
+            <div style="font-weight:700;font-size:13.5px">${esc(inv.facultyName)}</div>
+            <div style="font-size:12px;color:var(--muted);margin-top:1px">${esc(inv.facultyEmail)}</div>
+            <div style="display:flex;gap:6px;align-items:center;margin-top:5px;flex-wrap:wrap">
+              <span class="mono" style="background:var(--accent-soft);color:var(--accent);border:1px solid var(--accent-line);border-radius:5px;padding:2px 7px;font-size:11px;font-weight:700">${esc(c.code)}</span>
+              <span style="font-size:12px;color:var(--ink-2)">${esc(c.name)}</span>
+            </div>
+            <div style="font-size:11px;color:var(--muted);margin-top:3px">Requested: ${ago(inv.ts)}</div>
+          </div>
+          <div style="display:flex;flex-direction:column;align-items:flex-end;gap:8px">
+            ${statusTag}
+            ${showActions && App.isLead ? `
+              <div style="display:flex;gap:7px">
+                <button class="btn sm pri" onclick="Page.respondInvite('${inv.id}','accept')">${I.check(13)} Accept</button>
+                <button class="btn sm dan" onclick="Page.respondInvite('${inv.id}','decline')">${I.x(13)} Decline</button>
+              </div>` : ''}
+          </div>
+        </div>
+      `;
+    };
+
+    return `
+      <div class="ph">
+        <div>
+          <h1>Supervision Requests</h1>
+          <p>${g.name} · Incoming faculty supervision requests</p>
+        </div>
+        <div class="sp"></div>
+        <button class="btn" onclick="API.check().then(App.render)">${I.activity(15)} Refresh</button>
+      </div>
+
+      ${pending.length ? `
+        <div class="card" style="margin-bottom:16px;border:2px solid var(--amber)">
+          <div class="ch" style="background:var(--amber-s);border-radius:var(--r2) var(--r2) 0 0">
+            ${I.mail(18)} <h3 style="color:var(--amber)">📩 Pending — Action Required (${pending.length})</h3>
+            <div class="sp"></div>
+            ${App.isLead ? '' : `<span style="font-size:12px;color:var(--muted);font-style:italic">Only Team Lead can accept/decline</span>`}
+          </div>
+          <div class="cb">${pending.map(i => renderRow(i, true)).join('')}</div>
+        </div>
+      ` : `
+        <div class="card" style="margin-bottom:16px">
+          <div class="cb" style="text-align:center;padding:28px 20px">
+            <div style="font-size:30px;margin-bottom:10px">📭</div>
+            <div style="font-weight:600;font-size:14px;margin-bottom:6px">No pending supervision requests</div>
+            <p style="color:var(--muted);font-size:12.5px">When a faculty member sends a Group Number supervision request, it will appear here for the Team Lead to accept or decline.</p>
+          </div>
+        </div>
+      `}
+
+      ${accepted.length ? `
+        <div class="card" style="margin-bottom:16px">
+          <div class="ch">${I.check(16)}<h3 style="color:var(--green)">✓ Accepted Requests (${accepted.length})</h3></div>
+          <div class="cb">${accepted.map(i => renderRow(i, false)).join('')}</div>
+        </div>
+      ` : ''}
+
+      ${declined.length ? `
+        <div class="card" style="margin-bottom:16px">
+          <div class="ch">${I.x(16)}<h3 style="color:var(--red)">✗ Declined Requests (${declined.length})</h3></div>
+          <div class="cb">${declined.map(i => renderRow(i, false)).join('')}</div>
+        </div>
+      ` : ''}
+    `;
   },
 
   /* ---------- STUDENT ---------- */
