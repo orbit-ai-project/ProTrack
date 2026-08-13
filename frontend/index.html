@@ -408,7 +408,7 @@ tbody tr:hover{background:var(--surface-2)}
 @keyframes pop{from{opacity:0;transform:scale(.98)}to{opacity:1;transform:none}}
 .body .wrap{animation:rise .22s var(--ease)}
 .tc{animation:pop .2s var(--ease) both}
-.gcard,.kpi{animation:rise .24s var(--ease) both}
+.gcard,.kpi{animation:rise .24s var(--ease)}
 .board .col{animation:rise .3s var(--ease) both}
 .board .col:nth-child(2){animation-delay:.04s}
 .board .col:nth-child(3){animation-delay:.08s}
@@ -2048,10 +2048,11 @@ const Tilt={
         const r=el.getBoundingClientRect();
         const px=(e.clientX-r.left)/r.width-.5, py=(e.clientY-r.top)/r.height-.5;
         el.classList.add('tilting');
-        el.style.transform=`perspective(820px) rotateX(${(-py*7).toFixed(2)}deg) rotateY(${(px*9).toFixed(2)}deg) translateZ(10px)`;
-        el.style.boxShadow=`${(-px*22).toFixed(0)}px ${(16-py*10).toFixed(0)}px 34px rgba(16,24,40,.18)`;
+        /* !important beats the card's entrance animation, which otherwise overrides inline transform */
+        el.style.setProperty('transform',`perspective(780px) rotateX(${(-py*10).toFixed(2)}deg) rotateY(${(px*12).toFixed(2)}deg) translateZ(14px)`,'important');
+        el.style.setProperty('box-shadow',`${(-px*26).toFixed(0)}px ${(20-py*12).toFixed(0)}px 40px rgba(16,24,40,.22)`,'important');
       });
-      el.addEventListener('pointerleave',()=>{ el.classList.remove('tilting'); el.style.transform=''; el.style.boxShadow=''; });
+      el.addEventListener('pointerleave',()=>{ el.classList.remove('tilting'); el.style.removeProperty('transform'); el.style.removeProperty('box-shadow'); });
     });
   }
 };
