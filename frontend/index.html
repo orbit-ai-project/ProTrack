@@ -1301,14 +1301,6 @@ const Page={
     ${blocked.length||overdue.length ? `<div class="banner warn" style="margin-bottom:16px">${I.alert(16)}
       <div><b>Needs attention.</b> ${blocked.length} task${blocked.length===1?' is':'s are'} blocked and ${overdue.length} ${overdue.length===1?'is':'are'} past the due date across all groups.</div></div>`:''}
 
-    <div class="kpis">
-      ${Page.kpi('Overall progress',pctOf(all)+'%',`${done} of ${all.length} tasks complete`)}
-      ${Page.kpi('In progress',all.filter(t=>t.status==='progress').length,'actively being worked on','blue')}
-      ${Page.kpi('Blocked',blocked.length,blocked.length?'awaiting resolution':'nothing stuck',blocked.length?'red':'green')}
-      ${Page.kpi('Overdue',overdue.length,overdue.length?'past due date':'all on schedule',overdue.length?'amber':'green')}
-      ${Page.kpi('Online now',onlineN,'students signed in','green')}
-    </div>
-
     <div class="split">
       <div>
         <div class="sec" style="margin-bottom:9px">Groups you supervise</div>
