@@ -189,8 +189,28 @@ select.inp{cursor:pointer;appearance:none;padding-right:28px;
 
 .grid3{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:12px}
 .chart-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:16px}
-.chart-grid .cb{padding:16px}
+.chart-grid .cb{padding:16px;overflow:visible}
 .chart-grid text{font-family:inherit}
+
+/* ---- 3D + animated charts ---- */
+.c3d-wrap{perspective:900px;padding:6px 0}
+@keyframes chartIn{from{opacity:0;transform:rotateX(30deg) translateY(14px)}to{opacity:1;transform:rotateX(17deg)}}
+.chart3d{transform:rotateX(17deg);transform-origin:50% 82%;animation:chartIn .6s var(--ease) both;filter:drop-shadow(0 12px 14px rgba(16,24,40,.14))}
+@keyframes barRise{from{opacity:0;transform:translateY(30px) scaleY(.2)}to{opacity:1;transform:none}}
+.chart3d .col{transform-box:fill-box;transform-origin:bottom;animation:barRise .62s var(--ease) both}
+@keyframes donutIn{from{opacity:0;transform:rotate(-140deg) scale(.7)}to{opacity:1;transform:none}}
+.donut-anim{transform-box:fill-box;transform-origin:center;animation:donutIn .85s var(--ease) both}
+@keyframes drawLine{to{stroke-dashoffset:0}}
+.area-line{stroke-dasharray:1;stroke-dashoffset:1;animation:drawLine 1.15s ease .1s forwards}
+@keyframes areaFade{from{opacity:0}to{opacity:.13}}
+.area-fill{opacity:0;animation:areaFade .9s ease .35s forwards}
+@keyframes hbarGrow{from{width:0}}
+.hbar-fill{animation:hbarGrow .7s var(--ease) both}
+@media(prefers-reduced-motion:reduce){
+  .chart3d,.chart3d .col,.donut-anim,.area-line,.area-fill,.hbar-fill{animation:none!important}
+  .chart3d{transform:rotateX(15deg)}
+  .area-line{stroke-dashoffset:0}.area-fill{opacity:.13}
+}
 .split{display:grid;grid-template-columns:1fr 320px;gap:16px;align-items:start}
 
 .gcard{background:var(--surface);border:1px solid var(--line);border-radius:var(--r2);padding:15px;box-shadow:var(--sh1);cursor:pointer;transition:border-color .12s,box-shadow .12s}
@@ -794,31 +814,31 @@ const Charts={
       const el=`<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${s.color}" stroke-width="${thick}" stroke-linecap="butt" stroke-dasharray="${len.toFixed(2)} ${(C-len).toFixed(2)}" stroke-dashoffset="${(-off).toFixed(2)}" transform="rotate(-90 ${cx} ${cy})"/>`;
       off+=len; return el;
     }).join('');
-    return `<svg viewBox="0 0 ${size} ${size}" width="${size}" height="${size}" style="flex:none">
+    return `<svg class="donut-anim" viewBox="0 0 ${size} ${size}" width="${size}" height="${size}" style="flex:none">
       <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="var(--line-2)" stroke-width="${thick}"/>${arcs}
       <text x="${cx}" y="${cy-1}" text-anchor="middle" font-size="${(size*0.2).toFixed(0)}" font-weight="700" fill="var(--ink)">${total}</text>
       <text x="${cx}" y="${(cy+size*0.14).toFixed(0)}" text-anchor="middle" font-size="${(size*0.075).toFixed(0)}" fill="var(--muted)">tasks</text></svg>`;
   },
-  /* vertical columns with a subtle 3D look */
-  vbars(items,h=180){
+  /* vertical 3D columns, tilted + animated (see .chart3d CSS) */
+  vbars(items,h=196){
     const mx=Math.max(1,...items.map(i=>i.value)), n=items.length;
-    const bw=42, gap=Math.max(16,Math.min(40,Math.floor(120/Math.max(1,n)))), padX=20, padB=34, padT=18;
-    const w=padX*2+n*bw+(n-1)*gap;
+    const bw=44, gap=Math.max(22,Math.min(48,Math.floor(180/Math.max(1,n)))), padX=26, padB=38, padT=24, dp=9;
+    const w=padX*2+n*bw+(n-1)*gap+dp;
     const cols=items.map((it,idx)=>{
-      const bh=Math.max(2,Math.round((h-padB-padT)*it.value/mx)), x=padX+idx*(bw+gap), y=h-padB-bh, c=it.color||'var(--accent)';
-      const dp=7; // depth for 3D
-      return `<g>
-        <polygon points="${x+bw},${y} ${x+bw+dp},${y-dp} ${x+bw+dp},${y+bh-dp} ${x+bw},${y+bh}" fill="${c}" opacity="0.55"/>
-        <polygon points="${x},${y} ${x+dp},${y-dp} ${x+bw+dp},${y-dp} ${x+bw},${y}" fill="${c}" opacity="0.8"/>
+      const bh=Math.max(3,Math.round((h-padB-padT)*it.value/mx)), x=padX+idx*(bw+gap), y=h-padB-bh, c=it.color||'var(--accent)';
+      return `<g class="col" style="animation-delay:${idx*70}ms">
+        <ellipse cx="${x+bw/2+dp/2}" cy="${h-padB+3}" rx="${(bw*0.62).toFixed(0)}" ry="4" fill="rgba(16,24,40,.15)"/>
+        <polygon points="${x+bw},${y} ${x+bw+dp},${y-dp} ${x+bw+dp},${y+bh-dp} ${x+bw},${y+bh}" fill="${c}" opacity="0.5"/>
+        <polygon points="${x},${y} ${x+dp},${y-dp} ${x+bw+dp},${y-dp} ${x+bw},${y}" fill="${c}" opacity="0.82"/>
         <rect x="${x}" y="${y}" width="${bw}" height="${bh}" rx="2" fill="${c}"/>
-        <rect x="${x}" y="${y}" width="${bw}" height="3.5" fill="#fff" opacity="0.35"/>
-        <text x="${x+bw/2}" y="${y-7}" text-anchor="middle" font-size="11.5" font-weight="700" fill="var(--ink)">${it.value}${it.suffix||''}</text>
-        <text x="${x+bw/2}" y="${h-14}" text-anchor="middle" font-size="11" fill="var(--ink-2)" font-weight="500">${esc(it.label)}</text>
+        <rect x="${x}" y="${y}" width="${bw}" height="4" fill="#fff" opacity="0.35"/>
+        <text x="${x+bw/2}" y="${y-9}" text-anchor="middle" font-size="11.5" font-weight="700" fill="var(--ink)">${it.value}${it.suffix||''}</text>
+        <text x="${x+bw/2}" y="${h-15}" text-anchor="middle" font-size="11" fill="var(--ink-2)" font-weight="600">${esc(it.label)}</text>
         ${it.sub?`<text x="${x+bw/2}" y="${h-3}" text-anchor="middle" font-size="9.5" fill="var(--faint)">${esc(it.sub)}</text>`:''}
       </g>`;
     }).join('');
-    return `<div style="overflow-x:auto"><svg viewBox="0 0 ${w} ${h}" height="${h}" style="min-width:100%;max-width:100%" preserveAspectRatio="xMidYMid meet">
-      <line x1="${padX-6}" y1="${h-padB}" x2="${w-padX+6}" y2="${h-padB}" stroke="var(--line)" stroke-width="1"/>${cols}</svg></div>`;
+    return `<div class="c3d-wrap"><svg class="chart3d" viewBox="0 0 ${w} ${h}" height="${h+6}" style="min-width:100%;max-width:100%" preserveAspectRatio="xMidYMid meet">
+      <line x1="${padX-8}" y1="${h-padB}" x2="${w-padX+8}" y2="${h-padB}" stroke="var(--line)" stroke-width="1"/>${cols}</svg></div>`;
   },
   /* horizontal labelled bars (HTML, fully responsive) */
   hbars(items){
@@ -826,7 +846,7 @@ const Charts={
     return `<div style="display:grid;gap:10px">${items.map(it=>`
       <div style="display:flex;align-items:center;gap:10px">
         <div style="width:118px;min-width:118px;font-size:12px;color:var(--ink-2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${it.label}</div>
-        <div style="flex:1;height:9px;border-radius:99px;background:var(--line-2);overflow:hidden"><div style="height:100%;width:${Math.round(100*it.value/mx)}%;background:${it.color||'var(--accent)'};border-radius:99px;transition:width .5s var(--ease)"></div></div>
+        <div style="flex:1;height:9px;border-radius:99px;background:var(--line-2);overflow:hidden"><div class="hbar-fill" style="height:100%;width:${Math.round(100*it.value/mx)}%;background:${it.color||'var(--accent)'};border-radius:99px"></div></div>
         <div style="width:56px;text-align:right;font-size:12px;font-weight:600">${it.value}${it.suffix||''}</div>
       </div>`).join('')}</div>`;
   },
@@ -840,8 +860,8 @@ const Charts={
     const grid=[0,0.5,1].map(f=>{const y=padT+ih-ih*f;return `<line x1="${padL}" y1="${y.toFixed(1)}" x2="${w-padR}" y2="${y.toFixed(1)}" stroke="var(--line-2)"/>`;}).join('');
     const labs=points.map((p,i)=>(i%Math.ceil(n/7)===0||i===n-1)?`<text x="${X(i).toFixed(1)}" y="${h-7}" text-anchor="middle" font-size="9.5" fill="var(--faint)">${esc(p.label)}</text>`:'').join('');
     return `<svg viewBox="0 0 ${w} ${h}" width="100%" height="${h}" preserveAspectRatio="xMidYMid meet">${grid}
-      <path d="${areaP}" fill="${color}" opacity="0.12"/>
-      <path d="${line}" fill="none" stroke="${color}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+      <path class="area-fill" d="${areaP}" fill="${color}"/>
+      <path class="area-line" pathLength="1" d="${line}" fill="none" stroke="${color}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
       <circle cx="${X(n-1).toFixed(1)}" cy="${Y(points[n-1].value).toFixed(1)}" r="3.5" fill="${color}"/>${labs}</svg>`;
   }
 };
@@ -1279,7 +1299,7 @@ const Page={
 
     /* progress by group (3D columns) */
     const groupCols=gs.map((g,i)=>{const p=pctOf(tasksOf(g.id));
-      return {label:'G'+String(i+1).padStart(2,'0'),sub:pctOf(tasksOf(g.id))+'%',value:p,suffix:'%',
+      return {label:'G'+String(i+1).padStart(2,'0'),value:p,suffix:'%',
         color:p>=70?V_('green'):p>=40?V_('accent'):V_('amber')};});
 
     /* subject-wise progress */
