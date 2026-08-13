@@ -109,8 +109,9 @@ select.inp{cursor:pointer;appearance:none;padding-right:28px;
 .sec{font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--faint)}
 
 /* ============ AUTH ============ */
-#auth{height:100%;display:grid;grid-template-columns:1fr;background:var(--surface)}
+#auth{height:100%;display:grid;grid-template-columns:1fr 1fr;background:var(--surface)}
 #auth .pane{display:grid;place-items:center;padding:36px;overflow:auto}
+#auth .aside{background:var(--bg);border-left:1px solid var(--line)}
 .authbox{width:100%;max-width:352px}
 
 .logo{display:flex;align-items:center;gap:9px}
@@ -684,7 +685,7 @@ tbody tr:hover{background:var(--surface-2)}
 }
 
 @media(max-width:1080px){.split{grid-template-columns:1fr}.board{overflow-x:auto;padding-bottom:8px}.chatwrap{height:auto}}
-@media(max-width:860px){#shell{grid-template-columns:60px 1fr}.side .sh .logo span,.nav .lbl,.nav a span,.userbox .nm,.userbox .rl{display:none}.nav a{justify-content:center}}
+@media(max-width:860px){#auth{grid-template-columns:1fr}#auth .aside{display:none}#shell{grid-template-columns:60px 1fr}.side .sh .logo span,.nav .lbl,.nav a span,.userbox .nm,.userbox .rl{display:none}.nav a{justify-content:center}}
 </style>
 </head>
 <body>
@@ -693,6 +694,16 @@ tbody tr:hover{background:var(--surface-2)}
 <div id="auth">
   <div class="pane">
     <div class="authbox" id="authBox"></div>
+  </div>
+  <div class="pane aside">
+    <div class="creds">
+      <div class="t">Demo accounts</div>
+      <div class="d">Click any account to fill the sign-in form. All demo passwords are shown below.</div>
+      <div id="credList"></div>
+      <div class="banner info" style="margin-top:14px">
+        <b>Note:</b>&nbsp;this is a coursework prototype. Accounts are stored in your browser only and passwords are hashed with a simple demo function — not production-grade security.
+      </div>
+    </div>
   </div>
 </div>
 
@@ -704,7 +715,7 @@ tbody tr:hover{background:var(--surface-2)}
     </div>
     <nav class="nav" id="nav"></nav>
     <div class="sf">
-      <button class="userbox" onclick="App.go('settings')" id="userBox"></button>
+      <button class="userbox" onclick="Modal.account()" id="userBox"></button>
     </div>
   </aside>
   <div class="main">
@@ -771,7 +782,7 @@ const I = {
   target:s=>I._(`<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.4"/>`,s),
   chart:s=>I._(`<path d="M4 4v16h16"/><rect x="7.5" y="11" width="2.8" height="6" rx="0.6"/><rect x="12.6" y="7" width="2.8" height="10" rx="0.6"/><rect x="17.7" y="14" width="2.8" height="3" rx="0.6"/>`,s),
   cam:s=>I._(`<path d="M4 8a2 2 0 0 1 2-2h1.5l1.2-1.6a1 1 0 0 1 .8-.4h5a1 1 0 0 1 .8.4L17.5 6H19a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><circle cx="12" cy="12.5" r="3.2"/>`,s),
-  gear:s=>I._(`<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>`,s)
+  settings:s=>I._(`<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>`,s)
 };
 
 /* ============================================================
@@ -814,7 +825,7 @@ document.addEventListener('pointerdown', e=>{ if(e.target.closest('button,.tc,.g
 /* ============================================================
    constants
    ============================================================ */
-const K_TOKEN='orbit.jwt.v1';
+const K_STATE='orbit.db.v5', K_SESSION='orbit.session.v5', K_PRESENCE='orbit.presence.v5';
 const ROLES=['Team Lead','Developer','Tester','QnA'];
 const ROLE_DESC={'Team Lead':'Plans the project, assigns work and owns delivery','Developer':'Builds the features and fixes the defects','Tester':'Writes and runs test cases, reports defects','QnA':'Reviews quality, documentation and acceptance'};
 const STATUSES=[
@@ -822,6 +833,7 @@ const STATUSES=[
   {id:'blocked',n:'Blocked',c:'red'},{id:'review',n:'In Review',c:'amber'},{id:'done',n:'Done',c:'green'}
 ];
 const PRIOS=[{id:'low',n:'Low',c:'gray'},{id:'med',n:'Medium',c:'amber'},{id:'high',n:'High',c:'red'}];
+const AVC=['#5A6BD8','#2E8A6B','#B0651A','#A64A6E','#3C7FBF','#52AB98','#B0573F','#4A7A45'];
 
 /* Amrita Vishwa Vidyapeetham, Faridabad — B.Tech Artificial Intelligence & Data Science, Semester III (2023 curriculum) */
 const INSTITUTE='Amrita Vishwa Vidyapeetham, Faridabad';
@@ -838,99 +850,184 @@ const SEM3=[
   {code:'—',name:'Amrita Value Programme I',cr:1,cat:'Humanities'}
 ];
 
+const uid=()=>Math.random().toString(36).slice(2,10);
 const now=()=>Date.now();
 const V_=c=>`var(--${c})`, S_=c=>`var(--${c}-s)`;
 const initials=n=>n.trim().split(/\s+/).map(w=>w[0]).slice(0,2).join('').toUpperCase();
 const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 const emailOk=e=>/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(e);
 
+/* demo-grade password hash — clearly not production security */
+function hash(pw){
+  let h=0x811c9dc5;
+  const s='orbit$'+pw;
+  for(let i=0;i<s.length;i++){ h^=s.charCodeAt(i); h=Math.imul(h,0x01000193)>>>0; }
+  let g=h;
+  for(let r=0;r<600;r++){ g=Math.imul(g^(g>>>13),0x5bd1e995)>>>0; }
+  return (h.toString(16)+g.toString(16)).padStart(16,'0');
+}
+
 /* ============================================================
-   API — all data lives on the backend now. This is the only
-   place that talks to it; everywhere else just reads DB.s.
+   DB
    ============================================================ */
-/* Backend location, in order of priority:
-   1. ?api=<url> in the page URL — lets a page served from somewhere that isn't
-      also running the backend (e.g. GitHub Pages) be pointed at one explicitly,
-      such as a tunnel URL. Remembered in localStorage so it's a one-time link.
-   2. A previously-remembered override from #1.
-   3. Same host as this page, port 4000 — the default for localhost/LAN use,
-      where the backend runs alongside the page. */
-const K_API_OVERRIDE='orbit.apiOverride.v1';
-(function(){
-  const fromQuery=new URLSearchParams(location.search).get('api');
-  if(fromQuery) localStorage.setItem(K_API_OVERRIDE, fromQuery.replace(/\/$/,''));
-})();
-const API_URL = localStorage.getItem(K_API_OVERRIDE) || `${location.protocol}//${location.hostname}:4000`;
+function seed(){
+  const t=now(), day=864e5;
+  const U=[], G=[], T=[], A=[];
+  U.push({id:'u-fac1',name:'Dr. Anjali Sharma',email:'sharma@college.edu',pass:hash('faculty123'),role:'Faculty',groupId:null,color:'#5A6BD8',createdAt:t-40*day});
+
+  const defs=[
+    {g:'g1',name:'Group 01',project:'Smart Attendance System',
+     subs:['23AID205','23AID204','23AID203'],
+     topics:{'23AID205':['Face dataset & preprocessing','Model training','Accuracy evaluation'],
+             '23AID204':['Core data structures','Complexity analysis'],
+             '23AID203':['Protocol design','Signal testing']},
+     ms:[['Aarav Mehta','aarav@college.edu'],['Diya Sharma','diya@college.edu'],['Kabir Nair','kabir@college.edu'],['Ishita Rao','ishita@college.edu']]},
+    {g:'g2',name:'Group 02',project:'Campus Food Delivery App',
+     subs:['23AID204','23AID206','23AID201'],
+     topics:{'23AID204':['Cart data model','Search optimisation'],
+             '23AID206':['API networking','Load testing'],
+             '23AID201':['Order simulation','Analytics']},
+     ms:[['Rohan Gupta','rohan@college.edu'],['Sanya Kapoor','sanya@college.edu'],['Vivaan Joshi','vivaan@college.edu'],['Meera Iyer','meera@college.edu']]},
+    {g:'g3',name:'Group 03',project:'AI Study Planner',
+     subs:['23AID201','23AID205','23MAT204'],
+     topics:{'23AID201':['Scheduling model','Constraint checks'],
+             '23AID205':['Feature engineering','Bias audit'],
+             '23MAT204':['Optimisation maths']},
+     ms:[['Aditya Verma','aditya@college.edu'],['Nisha Bansal','nisha@college.edu'],['Arjun Reddy','arjun@college.edu'],['Tara Menon','tara@college.edu']]}
+  ];
+  const topicsBy={};
+  defs.forEach((d,gi)=>{
+    const ids=d.ms.map(([n,e],i)=>{
+      const id='u-'+d.g+i;
+      U.push({id,name:n,email:e,pass:hash('student123'),role:ROLES[i],groupId:d.g,color:AVC[(gi*4+i)%AVC.length],createdAt:t-(30-i)*day});
+      return id;
+    });
+    topicsBy[d.g]=d;
+    const c=SEM3.find(s=>s.code===d.subs[0]);
+    G.push({id:d.g,name:d.name,project:d.project,subject:c?c.code+' · '+c.name:'—',
+      courseCode:d.subs[0],subjects:d.subs.slice(),topics:JSON.parse(JSON.stringify(d.topics)),
+      leadId:ids[0],facultyIds:gi<2?['u-fac1']:[],createdAt:t-30*day});
+  });
+  const uidOf=(g,i)=>'u-'+g+i;
+
+  const rows=[
+    ['g1',0,'Finalise project scope and timeline','Lock the SRS, split the modules between members and publish the schedule.','done',100,'high',-3],
+    ['g1',1,'Build face-recognition module','OpenCV + dlib pipeline. Target above 92% accuracy on the classroom dataset.','progress',65,'high',4],
+    ['g1',2,'Write test cases for enrolment flow','Cover happy path, duplicate face, poor lighting and camera-denied cases.','progress',40,'med',3],
+    ['g1',3,'Accessibility and documentation review','Contrast audit, keyboard navigation, and a first pass over the user manual.','todo',0,'med',6],
+    ['g1',1,'Set up SQLite schema and migrations','Tables for students, sessions and attendance_log with the right indexes.','done',100,'med',-1],
+    ['g1',2,'Regression run on the v0.3 build','Re-run the full suite after the camera module refactor.','blocked',20,'high',2],
+    ['g1',0,'Prepare the mid-review presentation','Twelve slides plus a three-minute live demo script.','review',85,'high',1],
+
+    ['g2',0,'Assign modules and set sprint goals','Two-week sprint. Definition of done agreed with the whole team.','done',100,'high',-5],
+    ['g2',1,'Restaurant listing and cart screens','React Native screens wired up to the mock API.','progress',72,'high',3],
+    ['g2',1,'Payment gateway sandbox integration','Order create, signature verification and failure handling.','todo',0,'high',7],
+    ['g2',2,'Load test the order API','Five hundred concurrent orders, capture p95 latency.','progress',35,'med',4],
+    ['g2',3,'Verify order-status edge cases','Cancelled after pickup, partial refund, driver unassigned.','review',90,'med',1],
+    ['g2',3,'Documentation quality pass','README, API docs and setup guide consistency.','todo',0,'low',9],
+
+    ['g3',0,'Define the ML feature set','Decide which signals the planner will actually learn from.','done',100,'high',-4],
+    ['g3',1,'Train the scheduling model','Baseline plus gradient boosting. Log every experiment.','progress',55,'high',5],
+    ['g3',2,'Validate model output sanity','No overlapping slots, respects sleep hours and exam dates.','progress',48,'high',2],
+    ['g3',3,'Audit the dataset for bias','Check subject and time-of-day skew in the training data.','blocked',15,'med',3],
+    ['g3',0,'Weekly progress report for the guide','Summarise blockers and the plan for next week.','review',80,'low',1],
+    ['g3',1,'Build the calendar sync','Two-way sync with an external calendar provider.','todo',0,'med',8]
+  ];
+  const gCount={};
+  rows.forEach(([g,mi,title,desc,status,progress,prio,dd],i)=>{
+    const d=topicsBy[g], subs=d.subs; gCount[g]=(gCount[g]||0);
+    const code=subs[gCount[g]%subs.length];
+    const tl=d.topics[code]||[]; const topic=tl.length?tl[gCount[g]%tl.length]:null;
+    gCount[g]++;
+    T.push({id:'t'+i,groupId:g,assigneeId:uidOf(g,mi),title,desc,status,progress,prio,
+      courseCode:code, topic,
+      due:t+dd*day, createdAt:t-(10-i%7)*day, updatedAt:t-(i%5)*36e5, comments:[]});
+  });
+  [['g1','u-g11','moved <b>Build face-recognition module</b> to In Progress',3.2],
+   ['g1','u-g12','flagged <b>Regression run on the v0.3 build</b> as Blocked',5.5],
+   ['g2','u-g21','updated progress on <b>Restaurant listing and cart screens</b> to 72%',1.4],
+   ['g3','u-g31','completed <b>Define the ML feature set</b>',8.1],
+   ['g2','u-g23','sent <b>Verify order-status edge cases</b> for review',2.2]
+  ].forEach(([g,who,text,h],i)=>A.push({id:'a'+i,groupId:g,userId:who,text,ts:t-h*36e5}));
+
+  return {users:U,groups:G,tasks:T,activity:A,remarks:[],invites:[]};
+}
+
+const API_URL = 'http://localhost:4000';
 const API = {
-  /* sessionStorage on purpose: scoped to this one tab, so pasting the URL into a
-     fresh tab (or a different browser) always lands on the sign-in screen instead
-     of silently reusing another tab's session. A reload of the same tab stays signed in. */
-  get token(){ return sessionStorage.getItem(K_TOKEN); },
-  set token(v){ if(v) sessionStorage.setItem(K_TOKEN,v); else sessionStorage.removeItem(K_TOKEN); },
-
-  /* low-level authenticated call. Throws {message} on any non-2xx response. */
-  async call(method, path, body){
-    /* bypasses localtunnel's one-time browser interstitial, which otherwise
-       returns an HTML "click to continue" page instead of JSON on the first hit */
-    const opts={ method, headers:{ 'bypass-tunnel-reminder':'true' } };
-    if(body!==undefined){ opts.headers['Content-Type']='application/json'; opts.body=JSON.stringify(body); }
-    if(API.token) opts.headers['Authorization']='Bearer '+API.token;
-    let res;
-    try{ res=await fetch(API_URL+path, opts); }
-    catch(e){ throw new Error('Can\'t reach the server. Is the backend running?'); }
-    let data=null; try{ data=await res.json(); }catch(e){}
-    if(!res.ok) throw new Error((data&&data.error)||'Something went wrong.');
-    return data;
+  active: false,
+  async check() {
+    try {
+      const res = await fetch(API_URL + '/api/sync');
+      if (res.ok) {
+        API.active = true;
+        const data = await res.json();
+        if (data && data.users) {
+          // Preserve local invites if server doesn't have them yet
+          data.invites = data.invites || DB.s?.invites || [];
+          DB.s = data;
+          localStorage.setItem(K_STATE, JSON.stringify(DB.s));
+          if (App.me) App.render();
+        }
+      }
+    } catch(e) {}
   },
-
-  /* fetch everything the signed-in user can see and refresh the local cache */
-  async bootstrap(){
-    const data=await API.call('GET','/api/bootstrap');
-    DB.s={ users:data.users, groups:data.groups, tasks:data.tasks, activity:data.activity,
-      remarks:data.remarks, invites:data.invites||[], online:data.online||[] };
-    return DB.s;
+  async push() {
+    if (!API.active) return;
+    try {
+      await fetch(API_URL + '/api/sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(DB.s)
+      });
+    } catch (e) {}
   }
 };
 
-/* DB.s is a read-only cache of server data. Every mutation goes through
-   API.call(...) and then DB.refresh() to pull the authoritative state back. */
+if (typeof window !== 'undefined' && 'EventSource' in window) {
+  try {
+    const ev = new EventSource(API_URL + '/api/events');
+    ev.onmessage = e => {
+      try {
+        const msg = JSON.parse(e.data);
+        if (msg.type === 'sync') API.check();
+      } catch (err) {}
+    };
+  } catch (e) {}
+}
+
 const DB={
   s:null,
-  async refresh(){ await API.bootstrap(); return DB.s; }
+  load(){ try{ DB.s=JSON.parse(localStorage.getItem(K_STATE)); }catch(e){ DB.s=null; }
+    if(!DB.s||!DB.s.users){ DB.s=seed(); localStorage.setItem(K_STATE,JSON.stringify(DB.s)); } return DB.s; },
+  save(bc=true){ localStorage.setItem(K_STATE,JSON.stringify(DB.s)); if (API.active) API.push(); if(bc) Sync.push(); },
+  reset(){ DB.s=seed(); DB.save(); }
 };
 
-/* periodic re-fetch so changes made by teammates show up without a manual reload */
 const Sync={
+  ch:('BroadcastChannel' in window)?new BroadcastChannel('orbit2'):null,
   lastSig:null,
-  es:null,
+  /* a cheap fingerprint of everything the UI actually reflects — data + who is online.
+     it deliberately ignores per-beat presence timestamps so idle tabs don't re-render. */
+  sig(){ try{ return (localStorage.getItem(K_STATE)||'')+'|'+Object.keys(Sync.online()).sort().join(','); }catch(e){ return ''; } },
   busy(){ const ae=document.activeElement;
     return document.querySelector('.scrim')||document.getElementById('notifPanel')||(ae&&/^(INPUT|TEXTAREA)$/.test(ae.tagName)); },
   init(){
-    setInterval(()=>{ if(App.me) API.call('POST','/api/presence/beat').catch(()=>{}); },5000);
-    /* fallback poll — the SSE connection below covers near-instant updates, this just
-       guards against a dropped connection that hasn't reconnected yet */
-    setInterval(()=>{ if(App.me&&!Sync.busy()) Sync.refresh(); },30000);
+    if(Sync.ch) Sync.ch.onmessage=e=>{ if(e.data&&e.data.t==='state') Sync.pull(e.data.from); };
+    window.addEventListener('storage',e=>{ if(e.key===K_STATE) Sync.pull(); });
+    setInterval(Sync.beat,3000);
+    /* only re-render when something actually changed and no input is focused — no idle repaint, no cursor flicker */
+    setInterval(()=>{ if(!App.me||Sync.busy()) return;
+      const s=Sync.sig(); if(s!==Sync.lastSig){ Sync.lastSig=s; App.render(); } },2500);
     /* low-frequency refresh purely to keep relative time labels ("2 min ago") current */
     setInterval(()=>{ if(App.me&&!Sync.busy()) App.render(); },60000);
   },
-  /* live push: the backend writes an event on every save(), so teammates' changes
-     show up in seconds instead of waiting for the next poll */
-  connect(){
-    Sync.disconnect();
-    if(!API.token||!('EventSource' in window)) return;
-    Sync.es=new EventSource(`${API_URL}/api/events?token=${encodeURIComponent(API.token)}`);
-    Sync.es.onmessage=()=>{ if(!Sync.busy()) Sync.refresh(); };
-    Sync.es.onerror=()=>{}; // EventSource auto-reconnects; the fallback poll covers the gap either way
-  },
-  disconnect(){ if(Sync.es){ Sync.es.close(); Sync.es=null; } },
-  async refresh(){
-    try{
-      await API.bootstrap();
-      const s=JSON.stringify(DB.s);
-      if(s!==Sync.lastSig){ const changed=Sync.lastSig!==null; Sync.lastSig=s; App.render();
-        if(changed){ FX.tap('hover'); } }
-    }catch(e){}
-  }
+  push(){ if(Sync.ch) Sync.ch.postMessage({t:'state',from:App.me?App.me.name:null,at:now()}); },
+  pull(from){ DB.load(); if(App.me){ App.render(); if(from){ FX.tap('hover'); toast(I.activity(15),`Updated by ${from}`); } } },
+  beat(){ if(!App.me) return; let p={}; try{p=JSON.parse(localStorage.getItem(K_PRESENCE))||{};}catch(e){}
+    p[App.me.id]={ts:now()}; localStorage.setItem(K_PRESENCE,JSON.stringify(p)); },
+  online(){ let p={}; try{p=JSON.parse(localStorage.getItem(K_PRESENCE))||{};}catch(e){}
+    const o={},t=now(); for(const k in p) if(t-p[k].ts<12000) o[k]=1; return o; }
 };
 
 /* ============================================================
@@ -967,6 +1064,9 @@ function dueOf(ts){ const d=Math.ceil((ts-now())/864e5);
 const dstr=ts=>new Date(ts).toLocaleDateString('en-GB',{day:'2-digit',month:'short'});
 const inputDate=ts=>{const d=new Date(ts);return new Date(d.getTime()-d.getTimezoneOffset()*6e4).toISOString().slice(0,10);};
 
+function log(groupId,text){ DB.s.activity.unshift({id:uid(),groupId,userId:App.me.id,text,ts:now()});
+  DB.s.activity=DB.s.activity.slice(0,200); }
+
 function toast(icon,msg){
   const el=document.createElement('div'); el.className='toast';
   el.innerHTML=`${icon}<span>${msg}</span>`;
@@ -974,9 +1074,8 @@ function toast(icon,msg){
   setTimeout(()=>{ el.classList.add('out'); setTimeout(()=>el.remove(),200); },2600);
 }
 
-const photoUrl=p=>p&&p.startsWith('/')?API_URL+p:p;
 const av=(u,cls='')=> u&&u.photo
-  ? `<div class="av ${cls}" style="background-image:url('${photoUrl(u.photo)}');background-size:cover;background-position:center;color:transparent" title="${esc(u.name)}"></div>`
+  ? `<div class="av ${cls}" style="background-image:url('${u.photo}');background-size:cover;background-position:center;color:transparent" title="${esc(u.name)}"></div>`
   : `<div class="av ${cls}" style="background:${(u&&u.color)||'#7A828E'}">${u?initials(u.name):''}</div>`;
 const tag=(t,c)=>`<span class="tag" style="background:${S_(c)};color:${V_(c)}"><span class="pt" style="background:${V_(c)}"></span>${t}</span>`;
 function ring(pct,size=64,c='accent',sw){
@@ -1127,7 +1226,7 @@ function liveCountdown(ts) {
   return null;
 }
 
-const online=()=>{ const o={}; (DB.s&&DB.s.online||[]).forEach(id=>o[id]=1); return o; };
+const online=()=>Sync.online();
 const dot=on=>on?`<span style="position:absolute;bottom:-1px;right:-1px;width:9px;height:9px;background:var(--green);border:2px solid #fff;border-radius:50%"></span>`:'';
 
 /* ============================================================
@@ -1143,6 +1242,7 @@ const Auth={
                   : Auth.screen==='choose' ? Auth.chooseHTML()
                   : Auth.screen==='lead'   ? Auth.leadHTML()
                   : Auth.facultyHTML();
+    document.getElementById('credList').innerHTML = Auth.credsHTML();
     const f=box.querySelector('input'); if(f) setTimeout(()=>f.focus(),60);
   },
 
@@ -1230,45 +1330,69 @@ const Auth={
       <div class="switcher"><button onclick="Auth.go('choose')">Back</button></div>`;
   },
 
+  credsHTML(){
+    const picks=[DB.s.users.find(u=>u.role==='Faculty')].concat(
+      DB.s.groups.slice(0,2).flatMap(g=>membersOf(g.id).slice(0,2))).filter(Boolean);
+    return picks.map(u=>{
+      const pw = u.role==='Faculty'?'faculty123':'student123';
+      const g = u.groupId?group(u.groupId):null;
+      return `<div class="crow" onclick="Auth.fill('${esc(u.email)}','${pw}')">
+        ${av(u)}
+        <div style="flex:1;min-width:0">
+          <div class="e">${esc(u.name)}</div>
+          <div class="r">${esc(u.role)}${u.subjectCode?' ('+esc(u.subjectCode)+')':''}${g?' · '+esc(g.name):''}</div>
+        </div>
+        <div style="text-align:right">
+          <div class="mono">${esc(u.email)}</div>
+          <div class="mono" style="color:var(--faint)">${pw}</div>
+        </div>
+      </div>`;
+    }).join('') + `<div style="font-size:11.5px;color:var(--faint);margin-top:8px">Every other seeded student uses the same password: <span class="mono">student123</span></div>`;
+  },
+
+  fill(email,pw){
+    Auth.go('signin');
+    setTimeout(()=>{ document.getElementById('si_email').value=email;
+      document.getElementById('si_pass').value=pw; FX.tap('med'); },40);
+  },
+
   go(s){ Auth.screen=s; FX.tap('med'); Auth.render(); },
 
   showErr(id,msg){ document.getElementById(id).innerHTML=`<div class="errmsg">${I.alert(13)}${esc(msg)}</div>`; FX.tap('error'); },
 
-  async signin(){
+  signin(){
     const em=document.getElementById('si_email').value.trim();
     const pw=document.getElementById('si_pass').value;
     if(!em||!pw) return Auth.showErr('si_err','Enter your email and password.');
-    const btn=document.querySelector('#authBox .btn.pri'); if(btn) btn.disabled=true;
-    try{
-      const data=await API.call('POST','/api/auth/login',{email:em,password:pw});
-      API.token=data.token;
-      await App.signIn(data.user);
-    }catch(e){
-      Auth.showErr('si_err',e.message);
-    }finally{ if(btn) btn.disabled=false; }
+    const u=userByEmail(em);
+    if(!u||u.pass!==hash(pw)) return Auth.showErr('si_err','That email and password combination is not recognised.');
+    App.signIn(u.id);
   },
 
-  async registerLead(){
+  registerLead(){
     const g=id=>document.getElementById(id).value.trim();
     const name=g('r_name'), email=g('r_email'), pw=document.getElementById('r_pass').value,
           pw2=document.getElementById('r_pass2').value, gname=g('r_group'), subj=g('r_subject'), proj=g('r_project');
     if(!name) return Auth.showErr('r_err','Enter your full name.');
     if(!emailOk(email)) return Auth.showErr('r_err','Enter a valid email address.');
+    if(userByEmail(email)) return Auth.showErr('r_err','An account with that email already exists.');
     if(pw.length<6) return Auth.showErr('r_err','Password must be at least 6 characters.');
     if(pw!==pw2) return Auth.showErr('r_err','The two passwords do not match.');
     if(!gname) return Auth.showErr('r_err','Give your group a name.');
     if(!proj) return Auth.showErr('r_err','Enter your project title.');
-    try{
-      const data=await API.call('POST','/api/auth/register-lead',
-        {name,email,password:pw,groupName:gname,project:proj,courseCode:subj});
-      API.token=data.token;
-      await App.signIn(data.user);
-      toast(I.check(15),'Team created. Add your members next.');
-      App.tab='team'; App.render();
-    }catch(e){ Auth.showErr('r_err',e.message); }
+
+    const gid='g-'+uid(), uidv='u-'+uid();
+    const c=SEM3.find(s=>s.code===subj);
+    DB.s.users.push({id:uidv,name,email,pass:hash(pw),role:'Team Lead',groupId:gid,color:AVC[DB.s.users.length%AVC.length],createdAt:now()});
+    DB.s.groups.push({id:gid,name:gname,project:proj,subject:c?c.code+' · '+c.name:'—',
+      courseCode:c?c.code:null,subjects:c?[c.code]:[],topics:{},leadId:uidv,createdAt:now()});
+    DB.save();
+    App.signIn(uidv);
+    setTimeout(()=>toast(I.check(15),'Team created. Add your members next.'),300);
+    App.tab='team'; App.render();
   },
 
-  async registerFaculty(){
+  registerFaculty(){
     const g=id=>document.getElementById(id);
     const name=(g('f_name')?.value||'').trim();
     const email=(g('f_email')?.value||'').trim();
@@ -1278,15 +1402,14 @@ const Auth={
     const pw2=g('f_pass2')?.value||'';
     if(!name) return Auth.showErr('f_err','Enter your full name.');
     if(!emailOk(email)) return Auth.showErr('f_err','Enter a valid email address.');
+    if(userByEmail(email)) return Auth.showErr('f_err','An account with that email already exists.');
     if(pw.length<6) return Auth.showErr('f_err','Password must be at least 6 characters.');
     if(pw!==pw2) return Auth.showErr('f_err','The two passwords do not match.');
     if(!subjectCode) return Auth.showErr('f_err','Please select your teaching subject.');
-    try{
-      const data=await API.call('POST','/api/auth/register-faculty',{name,email,password:pw,subjectCode});
-      API.token=data.token;
-      await App.signIn(data.user);
-      toast(I.check(15),`Faculty account created · Subject: ${subjectCode}`);
-    }catch(e){ Auth.showErr('f_err',e.message); }
+    const uidv='u-'+uid();
+    DB.s.users.push({id:uidv,name,email,pass:hash(pw),role:'Faculty',subjectCode,groupId:null,color:AVC[DB.s.users.length%AVC.length],createdAt:now()});
+    DB.save(); App.signIn(uidv);
+    setTimeout(()=>toast(I.check(15),`Faculty account created · Subject: ${subjectCode}`),300);
   }
 };
 
@@ -1294,68 +1417,43 @@ const Auth={
    APP
    ============================================================ */
 const App={
-  me:null, tab:'dashboard', openGroup:null, openSubjectCode:null, topicFilter:null, settingsTab:'profile',
+  me:null, tab:'dashboard', openGroup:null, openSubjectCode:null, topicFilter:null,
 
-  async boot(){
-    // one-time cleanup: older builds of this app kept the whole database (incl. password
-    // hashes) in localStorage under these keys. Business data now lives on the server only.
-    ['orbit.db.v5','orbit.session.v5','orbit.presence.v5'].forEach(k=>localStorage.removeItem(k));
-    FX.paint();
-    Sync.init();
-    // Re-fetch when the user switches back to this tab
-    document.addEventListener('visibilitychange', async () => {
-      if (!document.hidden && App.me) { try{ await API.bootstrap(); App.render(); }catch(e){} }
-    });
-    if(!API.token) return Auth.render();
-    try{
-      const me=await API.call('GET','/api/me');
-      await App.signIn(me, true);
-    }catch(e){
-      API.token=null; Auth.render();
-    }
+  boot(){
+    DB.load(); Sync.init(); FX.paint();
+    // Initial check — renders stale state first, then re-renders with fresh server data
+    API.check();
+    // Poll server every 8 seconds to pick up invites from other sessions
+    setInterval(() => { if (App.me) API.check(); }, 8000);
+    // Re-fetch when user switches back to this tab
+    document.addEventListener('visibilitychange', () => { if (!document.hidden && App.me) API.check(); });
+    const sid=localStorage.getItem(K_SESSION);
+    if(sid && user(sid)) App.signIn(sid, true); else Auth.render();
   },
 
   get isFaculty(){ return App.me && App.me.role==='Faculty'; },
   get isLead(){ return App.me && App.me.role==='Team Lead'; },
 
-  async signIn(userObj, silent){
-    App.me=userObj;
+  signIn(id, silent){
+    App.me=user(id);
+    localStorage.setItem(K_SESSION,id);
     document.getElementById('auth').classList.add('hidden');
     document.getElementById('shell').classList.remove('hidden');
     App.tab='dashboard'; App.openGroup=null;
-    try{ await API.call('POST','/api/presence/beat'); }catch(e){}
-    await API.bootstrap();
-    Sync.lastSig=JSON.stringify(DB.s);
-    Sync.connect();
-    App.render();
+    Sync.beat(); App.render();
     if(!silent){ FX.tap('done'); toast(I.check(15),`Signed in as ${App.me.name}`); }
   },
 
   signOut(){
-    Sync.disconnect();
-    App.me=null; API.token=null; DB.s=null;
+    let p={}; try{p=JSON.parse(localStorage.getItem(K_PRESENCE))||{};}catch(e){}
+    delete p[App.me.id]; localStorage.setItem(K_PRESENCE,JSON.stringify(p));
+    App.me=null; localStorage.removeItem(K_SESSION);
     document.getElementById('shell').classList.add('hidden');
     document.getElementById('auth').classList.remove('hidden');
     Modal.close(); Auth.go('signin');
   },
 
   go(t){ App.tab=t; App.openGroup=null; App.openSubjectCode=null; App.topicFilter=null; FX.tap('med'); App.render(); },
-
-  async saveProfile(){
-    const el=document.getElementById('set_name');
-    const name=el?el.value.trim():'';
-    const errEl=document.getElementById('set_profile_err');
-    if(!name){ if(errEl) errEl.innerHTML=`<div class="errmsg">${I.alert(13)}Enter your full name.</div>`; FX.tap('error'); return; }
-    try{
-      const updated=await API.call('PATCH','/api/me',{name});
-      App.me=updated; FX.tap('done');
-      if(errEl) errEl.innerHTML='';
-      await API.bootstrap();
-      App.render(); toast(I.check(15),'Profile updated');
-    }catch(e){
-      if(errEl) errEl.innerHTML=`<div class="errmsg">${I.alert(13)}${esc(e.message)}</div>`; FX.tap('error');
-    }
-  },
   openG(id){ App.openGroup=id; App.tab='group'; FX.tap('med'); App.render(); document.getElementById('view').scrollTop=0; },
   openSubject(code){ App.openSubjectCode=code; App.topicFilter=null; App.tab='subject'; FX.tap('med'); App.render(); document.getElementById('view').scrollTop=0; },
   filterTopicIdx(i){ const g=group(App.me.groupId), tops=groupTopics(g,App.openSubjectCode);
@@ -1372,7 +1470,7 @@ const App={
         ['groups','Groups',I.folder,gs.length],
         ['people','People',I.users,gs.reduce((a,g)=>a+membersOf(g.id).length,0)],
         ['activity','Activity',I.activity],
-        ['settings','Settings',I.gear]
+        ['settings','Settings',I.settings]
       ];
     }
     const my=tasksFor(App.me.id).filter(t=>t.status!=='done').length;
@@ -1387,7 +1485,7 @@ const App={
       ['team','My Team',I.users,membersOf(App.me.groupId).length],
       ['requests','Supervision Requests',I.mail,pendingReqs||null],
       ['groupactivity','Activity',I.activity],
-      ['settings','Settings',I.gear]
+      ['settings','Settings',I.settings]
     ];
   },
 
@@ -1434,12 +1532,12 @@ const App={
       App.tab==='mytasks'   ? Page.mytasks() :
       App.tab==='team'      ? Page.team() :
       App.tab==='requests'   ? Page.requestsPage() :
-      App.tab==='groupactivity' ? Page.activity(App.me.groupId) :
-      App.tab==='settings' ? Page.settings() : ''
+      App.tab==='settings'   ? Page.settings() :
+      App.tab==='groupactivity' ? Page.activity(App.me.groupId) : ''
     }</div>`;
     v.scrollTop=sc;
     Board.bind(); AI.bind(); Tilt.bind();
-    Sync.lastSig=JSON.stringify(DB.s);
+    Sync.lastSig=Sync.sig();
   }
 };
 
@@ -1554,13 +1652,13 @@ const Page={
     return `<div class="card cal-widget-card" style="padding: 14px; border-radius: var(--r2);">
       <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom: 10px;">
         <div style="display:flex; align-items:center; gap:4px;">
-          <button class="btn sm gho ico" style="height:22px;width:22px;padding:0;transform:scaleX(-1)" title="Previous month" onclick="event.stopPropagation(); Cal.shift(-1);">${I.chev(11)}</button>
+          <button class="btn sm gho ico" style="height:22px;width:22px;padding:0;transform:rotate(180deg)" title="Previous month" onclick="event.stopPropagation(); Cal.shift(-1);">${I.chev(11)}</button>
           <span style="color:var(--accent); font-weight:700; font-size:12px; text-transform:uppercase; letter-spacing:0.04em;">${curMonth} ${curYear}</span>
           <button class="btn sm gho ico" style="height:22px;width:22px;padding:0" title="Next month" onclick="event.stopPropagation(); Cal.shift(1);">${I.chev(11)}</button>
         </div>
         <div style="display:flex; align-items:center; gap:6px;">
           <button class="btn sm gho" style="font-size:10.5px;padding:2px 7px;height:22px;" onclick="event.stopPropagation(); Cal.today();">Today</button>
-          <button class="btn sm gho ico" title="Open full calendar" onclick="App.go('calendar')">${I.chev(12)}</button>
+          <button class="btn sm gho ico" title="Open full calendar" onclick="event.stopPropagation(); App.go('calendar')">${I.cal(12)}</button>
         </div>
       </div>
       <div style="display:grid; grid-template-columns: repeat(7, 1fr); text-align:center; font-size:9.5px; font-weight:700; color:var(--muted); margin-bottom:6px;">
@@ -1612,18 +1710,48 @@ const Page={
   },
 
   async respondInvite(invId, action){
-    const inv = (DB.s.invites || []).find(i => i.id === invId);
+    DB.s.invites = DB.s.invites || [];
+    const inv = DB.s.invites.find(i => i.id === invId);
     if (!inv) return;
+
+    // Try backend first
     try {
-      await API.call('POST', `/api/invites/${invId}/respond`, { action });
-      await API.bootstrap();
-      FX.tap(action === 'accept' ? 'done' : 'med');
-      toast(action === 'accept' ? I.check(15) : I.trash(15),
-        action === 'accept' ? `Accepted supervision request for ${inv.subjectCode}` : 'Declined supervision request');
-      App.render();
-    } catch(e) {
-      FX.tap('error'); toast(I.alert(15), e.message);
+      const res = await fetch(API_URL + '/api/invites/respond-direct', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ inviteId: invId, action, userId: App.me.id })
+      });
+      if (res.ok) {
+        await API.check(); // Refresh all data from backend
+        FX.tap(action === 'accept' ? 'done' : 'med');
+        toast(action === 'accept' ? I.check(15) : I.trash(15),
+          action === 'accept' ? `Accepted supervision from ${inv.facultyName}` : 'Declined request');
+        App.render();
+        return;
+      }
+    } catch(e) {}
+
+    // Fallback: update locally
+    inv.status = action === 'accept' ? 'accepted' : 'declined';
+    if (action === 'accept') {
+      const g = group(inv.groupId);
+      if (g) {
+        g.facultyIds = g.facultyIds || [];
+        if (!g.facultyIds.includes(inv.facultyId)) g.facultyIds.push(inv.facultyId);
+        g.subjectFacultyMap = g.subjectFacultyMap || {};
+        g.subjectFacultyMap[inv.subjectCode] = inv.facultyId;
+      }
+      log(inv.groupId, `accepted supervision request from <b>${esc(inv.facultyName)}</b> for <b>${esc(inv.subjectCode)}</b>`);
+      toast(I.check(15), `Accepted supervision request for ${inv.subjectCode}`);
+    } else {
+      log(inv.groupId, `declined supervision request from <b>${esc(inv.facultyName)}</b>`);
+      toast(I.trash(15), `Declined supervision request`);
     }
+
+    DB.save();
+    API.push();
+    FX.tap(action === 'accept' ? 'done' : 'med');
+    App.render();
   },
 
   /* ---------- FACULTY ---------- */
@@ -1986,11 +2114,11 @@ const Page={
           <p>${g.name} · Incoming faculty supervision requests</p>
         </div>
         <div class="sp"></div>
-        <button class="btn pri" onclick="API.bootstrap().then(()=>{App.render();toast(I.check(15),'Refreshed from server');})">${I.activity(15)} Sync from Server</button>
+        <button class="btn pri" onclick="API.check().then(()=>{App.render();toast(I.check(15),'Refreshed from server');})">${I.activity(15)} Sync from Server</button>
       </div>
       <div class="banner info" style="margin-bottom:14px">
         ${I.activity(16)}
-        <div><b>How requests arrive:</b> Faculty sends a Group Number request → it's saved on the backend → when you click <b>Sync from Server</b> or wait up to 8 seconds, it appears here.</div>
+        <div><b>How requests arrive:</b> Faculty sends a Group Number request → it's saved on the local backend (localhost:4000) → when you click <b>Sync from Server</b> or wait up to 8 seconds, it appears here. Both users must be connected to the same backend.</div>
       </div>
 
       ${pending.length ? `
@@ -2026,6 +2154,170 @@ const Page={
         </div>
       ` : ''}
     `;
+  },
+
+  /* ---------- SETTINGS PAGE ---------- */
+  settings(){
+    const g = App.me.groupId ? group(App.me.groupId) : null;
+    const facSubj = App.me.subjectCode || '23AID205';
+    const subjObj = SEM3.find(s => s.code === facSubj) || { code: facSubj, name: 'Subject' };
+
+    return `
+      <div class="ph">
+        <div>
+          <h1>Settings</h1>
+          <p>Manage your account profile, avatar, and security preferences</p>
+        </div>
+      </div>
+
+      <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(320px, 1fr)); gap:18px;">
+        
+        <!-- PROFILE & AVATAR CARD -->
+        <div class="card">
+          <div class="ch">${I.users(16)}<h3>Profile & Avatar</h3></div>
+          <div class="cb" style="display:flex; flex-direction:column; gap:16px;">
+            <div style="display:flex; align-items:center; gap:14px;">
+              <div style="position:relative; flex:none">${av(App.me, 'xl')}</div>
+              <div style="flex:1; min-width:0">
+                <div style="font-weight:700; font-size:15px; color:var(--ink)">${esc(App.me.name)}</div>
+                <div style="font-size:12px; color:var(--muted)">${esc(App.me.role)}${g ? ' · ' + esc(g.name) : ''}</div>
+                ${App.isFaculty ? `<div style="font-size:11.5px; color:var(--accent); font-weight:600; margin-top:2px">${esc(subjObj.code)} · ${esc(subjObj.name)}</div>` : ''}
+              </div>
+            </div>
+
+            <div id="set_photo_controls" style="display:flex; gap:8px; flex-wrap:wrap">
+              <button class="btn sm" onclick="Photo.chooseSettings()">${I.folder(14)} Upload Photo</button>
+              <button class="btn sm pri" onclick="Photo.startSettingsWebcam()">${I.cam(14)} Webcam Selfie</button>
+              ${App.me.photo ? `<button class="btn sm dan" onclick="Photo.removeSettings()">${I.trash(14)} Remove</button>` : ''}
+            </div>
+
+            <div id="set_webcam_area" style="border:1px solid var(--line); border-radius:var(--r2); padding:14px; background:var(--surface-2); display:none; flex-direction:column; align-items:center; gap:12px">
+              <video id="set_selfie_video" autoplay playsinline style="width:180px; height:180px; object-fit:cover; border-radius:50%; background:#000; transform:scaleX(-1); border:3px solid var(--accent); box-shadow:var(--sh2)"></video>
+              <div style="display:flex; gap:8px">
+                <button class="btn pri sm" onclick="Photo.captureSettingsSelfie()">${I.check(14)} Capture Photo</button>
+                <button class="btn sm" onclick="Photo.stopSettingsWebcam()">Cancel</button>
+              </div>
+            </div>
+
+            <div style="border-top:1px solid var(--line-2); padding-top:14px; display:grid; gap:12px">
+              <div class="field">
+                <label>Full Name</label>
+                <input class="inp" id="set_name" value="${esc(App.me.name)}" placeholder="Enter full name"/>
+              </div>
+              <div class="field">
+                <label>Email Address</label>
+                <input class="inp" id="set_email" value="${esc(App.me.email)}" placeholder="Enter email address"/>
+              </div>
+              ${App.isFaculty ? `
+                <div class="field">
+                  <label>Teaching Subject</label>
+                  <select class="inp" id="set_subjectCode">
+                    ${SEM3.map(s => `<option value="${s.code}" ${s.code === facSubj ? 'selected' : ''}>${s.code} · ${esc(s.name)}</option>`).join('')}
+                  </select>
+                </div>
+              ` : ''}
+              <button class="btn pri" onclick="Page.saveSettingsProfile()">${I.check(14)} Save Profile Changes</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- SECURITY & PASSWORD CARD -->
+        <div class="card">
+          <div class="ch">${I.lock(16)}<h3>Security & Password</h3></div>
+          <div class="cb" style="display:grid; gap:14px">
+            <p style="font-size:12.5px; color:var(--muted)">Change your account password securely below.</p>
+            <div class="field">
+              <label>Current Password</label>
+              <input class="inp" id="set_cp_old" type="password" placeholder="Enter current password"/>
+            </div>
+            <div class="field">
+              <label>New Password</label>
+              <input class="inp" id="set_cp_new" type="password" placeholder="Minimum 6 characters"/>
+            </div>
+            <div class="field">
+              <label>Confirm New Password</label>
+              <input class="inp" id="set_cp_new2" type="password" placeholder="Re-enter new password"/>
+            </div>
+            <div id="set_cp_err"></div>
+            <button class="btn pri" onclick="Page.changePasswordSettings()">${I.lock(14)} Update Password</button>
+          </div>
+        </div>
+
+      </div>
+    `;
+  },
+
+  saveSettingsProfile(){
+    const nameEl = document.getElementById('set_name');
+    const emailEl = document.getElementById('set_email');
+    if (!nameEl || !emailEl) return;
+
+    const name = nameEl.value.trim();
+    const email = emailEl.value.trim();
+    const subjEl = document.getElementById('set_subjectCode');
+    const subjectCode = subjEl ? subjEl.value : null;
+
+    if (!name) return toast(I.alert(15), 'Name cannot be empty.');
+    if (!emailOk(email)) return toast(I.alert(15), 'Please enter a valid email.');
+
+    const existing = DB.s.users.find(u => u.email.toLowerCase() === email.toLowerCase() && u.id !== App.me.id);
+    if (existing) return toast(I.alert(15), 'This email is already in use by another account.');
+
+    const u = user(App.me.id);
+    if (u) {
+      u.name = name;
+      u.email = email;
+      if (subjectCode) u.subjectCode = subjectCode;
+      App.me.name = name;
+      App.me.email = email;
+      if (subjectCode) App.me.subjectCode = subjectCode;
+
+      DB.save();
+      API.push();
+      FX.tap('done');
+      toast(I.check(15), 'Profile settings saved successfully!');
+      App.render();
+    }
+  },
+
+  changePasswordSettings(){
+    const oEl = document.getElementById('set_cp_old');
+    const nEl = document.getElementById('set_cp_new');
+    const n2El = document.getElementById('set_cp_new2');
+    const errEl = document.getElementById('set_cp_err');
+    if (!oEl || !nEl || !n2El) return;
+
+    const o = oEl.value;
+    const n = nEl.value;
+    const n2 = n2El.value;
+
+    if (hash(o) !== App.me.pass) {
+      if (errEl) errEl.innerHTML = `<div class="errmsg">${I.alert(13)}Current password is incorrect.</div>`;
+      FX.tap('error');
+      return;
+    }
+    if (n.length < 6) {
+      if (errEl) errEl.innerHTML = `<div class="errmsg">${I.alert(13)}New password must be at least 6 characters.</div>`;
+      FX.tap('error');
+      return;
+    }
+    if (n !== n2) {
+      if (errEl) errEl.innerHTML = `<div class="errmsg">${I.alert(13)}The two new passwords do not match.</div>`;
+      FX.tap('error');
+      return;
+    }
+
+    const u = user(App.me.id);
+    if (u) {
+      u.pass = hash(n);
+      App.me.pass = hash(n);
+      DB.save();
+      API.push();
+      FX.tap('done');
+      toast(I.check(15), 'Password updated successfully!');
+      if (errEl) errEl.innerHTML = '';
+      oEl.value = ''; nEl.value = ''; n2El.value = '';
+    }
   },
 
   /* ---------- STUDENT ---------- */
@@ -2453,80 +2745,6 @@ const Page={
         }).join(''):`<div class="empty">${I.check(22)}<div class="h">No upcoming deadlines</div><p>Every task is complete or unscheduled.</p></div>`}
       </div>
     </div>`;
-  },
-
-  /* ---------- SETTINGS ---------- */
-  settings(){
-    if(!App.settingsTab) App.settingsTab='profile';
-    const tab=App.settingsTab;
-    const g=App.me.groupId?group(App.me.groupId):null;
-
-    const tabBtn=(id,ic,label)=>`<button class="tab-btn" onclick="if(Photo._stream) Photo.stopWebcam(); App.settingsTab='${id}'; App.render()"
-      style="padding:9px 14px;font-weight:600;font-size:13px;border:none;background:none;cursor:pointer;border-bottom:2px solid ${tab===id?'var(--accent)':'transparent'};color:${tab===id?'var(--accent)':'var(--muted)'};transition:color .15s,border-color .15s">
-      ${ic(14)} ${label}
-    </button>`;
-
-    const profileTab=`
-      <div style="display:flex;flex-direction:column;gap:16px;max-width:520px">
-        <div style="display:flex;align-items:center;gap:14px">
-          <div style="position:relative;flex:none">${av(App.me,'xl')}</div>
-          <div style="flex:1;min-width:0">
-            <div style="font-weight:600;font-size:15px">${esc(App.me.name)}</div>
-            <div style="color:var(--muted);font-size:12.5px">${esc(App.me.role)}${g?' · '+esc(g.name):''}</div>
-            <div class="mono" style="color:var(--faint);margin-top:2px">${esc(App.me.email)}</div>
-          </div>
-        </div>
-
-        <div id="photo_control_buttons" style="display:flex;gap:8px;flex-wrap:wrap">
-          <button class="btn sm" onclick="Photo.choose('${App.me.id}')">${I.folder(14)} Upload Photo</button>
-          <button class="btn sm pri" onclick="Photo.startWebcam()">${I.cam(14)} Webcam Selfie</button>
-          ${App.me.photo?`<button class="btn sm dan" onclick="Photo.remove()">${I.trash(14)} Remove Photo</button>`:''}
-        </div>
-
-        <div id="selfie_webcam_area" style="margin-top:4px;border:1px solid var(--line);border-radius:var(--r2);padding:14px;background:var(--surface-2);display:none;flex-direction:column;align-items:center;gap:12px">
-          <video id="selfie_video" autoplay playsinline style="width:180px;height:180px;object-fit:cover;border-radius:50%;background:#000;transform:scaleX(-1);border:3px solid var(--accent);box-shadow:var(--sh2)"></video>
-          <div style="display:flex;gap:8px">
-            <button class="btn pri sm" onclick="Photo.captureLiveSelfie()">${I.check(14)} Capture Photo</button>
-            <button class="btn sm" onclick="Photo.stopWebcam()">Cancel</button>
-          </div>
-        </div>
-
-        <div class="card" style="padding:16px">
-          <div style="font-weight:600;font-size:13px;margin-bottom:12px">Personal details</div>
-          <div style="display:grid;gap:12px">
-            <div class="field"><label>Full name</label><input class="inp" id="set_name" value="${esc(App.me.name)}"/></div>
-            <div class="field"><label>Email</label><input class="inp" value="${esc(App.me.email)}" disabled style="opacity:.6;cursor:not-allowed"/>
-              <span class="hint">Your email is your username and can't be changed here.</span></div>
-            <div id="set_profile_err"></div>
-            <div><button class="btn pri" onclick="App.saveProfile()">${I.check(14)} Save changes</button></div>
-          </div>
-        </div>
-      </div>`;
-
-    const passwordTab=`
-      <div style="display:grid;gap:12px;max-width:420px">
-        <p style="font-size:12px;color:var(--muted)">Change your account password securely below.</p>
-        <div class="field"><label>Current password</label><input class="inp" id="cp_old" type="password"/></div>
-        <div class="two">
-          <div class="field"><label>New password</label><input class="inp" id="cp_new" type="password"/></div>
-          <div class="field"><label>Confirm password</label><input class="inp" id="cp_new2" type="password"/></div>
-        </div>
-        <div id="cp_err"></div>
-        <div><button class="btn pri" onclick="Modal.changePass()">Update password</button></div>
-      </div>`;
-
-    return `
-    <div class="ph"><div><h1>Settings</h1><p>Manage your profile, photo and password</p></div></div>
-    <div class="card" style="padding:16px 18px">
-      <div style="display:flex;border-bottom:1px solid var(--line);margin-bottom:18px;gap:4px">
-        ${tabBtn('profile',I.cam,'Profile & Selfie')}
-        ${tabBtn('password',I.lock,'Change Password')}
-      </div>
-      ${tab==='profile'?profileTab:passwordTab}
-    </div>
-    <div style="margin-top:16px">
-      <button class="btn dan" onclick="App.signOut()">${I.out(15)} Sign out</button>
-    </div>`;
   }
 };
 
@@ -2712,24 +2930,22 @@ const Board={
     if(Board.flash) setTimeout(()=>{ Board.flash=null; },1000);
   },
 
-  async move(id,status){
+  move(id,status){
     const t=DB.s.tasks.find(x=>x.id===id);
     if(!t||t.status===status) return;
     if(!Board.canEdit(t)){ FX.tap('error'); return toast(I.lock(15),'You can only move tasks assigned to you'); }
-    const to=stat(status).n;
-    let progress=t.progress;
-    if(status==='done') progress=100;
-    else if(status==='todo') progress=Math.min(progress,15);
-    else if(progress===0) progress=10;
-    else if(progress===100) progress=90;
+    const from=stat(t.status).n, to=stat(status).n;
+    t.status=status; t.updatedAt=now();
     Board.flash = status==='done' ? id : null;
-    try{
-      await API.call('PATCH',`/api/tasks/${id}`,{status,progress});
-      await API.bootstrap(); FX.tap(status==='done'?'done':'drop');
-      toast(status==='done'?I.check(15):I.arrow(15), status==='done'?`Completed: ${t.title}`:`Moved to ${to}`);
-      App.render();
-      if(status==='done') setTimeout(()=>Confetti.celebrate(document.querySelector(`.tc[data-id="${id}"]`)),180);
-    }catch(e){ FX.tap('error'); toast(I.alert(15),e.message); }
+    if(status==='done') t.progress=100;
+    else if(status==='todo') t.progress=Math.min(t.progress,15);
+    else if(t.progress===0) t.progress=10;
+    else if(t.progress===100) t.progress=90;
+    log(t.groupId,`moved <b>${esc(t.title)}</b> from ${from} to <b>${to}</b>`);
+    DB.save(); FX.tap(status==='done'?'done':'drop');
+    toast(status==='done'?I.check(15):I.arrow(15), status==='done'?`Completed: ${t.title}`:`Moved to ${to}`);
+    App.render();
+    if(status==='done') setTimeout(()=>Confetti.celebrate(document.querySelector(`.tc[data-id="${id}"]`)),180);
   }
 };
 
@@ -2847,31 +3063,19 @@ const AI={
   render(){ if(App.tab==='assistant') App.render(); },
   bind(){ const l=document.getElementById('chatlog'); if(l) l.scrollTop=l.scrollHeight; },
 
-  async ask(text){
+  ask(text){
     text=(text||'').trim(); if(!text) return;
     if(App.tab!=='assistant'){ App.tab='assistant'; }
     if(!AI.msgs.length) AI.seed();
     AI.msgs.push({r:'u',html:esc(text)});
     AI.msgs.push({r:'a',typing:true});
     FX.tap('med'); App.render();
-    const ans=await AI.getAnswer(text);
-    AI.msgs[AI.msgs.length-1]={r:'a',html:ans};
-    if(App.tab==='assistant') App.render(); else Notify.paint();
-    FX.tap('light');
-  },
-
-  /* real Claude first (proxied through the backend so the API key never reaches
-     the browser); if that's not configured or the network call fails, fall back
-     to the deterministic rule-based answer so the assistant never just breaks */
-  async getAnswer(text){
-    const minWait=new Promise(r=>setTimeout(r,540+Math.random()*380));
-    try{
-      const [data]=await Promise.all([API.call('POST','/api/ai/ask',{question:text}), minWait]);
-      return esc(data.answer).replace(/\n/g,'<br>');
-    }catch(e){
-      await minWait;
-      return AI.answer(text);
-    }
+    const ans=AI.answer(text);
+    setTimeout(()=>{
+      AI.msgs[AI.msgs.length-1]={r:'a',html:ans};
+      if(App.tab==='assistant') App.render(); else Notify.paint();
+      FX.tap('light');
+    }, 540+Math.random()*380);
   },
 
   answer(q){
@@ -3228,19 +3432,23 @@ const Cal={
    ============================================================ */
 const Photo={
   _stream: null,
-  choose(){
+  choose(uid){
     const inp=document.createElement('input'); inp.type='file'; inp.accept='image/*';
     inp.onchange=()=>{
       const f=inp.files&&inp.files[0]; if(!f) return;
       if(!/^image\//.test(f.type)){ FX.tap('error'); return toast(I.alert(15),'Please choose an image file'); }
       if(f.size>12e6){ FX.tap('error'); return toast(I.alert(15),'Image too large (max 12 MB)'); }
       const r=new FileReader();
-      r.onload=()=>Photo.resize(r.result,data=>Photo.upload(data));
+      r.onload=()=>Photo.resize(r.result,data=>{
+        const u=user(uid); if(!u) return;
+        u.photo=data; DB.save(); FX.tap('done'); App.render();
+        toast(I.check(15),'Selfie added'); if(App.me&&App.me.id===uid) Modal.account();
+      });
       r.readAsDataURL(f);
     };
     inp.click();
   },
-  /* downscale to ~256px and re-encode as JPEG before it ever leaves the browser */
+  /* downscale to ~256px and re-encode as JPEG so localStorage stays small */
   resize(src,cb){
     const img=new Image();
     img.onload=()=>{
@@ -3253,20 +3461,8 @@ const Photo={
     img.onerror=()=>{ FX.tap('error'); toast(I.alert(15),'Could not read that image'); };
     img.src=src;
   },
-  async upload(dataUrl){
-    try{
-      const updated=await API.call('POST','/api/me/photo',{dataUrl});
-      App.me=updated; await API.bootstrap(); FX.tap('done'); App.render();
-      toast(I.check(15),'Selfie added');
-    }catch(e){ FX.tap('error'); toast(I.alert(15),e.message); }
-  },
-  async remove(){
-    try{
-      const updated=await API.call('DELETE','/api/me/photo');
-      App.me=updated; await API.bootstrap(); FX.tap('med'); App.render();
-      toast(I.trash(15),'Photo removed');
-    }catch(e){ FX.tap('error'); toast(I.alert(15),e.message); }
-  },
+  remove(uid){ const u=user(uid); if(!u) return; delete u.photo; DB.save(); FX.tap('med'); App.render();
+    toast(I.trash(15),'Photo removed'); if(App.me&&App.me.id===uid) Modal.account(); },
 
   async startWebcam(){
     const area = document.getElementById('selfie_webcam_area');
@@ -3295,7 +3491,7 @@ const Photo={
       Photo._stream.getTracks().forEach(track => track.stop());
       Photo._stream = null;
     }
-    App.render();
+    Modal.account('profile');
   },
   captureLiveSelfie(){
     const video = document.getElementById('selfie_video');
@@ -3304,15 +3500,86 @@ const Photo={
     canvas.width = 256;
     canvas.height = 256;
     const ctx = canvas.getContext('2d');
-
+    
     // Mirror drawing for a natural-feeling selfie
     ctx.translate(256, 0);
     ctx.scale(-1, 1);
     ctx.drawImage(video, 0, 0, 256, 256);
-
+    
     const data = canvas.toDataURL('image/jpeg', 0.85);
+    const u = user(App.me.id);
+    if (u) {
+      u.photo = data;
+      DB.save();
+      FX.tap('done');
+      toast(I.check(15), 'Selfie captured successfully!');
+    }
     Photo.stopWebcam();
-    Photo.upload(data);
+  },
+
+  _settingsStream: null,
+  chooseSettings(){
+    Photo.choose(App.me.id);
+  },
+  removeSettings(){
+    Photo.remove(App.me.id);
+  },
+  async startSettingsWebcam(){
+    const area = document.getElementById('set_webcam_area');
+    const controls = document.getElementById('set_photo_controls');
+    if (!area) return;
+    area.style.display = 'flex';
+    if (controls) controls.style.display = 'none';
+
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { width: { ideal: 320 }, height: { ideal: 320 }, facingMode: 'user' }
+      });
+      Photo._settingsStream = stream;
+      const video = document.getElementById('set_selfie_video');
+      if (video) {
+        video.srcObject = stream;
+        video.onloadedmetadata = () => video.play();
+      }
+    } catch(e) {
+      toast(I.alert(15), 'Could not access webcam: ' + e.message);
+      Photo.stopSettingsWebcam();
+    }
+  },
+  stopSettingsWebcam(){
+    if (Photo._settingsStream) {
+      Photo._settingsStream.getTracks().forEach(track => track.stop());
+      Photo._settingsStream = null;
+    }
+    const area = document.getElementById('set_webcam_area');
+    const controls = document.getElementById('set_photo_controls');
+    if (area) area.style.display = 'none';
+    if (controls) controls.style.display = 'flex';
+  },
+  captureSettingsSelfie(){
+    const video = document.getElementById('set_selfie_video');
+    if (!video) return;
+    const canvas = document.createElement('canvas');
+    canvas.width = 256;
+    canvas.height = 256;
+    const ctx = canvas.getContext('2d');
+    
+    ctx.translate(256, 0);
+    ctx.scale(-1, 1);
+    ctx.drawImage(video, 0, 0, 256, 256);
+    
+    const data = canvas.toDataURL('image/jpeg', 0.85);
+    const u = user(App.me.id);
+    if (u) {
+      u.photo = data;
+      App.me.photo = data;
+      DB.save();
+      API.push();
+      FX.tap('done');
+      toast(I.check(15), 'Selfie captured successfully!');
+      App.render();
+    }
+    Photo.stopSettingsWebcam();
   }
 };
 
@@ -3331,14 +3598,90 @@ const Modal={
   },
   err(id,msg){ const e=document.getElementById(id); if(e) e.innerHTML=`<div class="errmsg">${I.alert(13)}${esc(msg)}</div>`; FX.tap('error'); },
 
-  async changePass(){
+  /* ---- account ---- */
+  account(currentTab = 'profile'){
+    const g=App.me.groupId?group(App.me.groupId):null;
+    
+    // Header
+    const header = `<div class="mh"><h3>Account Settings</h3><button class="btn ico sm gho" onclick="if(Photo._stream) Photo.stopWebcam(); Modal.close()">${I.x(15)}</button></div>`;
+    
+    // Tab selectors
+    const tabHeaders = `
+      <div style="display:flex;border-bottom:1px solid var(--line);margin-bottom:16px;gap:8px">
+        <button id="tab_btn_profile" class="tab-btn" onclick="if(Photo._stream) Photo.stopWebcam(); Modal.account('profile')" 
+          style="padding:8px 12px;font-weight:600;font-size:13px;border:none;background:none;cursor:pointer;border-bottom:2px solid ${currentTab === 'profile' ? 'var(--accent)' : 'transparent'};color:${currentTab === 'profile' ? 'var(--accent)' : 'var(--muted)'};transition:color .15s,border-color .15s">
+          ${I.cam(14)} Profile & Selfie
+        </button>
+        <button id="tab_btn_password" class="tab-btn" onclick="if(Photo._stream) Photo.stopWebcam(); Modal.account('password')" 
+          style="padding:8px 12px;font-weight:600;font-size:13px;border:none;background:none;cursor:pointer;border-bottom:2px solid ${currentTab === 'password' ? 'var(--accent)' : 'transparent'};color:${currentTab === 'password' ? 'var(--accent)' : 'var(--muted)'};transition:color .15s,border-color .15s">
+          ${I.lock(14)} Change Password
+        </button>
+      </div>
+    `;
+
+    // Profile & Selfie tab content
+    const profileTabContent = `
+      <div style="display:flex;flex-direction:column;gap:16px">
+        <div style="display:flex;align-items:center;gap:14px">
+          <div style="position:relative;flex:none">${av(App.me,'xl')}</div>
+          <div style="flex:1;min-width:0">
+            <div style="font-weight:600;font-size:15px">${esc(App.me.name)}</div>
+            <div style="color:var(--muted);font-size:12.5px">${esc(App.me.role)}${g?' · '+esc(g.name):''}</div>
+            <div class="mono" style="color:var(--faint);margin-top:2px">${esc(App.me.email)}</div>
+          </div>
+        </div>
+        
+        <div id="photo_control_buttons" style="display:flex;gap:8px;flex-wrap:wrap">
+          <button class="btn sm" onclick="Photo.choose('${App.me.id}')">${I.folder(14)} Upload Photo</button>
+          <button class="btn sm pri" onclick="Photo.startWebcam()">${I.cam(14)} Webcam Selfie</button>
+          ${App.me.photo?`<button class="btn sm dan" onclick="Photo.remove('${App.me.id}')">${I.trash(14)} Remove Photo</button>`:''}
+        </div>
+
+        <div id="selfie_webcam_area" style="margin-top:4px;border:1px solid var(--line);border-radius:var(--r2);padding:14px;background:var(--surface-2);display:none;flex-direction:column;align-items:center;gap:12px">
+          <video id="selfie_video" autoplay playsinline style="width:180px;height:180px;object-fit:cover;border-radius:50%;background:#000;transform:scaleX(-1);border:3px solid var(--accent);box-shadow:var(--sh2)"></video>
+          <div style="display:flex;gap:8px">
+            <button class="btn pri sm" onclick="Photo.captureLiveSelfie()">${I.check(14)} Capture Photo</button>
+            <button class="btn sm" onclick="Photo.stopWebcam()">Cancel</button>
+          </div>
+        </div>
+      </div>
+    `;
+
+    // Password tab content
+    const passwordTabContent = `
+      <div style="display:grid;gap:12px">
+        <p style="font-size:12px;color:var(--muted)">Change your account password securely below.</p>
+        <div class="field"><label>Current password</label><input class="inp" id="cp_old" type="password"/></div>
+        <div class="two">
+          <div class="field"><label>New password</label><input class="inp" id="cp_new" type="password"/></div>
+          <div class="field"><label>Confirm password</label><input class="inp" id="cp_new2" type="password"/></div>
+        </div>
+        <div id="cp_err"></div>
+        <button class="btn pri" onclick="Modal.changePass()">Update password</button>
+      </div>
+    `;
+
+    // Render Modal with current selected tab content
+    Modal.open(`
+      ${header}
+      <div class="mb">
+        ${tabHeaders}
+        ${currentTab === 'profile' ? profileTabContent : passwordTabContent}
+      </div>
+      <div class="mf">
+        <button class="btn dan" onclick="if(Photo._stream) Photo.stopWebcam(); App.signOut()">${I.out(15)} Sign out</button>
+        <div class="sp"></div>
+        <button class="btn" onclick="if(Photo._stream) Photo.stopWebcam(); Modal.close()">Close</button>
+      </div>
+    `);
+  },
+  changePass(){
     const o=document.getElementById('cp_old').value, n=document.getElementById('cp_new').value, n2=document.getElementById('cp_new2').value;
+    if(hash(o)!==App.me.pass) return Modal.err('cp_err','Your current password is incorrect.');
     if(n.length<6) return Modal.err('cp_err','New password must be at least 6 characters.');
     if(n!==n2) return Modal.err('cp_err','The two new passwords do not match.');
-    try{
-      await API.call('POST','/api/me/change-password',{oldPassword:o,newPassword:n});
-      FX.tap('done'); Modal.close(); App.render(); toast(I.check(15),'Password updated');
-    }catch(e){ Modal.err('cp_err',e.message); }
+    user(App.me.id).pass=hash(n); DB.save(); FX.tap('done');
+    Modal.close(); toast(I.check(15),'Password updated');
   },
 
   /* ---- members (lead only) ---- */
@@ -3371,18 +3714,21 @@ const Modal={
     const p=w[Math.floor(Math.random()*w.length)]+Math.floor(100+Math.random()*900);
     document.getElementById(id).value=p; FX.tap('med');
   },
-  async saveMember(){
+  saveMember(){
     const name=document.getElementById('m_name').value.trim();
     const email=document.getElementById('m_email').value.trim();
     const role=document.getElementById('m_role').value;
     const pw=document.getElementById('m_pass').value;
     if(!name) return Modal.err('m_err','Enter the member\'s full name.');
     if(!emailOk(email)) return Modal.err('m_err','Enter a valid email address.');
+    if(userByEmail(email)) return Modal.err('m_err','An account with that email already exists.');
     if(pw.length<6) return Modal.err('m_err','Password must be at least 6 characters.');
-    try{
-      await API.call('POST','/api/members',{name,email,role,password:pw});
-      await API.bootstrap(); FX.tap('done'); Modal.close(); App.render();
-    }catch(e){ return Modal.err('m_err',e.message); }
+    const g=group(App.me.groupId);
+    if(membersOf(g.id).some(m=>m.role===role)) return Modal.err('m_err','That role is already filled.');
+    const id='u-'+uid();
+    DB.s.users.push({id,name,email,pass:hash(pw),role,groupId:g.id,color:AVC[DB.s.users.length%AVC.length],createdAt:now()});
+    log(g.id,`added <b>${esc(name)}</b> to the team as ${esc(role)}`);
+    DB.save(); FX.tap('done'); Modal.close(); App.render();
     Modal.open(`
       <div class="mh"><h3>Member added</h3></div>
       <div class="mb">
@@ -3411,16 +3757,14 @@ const Modal={
       <div class="mf"><div class="sp"></div><button class="btn" onclick="Modal.close()">Cancel</button>
         <button class="btn pri" onclick="Modal.doReset('${id}')">Set password</button></div>`);
   },
-  async doReset(id){
+  doReset(id){
     const pw=document.getElementById('rp_pass').value;
     if(pw.length<6) return Modal.err('rp_err','Password must be at least 6 characters.');
-    const m=user(id);
-    try{
-      await API.call('POST',`/api/members/${id}/reset-password`,{password:pw});
-      FX.tap('done'); Modal.close();
-      toast(I.lock(15),`New password for ${m?m.name:'the member'}: ${pw}`);
-      App.render();
-    }catch(e){ Modal.err('rp_err',e.message); }
+    const m=user(id); m.pass=hash(pw);
+    log(m.groupId,`reset the password for <b>${esc(m.name)}</b>`);
+    DB.save(); FX.tap('done'); Modal.close();
+    toast(I.lock(15),`New password for ${m.name}: ${pw}`);
+    App.render();
   },
   removeMember(id){
     const m=user(id), open=tasksFor(id).length;
@@ -3433,13 +3777,12 @@ const Modal={
       <div class="mf"><div class="sp"></div><button class="btn" onclick="Modal.close()">Cancel</button>
         <button class="btn dan" onclick="Modal.doRemove('${id}')">Remove member</button></div>`);
   },
-  async doRemove(id){
+  doRemove(id){
     const m=user(id);
-    try{
-      await API.call('DELETE',`/api/members/${id}`);
-      await API.bootstrap(); FX.tap('error'); Modal.close();
-      toast(I.trash(15),`${m?m.name:'Member'} removed`); App.render();
-    }catch(e){ FX.tap('error'); Modal.close(); toast(I.alert(15),e.message); }
+    DB.s.tasks.forEach(t=>{ if(t.assigneeId===id) t.assigneeId=App.me.id; });
+    DB.s.users=DB.s.users.filter(u=>u.id!==id);
+    log(App.me.groupId,`removed <b>${esc(m.name)}</b> from the team`);
+    DB.save(); FX.tap('error'); Modal.close(); toast(I.trash(15),`${m.name} removed`); App.render();
   },
 
   sendSupervisionRequest(){
@@ -3478,17 +3821,24 @@ const Modal={
 
     const btn = document.getElementById('req_send_btn');
     if (btn) { btn.disabled = true; btn.textContent = 'Sending…'; }
-    const restore = () => { if (btn) { btn.disabled = false; btn.innerHTML = `${I.mail(14)} Send Request`; } };
 
-    // Faculty can search *any* group, not just ones they already supervise — /api/groups lists them all.
-    let allGroups;
-    try { allGroups = await API.call('GET', '/api/groups'); }
-    catch(e) { restore(); return Modal.err('req_err', e.message); }
+    // Always fetch latest state first to ensure we match against fresh backend data
+    try {
+      const res = await fetch(API_URL + '/api/sync');
+      if (res.ok) {
+        const data = await res.json();
+        if (data && data.users) {
+          DB.s = data;
+          localStorage.setItem(K_STATE, JSON.stringify(DB.s));
+        }
+      }
+    } catch(e) {}
 
     const cleanStr = s => s.toLowerCase().replace(/^group\s*/i, '').trim();
     const targetQ = cleanStr(q);
 
-    let matchedGroup = allGroups.find(g => {
+    // 1. Try to find group by group name or group ID matching
+    let matchedGroup = DB.s.groups.find(g => {
       const gNameClean = cleanStr(g.name);
       return (
         g.name.toLowerCase() === q.toLowerCase() ||
@@ -3499,24 +3849,71 @@ const Modal={
       );
     });
 
+    // 2. If not matched, try to find by Team Lead's name
     if (!matchedGroup) {
-      matchedGroup = allGroups.find(g =>
-        g.leadName && (g.leadName.toLowerCase() === q.toLowerCase() || g.leadName.toLowerCase().includes(q.toLowerCase())));
+      const matchedLead = DB.s.users.find(u => 
+        u.role === 'Team Lead' && 
+        (u.name.toLowerCase() === q.toLowerCase() || 
+         u.name.toLowerCase().includes(q.toLowerCase()))
+      );
+      if (matchedLead && matchedLead.groupId) {
+        matchedGroup = DB.s.groups.find(g => g.id === matchedLead.groupId);
+      }
     }
 
     if (!matchedGroup) {
-      restore();
+      if (btn) { btn.disabled = false; btn.innerHTML = `${I.mail(14)} Send Request`; }
       return Modal.err('req_err', `No group or Team Lead matches '${q}'. Try '03' or 'yugal'.`);
     }
 
-    try {
-      await API.call('POST', '/api/invites', { groupId: matchedGroup.id, subjectCode: App.me.subjectCode });
-    } catch(e) {
-      restore();
-      return Modal.err('req_err', e.message);
+    const groupId = matchedGroup.id;
+    const facSubj = App.me.subjectCode || '23AID205';
+
+    // Check if already pending locally/in DB
+    DB.s.invites = DB.s.invites || [];
+    const alreadyLocal = DB.s.invites.find(i => i.groupId === groupId && i.facultyId === App.me.id && i.status === 'pending');
+    if (alreadyLocal) {
+      if (btn) { btn.disabled = false; btn.innerHTML = `${I.mail(14)} Send Request`; }
+      return Modal.err('req_err', `You already have a pending request for ${matchedGroup.name}.`);
     }
 
-    await API.bootstrap();
+    let sent = false;
+
+    // Try backend direct invite
+    try {
+      const res = await fetch(API_URL + '/api/invites/direct', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          groupId,
+          facultyId: App.me.id,
+          facultyName: App.me.name,
+          facultyEmail: App.me.email,
+          subjectCode: facSubj
+        })
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        if (btn) { btn.disabled = false; btn.innerHTML = `${I.mail(14)} Send Request`; }
+        return Modal.err('req_err', data.error || 'Failed to send request.');
+      }
+      sent = true;
+      await API.check();
+    } catch(e) {}
+
+    if (!sent) {
+      // Offline fallback
+      const inv = {
+        id: 'inv-' + uid().slice(0, 8),
+        groupId: matchedGroup.id, groupName: matchedGroup.name,
+        facultyId: App.me.id, facultyName: App.me.name, facultyEmail: App.me.email,
+        subjectCode: facSubj, status: 'pending', ts: now()
+      };
+      DB.s.invites.unshift(inv);
+      log(matchedGroup.id, `sent a supervision request for subject <b>${esc(facSubj)}</b>`);
+      DB.save();
+    }
+
     FX.tap('done');
     Modal.close();
     toast(I.check(15), `Supervision request sent to ${matchedGroup.name}!`);
@@ -3524,12 +3921,10 @@ const Modal={
   },
 
   /* ---- project guide (lead only) ---- */
-  async addTeacher(){
+  addTeacher(){
     if(!App.isLead){ FX.tap('error'); return toast(I.lock(15),'Only the Team Lead can add a teacher'); }
     const g=group(App.me.groupId);
-    let allFac=[];
-    try{ allFac=await API.call('GET','/api/faculty'); }catch(e){}
-    const avail=allFac.filter(f=>!(g.facultyIds||[]).includes(f.id));
+    const avail=allFaculty().filter(f=>!(g.facultyIds||[]).includes(f.id));
     Modal.open(`
       <div class="mh"><h3>Add project guide</h3><button class="btn ico sm gho" onclick="Modal.close()">${I.x(15)}</button></div>
       <div class="mb">
@@ -3546,48 +3941,50 @@ const Modal={
       <div class="mf"><div class="sp"></div><button class="btn" onclick="Modal.close()">Cancel</button>
         <button class="btn pri" onclick="Modal.saveTeacher()">Add teacher</button></div>`);
   },
-  async saveTeacher(){
+  saveTeacher(){
+    const g=group(App.me.groupId);
     const pick=document.getElementById('t_pick'), em=document.getElementById('t_email').value.trim();
-    const body={};
-    if(pick&&pick.value) body.facultyId=pick.value;
-    else if(em) body.email=em;
-    else return Modal.err('t_err','Pick a teacher or enter their email.');
-    try{
-      const f=await API.call('POST',`/api/groups/${App.me.groupId}/guides`,body);
-      await API.bootstrap(); FX.tap('done'); Modal.close(); App.render();
-      toast(I.check(15),`${f.name} can now see your group`);
-    }catch(e){ Modal.err('t_err',e.message); }
+    let f=null;
+    if(pick&&pick.value) f=user(pick.value);
+    else if(em){
+      if(!emailOk(em)) return Modal.err('t_err','Enter a valid email address.');
+      f=userByEmail(em);
+      if(!f) return Modal.err('t_err','No account found with that email. Ask them to register as faculty first.');
+      if(f.role!=='Faculty') return Modal.err('t_err','That account belongs to a student, not a faculty member.');
+    } else return Modal.err('t_err','Pick a teacher or enter their email.');
+    g.facultyIds=g.facultyIds||[];
+    if(g.facultyIds.includes(f.id)) return Modal.err('t_err','That teacher is already a guide for this group.');
+    g.facultyIds.push(f.id);
+    log(g.id,`added <b>${esc(f.name)}</b> as the project guide`);
+    DB.save(); FX.tap('done'); Modal.close(); App.render();
+    toast(I.check(15),`${f.name} can now see your group`);
   },
   removeTeacher(id){
     const f=user(id), g=group(App.me.groupId);
-    Modal.open(`<div class="mh"><h3>Remove ${esc(f?f.name:'teacher')} as guide?</h3></div>
+    Modal.open(`<div class="mh"><h3>Remove ${esc(f.name)} as guide?</h3></div>
       <div class="mb"><p style="font-size:12.5px;line-height:1.6;color:var(--ink-2)">
         They will immediately lose visibility of this group. Their existing remarks stay on the record.</p></div>
       <div class="mf"><div class="sp"></div><button class="btn" onclick="Modal.close()">Cancel</button>
         <button class="btn dan" onclick="Modal.doRemoveTeacher('${id}')">Remove guide</button></div>`);
   },
-  async doRemoveTeacher(id){
-    const f=user(id);
-    try{
-      await API.call('DELETE',`/api/groups/${App.me.groupId}/guides/${id}`);
-      await API.bootstrap(); FX.tap('error'); Modal.close();
-      toast(I.trash(15),`${f?f.name:'Teacher'} removed`); App.render();
-    }catch(e){ FX.tap('error'); Modal.close(); toast(I.alert(15),e.message); }
+  doRemoveTeacher(id){
+    const f=user(id), g=group(App.me.groupId);
+    g.facultyIds=(g.facultyIds||[]).filter(x=>x!==id);
+    log(g.id,`removed <b>${esc(f.name)}</b> as the project guide`);
+    DB.save(); FX.tap('error'); Modal.close(); toast(I.trash(15),`${f.name} removed`); App.render();
   },
 
   /* ---- faculty picks the groups they supervise ---- */
-  async addGroup(){
+  addGroup(){
     if(!App.isFaculty){ FX.tap('error'); return; }
-    let allGroups=[];
-    try{ allGroups=await API.call('GET','/api/groups'); }catch(e){}
-    const avail=allGroups.filter(g=>!(g.facultyIds||[]).includes(App.me.id));
+    const avail=DB.s.groups.filter(g=>!(g.facultyIds||[]).includes(App.me.id));
     Modal.open(`
       <div class="mh"><h3>Add a group to supervise</h3><button class="btn ico sm gho" onclick="Modal.close()">${I.x(15)}</button></div>
       <div class="mb">
         <div class="banner info">${I.cap(16)}<div>Choose a team to supervise. You'll then see their board, members, progress and activity live, and can leave review remarks. You cannot edit their tasks.</div></div>
         ${avail.length?`<div class="field"><label>Group</label>
           <select class="inp" id="ag_pick"><option value="">Select a group…</option>
-            ${avail.map(g=>`<option value="${g.id}">${esc(g.name)} — ${esc(g.project)} · lead: ${esc(g.leadName||'—')}</option>`).join('')}</select></div>
+            ${avail.map(g=>`<option value="${g.id}">${esc(g.name)} — ${esc(g.project)} · lead: ${esc((user(g.leadId)||{}).name||'—')}</option>`).join('')}</select></div>
           <div style="text-align:center;font-size:11.5px;color:var(--faint)">or</div>`
           :`<div class="banner warn">${I.alert(15)}<div>You already supervise every registered group.</div></div>`}
         <div class="field"><label>Add by team lead's email</label>
@@ -3598,23 +3995,24 @@ const Modal={
       <div class="mf"><div class="sp"></div><button class="btn" onclick="Modal.close()">Cancel</button>
         <button class="btn pri" onclick="Modal.saveGroup()">Add group</button></div>`);
   },
-  async saveGroup(){
+  saveGroup(){
     const pick=document.getElementById('ag_pick'), em=(document.getElementById('ag_email').value||'').trim();
-    let gid=pick&&pick.value?pick.value:null;
-    if(!gid&&em){
+    let g=null;
+    if(pick&&pick.value) g=group(pick.value);
+    else if(em){
       if(!emailOk(em)) return Modal.err('ag_err','Enter a valid email address.');
-      let allGroups=[];
-      try{ allGroups=await API.call('GET','/api/groups'); }catch(e){}
-      const g=allGroups.find(x=>(x.leadEmail||'').toLowerCase()===em.toLowerCase());
-      if(!g) return Modal.err('ag_err','No account found with that email, or it is not a team lead.');
-      gid=g.id;
-    }
-    if(!gid) return Modal.err('ag_err','Pick a group or enter the lead\'s email.');
-    try{
-      await API.call('POST',`/api/groups/${gid}/supervise`);
-      await API.bootstrap(); FX.tap('done'); Modal.close(); App.render();
-      toast(I.check(15),`Now supervising ${(group(gid)||{}).name||'the group'}`);
-    }catch(e){ Modal.err('ag_err',e.message); }
+      const u=userByEmail(em);
+      if(!u) return Modal.err('ag_err','No account found with that email.');
+      if(u.role!=='Team Lead') return Modal.err('ag_err','That account is not a team lead — enter the lead\'s email.');
+      g=group(u.groupId);
+      if(!g) return Modal.err('ag_err','That lead does not have a group yet.');
+    } else return Modal.err('ag_err','Pick a group or enter the lead\'s email.');
+    g.facultyIds=g.facultyIds||[];
+    if(g.facultyIds.includes(App.me.id)) return Modal.err('ag_err','You already supervise that group.');
+    g.facultyIds.push(App.me.id);
+    log(g.id,`<b>${esc(App.me.name)}</b> started supervising this group`);
+    DB.save(); FX.tap('done'); Modal.close(); App.render();
+    toast(I.check(15),`Now supervising ${g.name}`);
   },
   dropGroup(gid){
     const g=group(gid);
@@ -3623,13 +4021,11 @@ const Modal={
       <div class="mf"><div class="sp"></div><button class="btn" onclick="Modal.close()">Cancel</button>
         <button class="btn dan" onclick="Modal.doDropGroup('${gid}')">Stop supervising</button></div>`);
   },
-  async doDropGroup(gid){
-    const g=group(gid);
-    try{
-      await API.call('DELETE',`/api/groups/${gid}/supervise`);
-      await API.bootstrap(); FX.tap('error'); Modal.close(); App.tab='dashboard'; App.openGroup=null; App.render();
-      toast(I.trash(15),`Stopped supervising ${g?g.name:'the group'}`);
-    }catch(e){ FX.tap('error'); Modal.close(); toast(I.alert(15),e.message); }
+  doDropGroup(gid){
+    const g=group(gid); g.facultyIds=(g.facultyIds||[]).filter(x=>x!==App.me.id);
+    log(gid,`<b>${esc(App.me.name)}</b> stopped supervising this group`);
+    DB.save(); FX.tap('error'); Modal.close(); App.tab='dashboard'; App.openGroup=null; App.render();
+    toast(I.trash(15),`Stopped supervising ${g.name}`);
   },
 
   /* ---- team lead selects the subjects the team works on ---- */
@@ -3653,21 +4049,25 @@ const Modal={
       <div class="mf"><div class="sp"></div><button class="btn" onclick="Modal.close()">Cancel</button>
         <button class="btn pri" onclick="Modal.saveSubjects('${g.id}')">Save subjects</button></div>`);
   },
-  async saveSubjects(gid){
+  saveSubjects(gid){
+    const g=group(gid);
     const picked=[...document.querySelectorAll('.sub_ck:checked')].map(x=>x.value);
     if(!picked.length) return Modal.err('sub_err','Select at least one subject.');
-    try{
-      await API.call('PUT',`/api/groups/${gid}/subjects`,{codes:picked});
-      await API.bootstrap(); FX.tap('done'); Modal.close(); App.render();
-      toast(I.check(15),`${picked.length} subject${picked.length===1?'':'s'} selected`);
-    }catch(e){ Modal.err('sub_err',e.message); }
+    g.subjects=picked; g.topics=g.topics||{};
+    Object.keys(g.topics).forEach(k=>{ if(!picked.includes(k)) delete g.topics[k]; });
+    g.courseCode=picked[0]; const c0=SEM3.find(s=>s.code===picked[0]); g.subject=c0?c0.code+' · '+c0.name:g.subject;
+    log(gid,`updated the team's subjects to <b>${esc(picked.join(', '))}</b>`);
+    DB.save(); FX.tap('done'); Modal.close(); App.render();
+    toast(I.check(15),`${picked.length} subject${picked.length===1?'':'s'} selected`);
   },
-  async addSubject(gid,code){
+  addSubject(gid,code){
     if(!App.isLead){ FX.tap('error'); return; }
-    try{
-      await API.call('POST',`/api/groups/${gid}/subjects`,{courseCode:code});
-      await API.bootstrap(); FX.tap('done'); App.render(); toast(I.check(15),`Added ${code}`);
-    }catch(e){ FX.tap('error'); toast(I.alert(15),e.message); }
+    const g=group(gid); g.subjects=groupSubjects(g).slice();
+    if(!g.subjects.includes(code)) g.subjects.push(code);
+    g.topics=g.topics||{}; g.courseCode=g.courseCode||code;
+    const c=SEM3.find(s=>s.code===code)||{};
+    log(gid,`added subject <b>${esc(code)} ${esc(c.name||'')}</b>`);
+    DB.save(); FX.tap('done'); App.render(); toast(I.check(15),`Added ${code}`);
   },
 
   /* ---- team lead defines topics under a subject ---- */
@@ -3695,20 +4095,22 @@ const Modal={
       <button class="btn ico sm gho" title="Remove topic" onclick="Modal.removeTopic('${gid}','${code}',${i})">${I.trash(14)}</button>
     </div>`).join('');
   },
-  async addTopic(gid,code){
+  addTopic(gid,code){
     const el=document.getElementById('topIn'), txt=(el.value||'').trim(); if(!txt) return;
-    try{
-      await API.call('POST',`/api/groups/${gid}/topics`,{courseCode:code,topic:txt});
-      await API.bootstrap(); FX.tap('med'); el.value='';
-      const list=document.getElementById('topList'); if(list) list.innerHTML=Modal._topicRows(gid,code);
-    }catch(e){ FX.tap('error'); toast(I.alert(15),e.message); }
+    const g=group(gid); g.topics=g.topics||{}; g.topics[code]=g.topics[code]||[];
+    if(g.topics[code].some(x=>x.toLowerCase()===txt.toLowerCase())){ FX.tap('error'); el.value=''; return; }
+    g.topics[code].push(txt);
+    log(gid,`added topic <b>${esc(txt)}</b> under ${esc(code)}`);
+    DB.save(); FX.tap('med'); el.value='';
+    const list=document.getElementById('topList'); if(list) list.innerHTML=Modal._topicRows(gid,code);
   },
-  async removeTopic(gid,code,i){
-    try{
-      await API.call('DELETE',`/api/groups/${gid}/topics/${code}/${i}`);
-      await API.bootstrap(); FX.tap('error');
-      const list=document.getElementById('topList'); if(list) list.innerHTML=Modal._topicRows(gid,code);
-    }catch(e){ FX.tap('error'); toast(I.alert(15),e.message); }
+  removeTopic(gid,code,i){
+    const g=group(gid); if(!g.topics||!g.topics[code]) return;
+    const removed=g.topics[code][i]; g.topics[code].splice(i,1);
+    DB.s.tasks.forEach(t=>{ if(t.groupId===gid&&t.courseCode===code&&t.topic===removed) t.topic=null; });
+    log(gid,`removed topic <b>${esc(removed||'')}</b> from ${esc(code)}`);
+    DB.save(); FX.tap('error');
+    const list=document.getElementById('topList'); if(list) list.innerHTML=Modal._topicRows(gid,code);
   },
 
   /* ---- tasks ---- */
@@ -3768,27 +4170,24 @@ const Modal={
         <div class="sp"></div><button class="btn" onclick="Modal.close()">Close</button></div>`);
   },
 
-  async setStatus(id,st){ await Board.move(id,st); Modal.task(id); },
-  async setProgress(id,val){
+  setStatus(id,st){ Board.move(id,st); Modal.task(id); },
+  setProgress(id,val){
     const t=DB.s.tasks.find(x=>x.id===id); if(!t||!Board.canEdit(t)) return;
-    const v=+val;
-    let status=t.status;
-    if(v===100&&status!=='done') status='review';
-    if(v<100&&status==='done') status='progress';
-    if(v>0&&status==='todo') status='progress';
-    try{
-      await API.call('PATCH',`/api/tasks/${id}`,{progress:v,status});
-      await API.bootstrap(); FX.tap(v===100?'done':'med'); toast(I.check(15),`Progress set to ${v}%`);
-      App.render(); Modal.task(id);
-    }catch(e){ FX.tap('error'); toast(I.alert(15),e.message); }
+    const v=+val, before=t.progress;
+    t.progress=v; t.updatedAt=now();
+    if(v===100&&t.status!=='done') t.status='review';
+    if(v<100&&t.status==='done') t.status='progress';
+    if(v>0&&t.status==='todo') t.status='progress';
+    log(t.groupId,`updated <b>${esc(t.title)}</b> from ${before}% to <b>${v}%</b>`);
+    DB.save(); FX.tap(v===100?'done':'med'); toast(I.check(15),`Progress set to ${v}%`);
+    App.render(); Modal.task(id);
   },
-  async comment(id){
-    const el=document.getElementById('cmtIn'), txt=el.value.trim();
+  comment(id){
+    const t=DB.s.tasks.find(x=>x.id===id), el=document.getElementById('cmtIn'), txt=el.value.trim();
     if(!txt){ FX.tap('error'); return; }
-    try{
-      await API.call('POST',`/api/tasks/${id}/comments`,{text:txt});
-      await API.bootstrap(); FX.tap('med'); App.render(); Modal.task(id);
-    }catch(e){ FX.tap('error'); toast(I.alert(15),e.message); }
+    t.comments.push({userId:App.me.id,text:txt,ts:now()}); t.updatedAt=now();
+    log(t.groupId,`commented on <b>${esc(t.title)}</b>`);
+    DB.save(); FX.tap('med'); App.render(); Modal.task(id);
   },
 
   _topicOpts(code,cur){
@@ -3831,7 +4230,7 @@ const Modal={
       <div class="mf"><div class="sp"></div><button class="btn" onclick="Modal.close()">Cancel</button>
         <button class="btn pri" onclick="Modal.saveTask(${t?`'${t.id}'`:'null'})">${t?'Save changes':'Create task'}</button></div>`);
   },
-  async saveTask(id){
+  saveTask(id){
     const title=document.getElementById('f_title').value.trim();
     if(!title) return Modal.err('f_err','Give the task a title.');
     const desc=document.getElementById('f_desc').value.trim();
@@ -3843,17 +4242,19 @@ const Modal={
     const dv=document.getElementById('f_due').value;
     const due=dv?new Date(dv+'T12:00:00').getTime():now();
     const m=user(assigneeId);
-    const body={title,desc,assigneeId,prio:prioV,status,due,courseCode,topic};
-    try{
-      if(id){
-        await API.call('PATCH',`/api/tasks/${id}`,body);
-        toast(I.check(15),'Task updated');
-      }else{
-        await API.call('POST','/api/tasks',body);
-        toast(I.check(15),`Assigned to ${m.name.split(' ')[0]}`);
-      }
-      await API.bootstrap(); FX.tap('done'); Modal.close(); App.render();
-    }catch(e){ Modal.err('f_err',e.message); }
+    if(id){
+      const t=DB.s.tasks.find(x=>x.id===id), re=t.assigneeId!==assigneeId;
+      Object.assign(t,{title,desc,assigneeId,prio:prioV,status,due,courseCode,topic,updatedAt:now()});
+      if(status==='done') t.progress=100;
+      log(t.groupId, re?`reassigned <b>${esc(title)}</b> to <b>${esc(m.name)}</b> (${m.role})`:`updated <b>${esc(title)}</b>`);
+      toast(I.check(15),'Task updated');
+    }else{
+      DB.s.tasks.push({id:uid(),groupId:App.me.groupId,assigneeId,title,desc,status,prio:prioV,due,courseCode,topic,
+        progress:status==='done'?100:0,createdAt:now(),updatedAt:now(),comments:[]});
+      log(App.me.groupId,`assigned <b>${esc(title)}</b> to <b>${esc(m.name)}</b> (${m.role})`);
+      toast(I.check(15),`Assigned to ${m.name.split(' ')[0]}`);
+    }
+    DB.save(); FX.tap('done'); Modal.close(); App.render();
   },
   delTask(id){
     const t=DB.s.tasks.find(x=>x.id===id);
@@ -3862,11 +4263,11 @@ const Modal={
       <div class="mf"><div class="sp"></div><button class="btn" onclick="Modal.close()">Cancel</button>
         <button class="btn dan" onclick="Modal.doDelTask('${id}')">Delete</button></div>`);
   },
-  async doDelTask(id){
-    try{
-      await API.call('DELETE',`/api/tasks/${id}`);
-      await API.bootstrap(); FX.tap('error'); Modal.close(); toast(I.trash(15),'Task deleted'); App.render();
-    }catch(e){ FX.tap('error'); Modal.close(); toast(I.alert(15),e.message); }
+  doDelTask(id){
+    const t=DB.s.tasks.find(x=>x.id===id);
+    DB.s.tasks=DB.s.tasks.filter(x=>x.id!==id);
+    log(t.groupId,`deleted <b>${esc(t.title)}</b>`);
+    DB.save(); FX.tap('error'); Modal.close(); toast(I.trash(15),'Task deleted'); App.render();
   },
 
   remark(gid){
@@ -3895,15 +4296,21 @@ const Modal={
       <div class="mf"><div class="sp"></div><button class="btn" onclick="Modal.close()">Cancel</button>
         <button class="btn pri" onclick="Modal.saveRemark('${gid}')">Submit Evaluation</button></div>`);
   },
-  async saveRemark(gid){
+  saveRemark(gid){
     const txt=document.getElementById('rk_txt').value.trim();
     const grade=document.getElementById('rk_grade').value;
     const score=document.getElementById('rk_score').value.trim();
     if(!txt) return Modal.err('rk_err','Write your remark first.');
-    try{
-      await API.call('POST','/api/remarks',{groupId:gid,text:txt,grade:grade||null,score:score||null});
-      await API.bootstrap(); FX.tap('done'); Modal.close(); toast(I.pin(15),'Faculty evaluation submitted'); App.render();
-    }catch(e){ Modal.err('rk_err',e.message); }
+    DB.s.remarks.unshift({id:uid(),groupId:gid,text:txt,grade:grade||null,score:score||null,by:App.me.name,ts:now()});
+    log(gid,'posted a faculty evaluation remark');
+    DB.save(); FX.tap('done'); Modal.close(); toast(I.pin(15),'Faculty evaluation submitted'); App.render();
+  },
+
+  confirmReset(){
+    Modal.open(`<div class="mh"><h3>Reset demo data?</h3></div>
+      <div class="mb"><div class="banner warn">${I.alert(16)}<div>All accounts, groups, tasks and activity return to the original demo dataset. Any accounts you created will be deleted and you will be signed out.</div></div></div>
+      <div class="mf"><div class="sp"></div><button class="btn" onclick="Modal.close()">Cancel</button>
+        <button class="btn dan" onclick="DB.reset();localStorage.removeItem('${K_SESSION}');location.reload()">Reset everything</button></div>`);
   }
 };
 
