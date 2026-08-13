@@ -888,20 +888,34 @@ const DB={
 /* periodic re-fetch so changes made by teammates show up without a manual reload */
 const Sync={
   lastSig:null,
+  es:null,
   busy(){ const ae=document.activeElement;
     return document.querySelector('.scrim')||document.getElementById('notifPanel')||(ae&&/^(INPUT|TEXTAREA)$/.test(ae.tagName)); },
   init(){
     setInterval(()=>{ if(App.me) API.call('POST','/api/presence/beat').catch(()=>{}); },5000);
-    setInterval(async ()=>{ if(!App.me||Sync.busy()) return;
-      try{
-        await API.bootstrap();
-        const s=JSON.stringify(DB.s);
-        if(s!==Sync.lastSig){ const changed=Sync.lastSig!==null; Sync.lastSig=s; App.render();
-          if(changed){ FX.tap('hover'); } }
-      }catch(e){}
-    },8000);
+    /* fallback poll — the SSE connection below covers near-instant updates, this just
+       guards against a dropped connection that hasn't reconnected yet */
+    setInterval(()=>{ if(App.me&&!Sync.busy()) Sync.refresh(); },30000);
     /* low-frequency refresh purely to keep relative time labels ("2 min ago") current */
     setInterval(()=>{ if(App.me&&!Sync.busy()) App.render(); },60000);
+  },
+  /* live push: the backend writes an event on every save(), so teammates' changes
+     show up in seconds instead of waiting for the next poll */
+  connect(){
+    Sync.disconnect();
+    if(!API.token||!('EventSource' in window)) return;
+    Sync.es=new EventSource(`${API_URL}/api/events?token=${encodeURIComponent(API.token)}`);
+    Sync.es.onmessage=()=>{ if(!Sync.busy()) Sync.refresh(); };
+    Sync.es.onerror=()=>{}; // EventSource auto-reconnects; the fallback poll covers the gap either way
+  },
+  disconnect(){ if(Sync.es){ Sync.es.close(); Sync.es=null; } },
+  async refresh(){
+    try{
+      await API.bootstrap();
+      const s=JSON.stringify(DB.s);
+      if(s!==Sync.lastSig){ const changed=Sync.lastSig!==null; Sync.lastSig=s; App.render();
+        if(changed){ FX.tap('hover'); } }
+    }catch(e){}
   }
 };
 
@@ -1297,11 +1311,14 @@ const App={
     App.tab='dashboard'; App.openGroup=null;
     try{ await API.call('POST','/api/presence/beat'); }catch(e){}
     await API.bootstrap();
+    Sync.lastSig=JSON.stringify(DB.s);
+    Sync.connect();
     App.render();
     if(!silent){ FX.tap('done'); toast(I.check(15),`Signed in as ${App.me.name}`); }
   },
 
   signOut(){
+    Sync.disconnect();
     App.me=null; API.token=null; DB.s=null;
     document.getElementById('shell').classList.add('hidden');
     document.getElementById('auth').classList.remove('hidden');
@@ -2816,19 +2833,31 @@ const AI={
   render(){ if(App.tab==='assistant') App.render(); },
   bind(){ const l=document.getElementById('chatlog'); if(l) l.scrollTop=l.scrollHeight; },
 
-  ask(text){
+  async ask(text){
     text=(text||'').trim(); if(!text) return;
     if(App.tab!=='assistant'){ App.tab='assistant'; }
     if(!AI.msgs.length) AI.seed();
     AI.msgs.push({r:'u',html:esc(text)});
     AI.msgs.push({r:'a',typing:true});
     FX.tap('med'); App.render();
-    const ans=AI.answer(text);
-    setTimeout(()=>{
-      AI.msgs[AI.msgs.length-1]={r:'a',html:ans};
-      if(App.tab==='assistant') App.render(); else Notify.paint();
-      FX.tap('light');
-    }, 540+Math.random()*380);
+    const ans=await AI.getAnswer(text);
+    AI.msgs[AI.msgs.length-1]={r:'a',html:ans};
+    if(App.tab==='assistant') App.render(); else Notify.paint();
+    FX.tap('light');
+  },
+
+  /* real Claude first (proxied through the backend so the API key never reaches
+     the browser); if that's not configured or the network call fails, fall back
+     to the deterministic rule-based answer so the assistant never just breaks */
+  async getAnswer(text){
+    const minWait=new Promise(r=>setTimeout(r,540+Math.random()*380));
+    try{
+      const [data]=await Promise.all([API.call('POST','/api/ai/ask',{question:text}), minWait]);
+      return esc(data.answer).replace(/\n/g,'<br>');
+    }catch(e){
+      await minWait;
+      return AI.answer(text);
+    }
   },
 
   answer(q){
