@@ -1308,10 +1308,15 @@ const Auth={
   facultyHTML(){
     return `${Auth.head()}
       <h1>Faculty registration</h1>
-      <p class="lede">Faculty accounts add the groups they supervise and leave review remarks.</p>
+      <p class="lede">Select your teaching subject and supervise student groups by Group Number.</p>
       <div class="form">
         <div class="field"><label for="f_name">Full name</label><input class="inp" id="f_name" placeholder="e.g. Dr. Anjali Sharma"/></div>
         <div class="field"><label for="f_email">Email</label><input class="inp" id="f_email" type="email" placeholder="you@college.edu"/></div>
+        <div class="field"><label for="f_subj">Teaching Subject (Sem 3)</label>
+          <select class="inp" id="f_subj">
+            ${SEM3.map(s=>`<option value="${s.code}">${s.code} — ${esc(s.name)}</option>`).join('')}
+          </select>
+        </div>
         <div class="two">
           <div class="field"><label for="f_pass">Password</label><input class="inp" id="f_pass" type="password" placeholder="Min. 6 characters"/></div>
           <div class="field"><label for="f_pass2">Confirm</label><input class="inp" id="f_pass2" type="password" placeholder="Repeat password"/></div>
@@ -1332,7 +1337,7 @@ const Auth={
         ${av(u)}
         <div style="flex:1;min-width:0">
           <div class="e">${esc(u.name)}</div>
-          <div class="r">${esc(u.role)}${g?' · '+esc(g.name):''}</div>
+          <div class="r">${esc(u.role)}${u.subjectCode?' ('+esc(u.subjectCode)+')':''}${g?' · '+esc(g.name):''}</div>
         </div>
         <div style="text-align:right">
           <div class="mono">${esc(u.email)}</div>
@@ -1644,33 +1649,88 @@ const Page={
     </div>`;
   },
 
+  pendingInvitesBanner(g){
+    if (!App.isLead || !g) return '';
+    DB.s.invites = DB.s.invites || [];
+    const pending = DB.s.invites.filter(i => i.groupId === g.id && i.status === 'pending');
+    if (!pending.length) return '';
+
+    return pending.map(inv => {
+      const c = SEM3.find(s => s.code === inv.subjectCode) || { code: inv.subjectCode, name: '' };
+      return `
+        <div class="banner warn" style="margin-bottom:14px; background:var(--amber-s); border-color:var(--amber);">
+          ${I.mail(18)}
+          <div style="flex:1; min-width:0">
+            <b>Faculty Supervision Request:</b> <b>${esc(inv.facultyName)}</b> (${esc(inv.facultyEmail)}) requested to supervise <b>${esc(g.name)}</b> for subject <span class="mono" style="font-weight:700">${esc(c.code)} · ${esc(c.name)}</span>.
+            <div style="display:flex; gap:8px; margin-top:8px">
+              <button class="btn sm pri" onclick="Page.respondInvite('${inv.id}', 'accept')">${I.check(14)} Accept Request</button>
+              <button class="btn sm dan" onclick="Page.respondInvite('${inv.id}', 'decline')">${I.x(14)} Decline</button>
+            </div>
+          </div>
+        </div>
+      `;
+    }).join('');
+  },
+
+  respondInvite(invId, action){
+    DB.s.invites = DB.s.invites || [];
+    const inv = DB.s.invites.find(i => i.id === invId);
+    if (!inv) return;
+
+    inv.status = action === 'accept' ? 'accepted' : 'declined';
+    if (action === 'accept') {
+      const g = group(inv.groupId);
+      if (g) {
+        g.facultyIds = g.facultyIds || [];
+        if (!g.facultyIds.includes(inv.facultyId)) g.facultyIds.push(inv.facultyId);
+        g.subjectFacultyMap = g.subjectFacultyMap || {};
+        g.subjectFacultyMap[inv.subjectCode] = inv.facultyId;
+      }
+      log(inv.groupId, `accepted supervision request from <b>${esc(inv.facultyName)}</b> for <b>${esc(inv.subjectCode)}</b>`);
+      toast(I.check(15), `Accepted supervision request for ${inv.subjectCode}`);
+    } else {
+      log(inv.groupId, `declined supervision request from <b>${esc(inv.facultyName)}</b>`);
+      toast(I.trash(15), `Declined supervision request`);
+    }
+
+    DB.save();
+    FX.tap(action === 'accept' ? 'done' : 'med');
+    App.render();
+  },
+
   /* ---------- FACULTY ---------- */
   facDash(){
     const gs=myGroups(), on=online();
+    const facSubj = App.me.subjectCode || '23AID205';
+    const subjObj = SEM3.find(s => s.code === facSubj) || { code: facSubj, name: 'Subject' };
     if(!gs.length) return Page.notAssigned();
+
     const ids=gs.map(g=>g.id);
-    const all=DB.s.tasks.filter(t=>ids.includes(t.groupId));
+    const all=DB.s.tasks.filter(t=>ids.includes(t.groupId) && t.courseCode === facSubj);
     const students=gs.reduce((a,g)=>a+membersOf(g.id).length,0);
     const done=all.filter(t=>t.status==='done').length;
     const blocked=all.filter(t=>t.status==='blocked');
     const overdue=all.filter(t=>t.status!=='done'&&t.due<now());
-    const onlineN=gs.reduce((a,g)=>a+membersOf(g.id).filter(m=>on[m.id]).length,0);
 
     return `
     <div class="ph">
-      <div><h1>Dashboard</h1><p>${gs.length} group${gs.length===1?'':'s'} you supervise · ${students} students · ${all.length} tasks</p></div>
+      <div><h1>Dashboard</h1><p>${gs.length} group${gs.length===1?'':'s'} supervised · Subject: <b>${esc(subjObj.code)} · ${esc(subjObj.name)}</b></p></div>
       <div class="sp"></div>
-      <button class="btn" onclick="Modal.confirmReset()">Reset demo data</button>
-      <button class="btn" onclick="App.go('activity')">${I.activity(15)} Activity log</button>
-      <button class="btn pri" onclick="Modal.addGroup()">${I.plus(15)} Add group</button>
+      <button class="btn pri" onclick="Modal.sendSupervisionRequest()">${I.mail(15)} Request Group by Number</button>
+    </div>
+
+    <div class="banner info" style="margin-bottom:16px">
+      ${I.cap(16)}
+      <div style="flex:1"><b>Teaching Subject:</b> <span class="mono" style="font-weight:700">${esc(subjObj.code)}</span> · ${esc(subjObj.name)}. You see tasks &amp; progress strictly for your subject.</div>
+      <button class="btn sm" onclick="Modal.sendSupervisionRequest()">${I.plus(13)} Add Group Request</button>
     </div>
 
     ${blocked.length||overdue.length ? `<div class="banner warn" style="margin-bottom:16px">${I.alert(16)}
-      <div><b>Needs attention.</b> ${blocked.length} task${blocked.length===1?' is':'s are'} blocked and ${overdue.length} ${overdue.length===1?'is':'are'} past the due date across all groups.</div></div>`:''}
+      <div><b>Needs attention (${esc(facSubj)}).</b> ${blocked.length} task${blocked.length===1?' is':'s are'} blocked and ${overdue.length} ${overdue.length===1?'is':'are'} past the due date.</div></div>`:''}
 
     <div class="split">
       <div>
-        <div class="sec" style="margin-bottom:9px">Groups you supervise</div>
+        <div class="sec" style="margin-bottom:9px">Groups you supervise (${esc(facSubj)})</div>
         <div class="grid3">${gs.map(g=>Page.groupCard(g,on)).join('')}</div>
       </div>
       <div style="display:grid;gap:16px">
@@ -1684,13 +1744,19 @@ const Page={
   },
 
   notAssigned(){
-    return `<div class="ph"><div><h1>Dashboard</h1><p>You are not supervising any groups yet</p></div></div>
+    const facSubj = App.me ? (App.me.subjectCode || '23AID205') : '23AID205';
+    const subjObj = SEM3.find(s => s.code === facSubj) || { code: facSubj, name: 'Subject' };
+    return `<div class="ph">
+        <div><h1>Dashboard</h1><p>Teaching Subject: <b>${esc(subjObj.code)} · ${esc(subjObj.name)}</b></p></div>
+        <div class="sp"></div>
+        <button class="btn pri" onclick="Modal.sendSupervisionRequest()">${I.mail(15)} Request Group by Number</button>
+      </div>
       <div class="card"><div class="cb" style="padding:30px 22px;text-align:center">
         <div style="display:grid;place-items:center;margin-bottom:12px">${I.folder(26)}</div>
-        <div style="font-weight:600;font-size:14px;margin-bottom:5px">Add a group to start supervising it</div>
+        <div style="font-weight:600;font-size:14px;margin-bottom:5px">Send a supervision request to a Group Number</div>
         <p style="color:var(--muted);font-size:12.5px;max-width:440px;margin:0 auto 16px;line-height:1.6">
-          Pick a registered team — or add it by the team lead's email — and you'll see their board, members, progress and activity live, and can leave review remarks.</p>
-        <button class="btn pri" onclick="Modal.addGroup()">${I.plus(15)} Add a group</button>
+          Enter a Group Number (e.g. <b>Group 01</b>) to send a supervision request for <b>${esc(subjObj.code)}</b>. Once the Team Lead accepts, their subject tasks will show here.</p>
+        <button class="btn pri" onclick="Modal.sendSupervisionRequest()">${I.mail(15)} Send Request by Group Number</button>
       </div></div>`;
   },
 
@@ -1959,6 +2025,8 @@ const Page={
       <button class="btn" onclick="App.go('board')">${I.board(15)} Open board</button>
     </div>
 
+    ${Page.pendingInvitesBanner(g)}
+
     ${App.isLead&&incomplete?`<div class="banner info" style="margin-bottom:14px">${I.users(16)}
       <div><b>Your team is incomplete.</b> ${ms.length} of 4 members added. Add your ${ROLES.filter(r=>!ms.some(m=>m.role===r)).join(', ')}.
       <button class="btn sm" style="margin-left:8px" onclick="App.go('team')">Add members</button></div></div>`:''}
@@ -2190,6 +2258,8 @@ const Page={
       <div class="sp"></div>
       ${lead&&missing.length?`<button class="btn pri" onclick="Modal.addMember()">${I.plus(15)} Add member</button>`:''}
     </div>
+
+    ${Page.pendingInvitesBanner(g)}
 
     ${lead?(missing.length
       ? `<div class="banner info" style="margin-bottom:14px">${I.users(16)}
@@ -3237,6 +3307,72 @@ const Modal={
     DB.s.users=DB.s.users.filter(u=>u.id!==id);
     log(App.me.groupId,`removed <b>${esc(m.name)}</b> from the team`);
     DB.save(); FX.tap('error'); Modal.close(); toast(I.trash(15),`${m.name} removed`); App.render();
+  },
+
+  sendSupervisionRequest(){
+    const facSubj = App.me.subjectCode || '23AID205';
+    const subjObj = SEM3.find(s => s.code === facSubj) || { code: facSubj, name: 'Subject' };
+    Modal.open(`
+      <div class="mh">
+        ${I.mail(18)} <h3>Send Supervision Request</h3>
+        <button class="btn ico sm gho" onclick="Modal.close()">${I.x(15)}</button>
+      </div>
+      <div class="mb">
+        <div class="banner info" style="margin-bottom:12px">
+          ${I.cap(16)}
+          <div><b>Teaching Subject:</b> <span class="mono">${esc(subjObj.code)}</span> · ${esc(subjObj.name)}</div>
+        </div>
+        <div class="field">
+          <label>Target Group Number / Name</label>
+          <input class="inp" id="req_group_num" placeholder="e.g. Group 01, Group 02, Group 03"/>
+          <span class="hint">Enter Group Number (e.g. Group 01). An invite request will be sent to the Team Lead.</span>
+        </div>
+        <div id="req_err"></div>
+      </div>
+      <div class="mf">
+        <div class="sp"></div>
+        <button class="btn" onclick="Modal.close()">Cancel</button>
+        <button class="btn pri" onclick="Modal.doSendSupervisionRequest()">Send Request</button>
+      </div>
+    `);
+  },
+
+  doSendSupervisionRequest(){
+    const q = document.getElementById('req_group_num').value.trim();
+    if (!q) return Modal.err('req_err', 'Enter a Group Number (e.g., Group 01).');
+
+    const g = DB.s.groups.find(x =>
+      x.name.toLowerCase() === q.toLowerCase() ||
+      x.id.toLowerCase() === q.toLowerCase() ||
+      x.name.toLowerCase().includes(q.toLowerCase())
+    );
+
+    if (!g) return Modal.err('req_err', `No group found matching '${q}'. Try 'Group 01', 'Group 02', etc.`);
+
+    DB.s.invites = DB.s.invites || [];
+    const facSubj = App.me.subjectCode || '23AID205';
+    const existing = DB.s.invites.find(i => i.groupId === g.id && i.facultyId === App.me.id && i.subjectCode === facSubj && i.status === 'pending');
+    if (existing) return Modal.err('req_err', 'You already have a pending supervision request for this group.');
+
+    const inv = {
+      id: 'inv-' + uid().slice(0, 8),
+      groupId: g.id,
+      groupName: g.name,
+      facultyId: App.me.id,
+      facultyName: App.me.name,
+      facultyEmail: App.me.email,
+      subjectCode: facSubj,
+      status: 'pending',
+      ts: now()
+    };
+
+    DB.s.invites.unshift(inv);
+    log(g.id, `sent a supervision request for subject <b>${esc(facSubj)}</b>`);
+    DB.save();
+    FX.tap('done');
+    Modal.close();
+    toast(I.check(15), `Supervision request sent to ${g.name}!`);
+    App.render();
   },
 
   /* ---- project guide (lead only) ---- */
