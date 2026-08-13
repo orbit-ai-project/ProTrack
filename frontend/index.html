@@ -587,7 +587,8 @@ const I = {
   trend:s=>I._(`<path d="M3 17l6-6 4 4 8-8"/><path d="M17 7h4v4"/>`,s),
   scale:s=>I._(`<path d="M12 3v18M4 7h16M6 7l-3 6a3 3 0 0 0 6 0zM18 7l-3 6a3 3 0 0 0 6 0z"/>`,s),
   target:s=>I._(`<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.4"/>`,s),
-  chart:s=>I._(`<path d="M4 4v16h16"/><rect x="7.5" y="11" width="2.8" height="6" rx="0.6"/><rect x="12.6" y="7" width="2.8" height="10" rx="0.6"/><rect x="17.7" y="14" width="2.8" height="3" rx="0.6"/>`,s)
+  chart:s=>I._(`<path d="M4 4v16h16"/><rect x="7.5" y="11" width="2.8" height="6" rx="0.6"/><rect x="12.6" y="7" width="2.8" height="10" rx="0.6"/><rect x="17.7" y="14" width="2.8" height="3" rx="0.6"/>`,s),
+  cam:s=>I._(`<path d="M4 8a2 2 0 0 1 2-2h1.5l1.2-1.6a1 1 0 0 1 .8-.4h5a1 1 0 0 1 .8.4L17.5 6H19a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><circle cx="12" cy="12.5" r="3.2"/>`,s)
 };
 
 /* ============================================================
@@ -836,7 +837,9 @@ function toast(icon,msg){
   setTimeout(()=>{ el.classList.add('out'); setTimeout(()=>el.remove(),200); },2600);
 }
 
-const av=(u,cls='')=>`<div class="av ${cls}" style="background:${u.color||'#7A828E'}">${initials(u.name)}</div>`;
+const av=(u,cls='')=> u&&u.photo
+  ? `<div class="av ${cls}" style="background-image:url('${u.photo}');background-size:cover;background-position:center;color:transparent" title="${esc(u.name)}"></div>`
+  : `<div class="av ${cls}" style="background:${(u&&u.color)||'#7A828E'}">${u?initials(u.name):''}</div>`;
 const tag=(t,c)=>`<span class="tag" style="background:${S_(c)};color:${V_(c)}"><span class="pt" style="background:${V_(c)}"></span>${t}</span>`;
 function ring(pct,size=64,c='accent',sw){
   const w=sw||(size<44?4:5), r=size/2-w/2-1, C=2*Math.PI*r;
@@ -1593,6 +1596,10 @@ const Page={
 
     ${overdue.length?`<div class="banner dan" style="margin-bottom:14px">${I.alert(16)}
       <div><b>${overdue.length} of your task${overdue.length>1?'s are':' is'} overdue.</b> ${esc(overdue.map(t=>t.title).join(' · '))}</div></div>`:''}
+
+    ${!App.me.photo?`<div class="banner info" style="margin-bottom:14px">${I.cam(16)}
+      <div><b>Add your selfie.</b> Put a face to your name so your team recognises you.
+      <button class="btn sm" style="margin-left:8px" onclick="Photo.choose('${App.me.id}')">${I.cam(13)} Add selfie</button></div></div>`:''}
 
     <div class="kpis">
       ${Page.kpi('My tasks',mine.length,`${mine.filter(t=>t.status==='done').length} completed`)}
@@ -2518,6 +2525,44 @@ const Cal={
 };
 
 /* ============================================================
+   PHOTO — profile selfie (picked, resized on a canvas, stored as
+   a small data URL in the user's profile). Client-side only.
+   ============================================================ */
+const Photo={
+  choose(uid){
+    const inp=document.createElement('input'); inp.type='file'; inp.accept='image/*';
+    inp.onchange=()=>{
+      const f=inp.files&&inp.files[0]; if(!f) return;
+      if(!/^image\//.test(f.type)){ FX.tap('error'); return toast(I.alert(15),'Please choose an image file'); }
+      if(f.size>12e6){ FX.tap('error'); return toast(I.alert(15),'Image too large (max 12 MB)'); }
+      const r=new FileReader();
+      r.onload=()=>Photo.resize(r.result,data=>{
+        const u=user(uid); if(!u) return;
+        u.photo=data; DB.save(); FX.tap('done'); App.render();
+        toast(I.check(15),'Selfie added'); if(App.me&&App.me.id===uid) Modal.account();
+      });
+      r.readAsDataURL(f);
+    };
+    inp.click();
+  },
+  /* downscale to ~256px and re-encode as JPEG so localStorage stays small */
+  resize(src,cb){
+    const img=new Image();
+    img.onload=()=>{
+      const max=256; let w=img.width,h=img.height; const s=Math.min(1,max/Math.max(w,h));
+      w=Math.max(1,Math.round(w*s)); h=Math.max(1,Math.round(h*s));
+      const c=document.createElement('canvas'); c.width=w; c.height=h;
+      c.getContext('2d').drawImage(img,0,0,w,h);
+      try{ cb(c.toDataURL('image/jpeg',0.82)); }catch(e){ cb(src); }
+    };
+    img.onerror=()=>{ FX.tap('error'); toast(I.alert(15),'Could not read that image'); };
+    img.src=src;
+  },
+  remove(uid){ const u=user(uid); if(!u) return; delete u.photo; DB.save(); FX.tap('med'); App.render();
+    toast(I.trash(15),'Photo removed'); if(App.me&&App.me.id===uid) Modal.account(); }
+};
+
+/* ============================================================
    MODALS
    ============================================================ */
 const Modal={
@@ -2538,11 +2583,17 @@ const Modal={
     Modal.open(`
       <div class="mh"><h3>Account</h3><button class="btn ico sm gho" onclick="Modal.close()">${I.x(15)}</button></div>
       <div class="mb">
-        <div style="display:flex;align-items:center;gap:13px">
-          ${av(App.me,'xl')}
-          <div><div style="font-weight:600;font-size:15px">${esc(App.me.name)}</div>
+        <div style="display:flex;align-items:center;gap:14px">
+          <div style="position:relative;flex:none">${av(App.me,'xl')}
+            <button class="btn ico sm" title="Change photo" onclick="Photo.choose('${App.me.id}')"
+              style="position:absolute;right:-6px;bottom:-6px;width:26px;height:26px;border-radius:50%;box-shadow:var(--sh2)">${I.cam(14)}</button></div>
+          <div style="flex:1;min-width:0"><div style="font-weight:600;font-size:15px">${esc(App.me.name)}</div>
             <div style="color:var(--muted);font-size:12.5px">${esc(App.me.role)}${g?' · '+esc(g.name):''}</div>
-            <div class="mono" style="color:var(--faint);margin-top:2px">${esc(App.me.email)}</div></div>
+            <div class="mono" style="color:var(--faint);margin-top:2px">${esc(App.me.email)}</div>
+            <div style="display:flex;gap:7px;margin-top:9px">
+              <button class="btn sm" onclick="Photo.choose('${App.me.id}')">${I.cam(14)} ${App.me.photo?'Change selfie':'Add selfie'}</button>
+              ${App.me.photo?`<button class="btn sm dan" onclick="Photo.remove('${App.me.id}')">${I.trash(14)} Remove</button>`:''}
+            </div></div>
         </div>
         <div style="border-top:1px solid var(--line-2);padding-top:14px">
           <div class="sec" style="margin-bottom:10px">Change password</div>
