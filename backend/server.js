@@ -357,6 +357,74 @@ app.post('/api/invites/respond', auth, (req, res) => {
   res.json({ ok: true });
 });
 
+/* --- direct invite (no JWT — frontend uses localStorage auth, not JWT) --- */
+app.post('/api/invites/direct', (req, res) => {
+  const { groupId, facultyId, facultyName, facultyEmail, subjectCode } = req.body || {};
+  if (!groupId || !facultyId) return res.status(400).json({ error: 'Missing groupId or facultyId.' });
+
+  const targetGroup = store.groups.find(g => g.id === groupId);
+  if (!targetGroup) return res.status(404).json({ error: 'Group not found.' });
+
+  const facUser = store.profiles.find(u => u.id === facultyId && u.role === 'Faculty');
+
+  store.invites = store.invites || [];
+  const existing = store.invites.find(i =>
+    i.groupId === groupId && i.facultyId === facultyId && i.status === 'pending'
+  );
+  if (existing) return res.status(409).json({ error: 'You already sent a pending request to this group.' });
+
+  const inv = {
+    id: 'inv-' + uid().slice(0, 8),
+    groupId: targetGroup.id,
+    groupName: targetGroup.name,
+    facultyId,
+    facultyName: facultyName || (facUser && facUser.name) || 'Faculty',
+    facultyEmail: facultyEmail || (facUser && facUser.email) || '',
+    subjectCode: subjectCode || (facUser && facUser.subjectCode) || '23AID205',
+    status: 'pending',
+    ts: Date.now()
+  };
+
+  store.invites.unshift(inv);
+  logAct(targetGroup.id, facultyId, `sent a supervision request for subject ${inv.subjectCode}`);
+  save();
+  broadcastSync();
+  res.json({ ok: true, invite: inv });
+});
+
+/* --- respond to invite (no JWT) --- */
+app.post('/api/invites/respond-direct', (req, res) => {
+  const { inviteId, action, userId } = req.body || {};
+  if (!inviteId || !action || !userId) return res.status(400).json({ error: 'Missing fields.' });
+
+  store.invites = store.invites || [];
+  const inv = store.invites.find(i => i.id === inviteId);
+  if (!inv) return res.status(404).json({ error: 'Invite not found.' });
+
+  const responder = store.profiles.find(u => u.id === userId);
+  if (!responder || responder.role !== 'Team Lead') return res.status(403).json({ error: 'Only Team Lead can respond.' });
+  if (responder.groupId !== inv.groupId) return res.status(403).json({ error: 'This invite is not for your group.' });
+
+  inv.status = action === 'accept' ? 'accepted' : 'declined';
+
+  if (action === 'accept') {
+    const g = store.groups.find(g => g.id === inv.groupId);
+    if (g) {
+      g.facultyIds = g.facultyIds || [];
+      if (!g.facultyIds.includes(inv.facultyId)) g.facultyIds.push(inv.facultyId);
+      g.subjectFacultyMap = g.subjectFacultyMap || {};
+      g.subjectFacultyMap[inv.subjectCode] = inv.facultyId;
+    }
+    logAct(inv.groupId, userId, `accepted supervision request from ${inv.facultyName} for ${inv.subjectCode}`);
+  } else {
+    logAct(inv.groupId, userId, `declined supervision request from ${inv.facultyName}`);
+  }
+
+  save();
+  broadcastSync();
+  res.json({ ok: true });
+});
+
 app.post('/api/sync', (req, res) => {
   const { users, groups, tasks, activity, remarks, invites } = req.body || {};
   if (users) store.profiles = users;
