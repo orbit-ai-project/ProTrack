@@ -850,8 +850,11 @@ const emailOk=e=>/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(e);
    ============================================================ */
 const API_URL = 'http://localhost:4000';
 const API = {
-  get token(){ return localStorage.getItem(K_TOKEN); },
-  set token(v){ if(v) localStorage.setItem(K_TOKEN,v); else localStorage.removeItem(K_TOKEN); },
+  /* sessionStorage on purpose: scoped to this one tab, so pasting the URL into a
+     fresh tab (or a different browser) always lands on the sign-in screen instead
+     of silently reusing another tab's session. A reload of the same tab stays signed in. */
+  get token(){ return sessionStorage.getItem(K_TOKEN); },
+  set token(v){ if(v) sessionStorage.setItem(K_TOKEN,v); else sessionStorage.removeItem(K_TOKEN); },
 
   /* low-level authenticated call. Throws {message} on any non-2xx response. */
   async call(method, path, body){
