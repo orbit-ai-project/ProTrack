@@ -1705,11 +1705,29 @@ const Page={
     `;
   },
 
-  respondInvite(invId, action){
+  async respondInvite(invId, action){
     DB.s.invites = DB.s.invites || [];
     const inv = DB.s.invites.find(i => i.id === invId);
     if (!inv) return;
 
+    // Try backend first
+    try {
+      const res = await fetch(API_URL + '/api/invites/respond-direct', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ inviteId: invId, action, userId: App.me.id })
+      });
+      if (res.ok) {
+        await API.check(); // Refresh all data from backend
+        FX.tap(action === 'accept' ? 'done' : 'med');
+        toast(action === 'accept' ? I.check(15) : I.trash(15),
+          action === 'accept' ? `Accepted supervision from ${inv.facultyName}` : 'Declined request');
+        App.render();
+        return;
+      }
+    } catch(e) {}
+
+    // Fallback: update locally
     inv.status = action === 'accept' ? 'accepted' : 'declined';
     if (action === 'accept') {
       const g = group(inv.groupId);
@@ -3442,9 +3460,10 @@ const Modal={
   sendSupervisionRequest(){
     const facSubj = App.me.subjectCode || '23AID205';
     const subjObj = SEM3.find(s => s.code === facSubj) || { code: facSubj, name: 'Subject' };
+
+    // Show loading modal while we fetch groups from backend
     Modal.open(`
-      <div class="mh">
-        ${I.mail(18)} <h3>Send Supervision Request</h3>
+      <div class="mh">${I.mail(18)} <h3>Send Supervision Request</h3>
         <button class="btn ico sm gho" onclick="Modal.close()">${I.x(15)}</button>
       </div>
       <div class="mb">
@@ -3452,65 +3471,126 @@ const Modal={
           ${I.cap(16)}
           <div><b>Teaching Subject:</b> <span class="mono">${esc(subjObj.code)}</span> · ${esc(subjObj.name)}</div>
         </div>
-        <div class="field">
-          <label>Target Group Number / Name</label>
-          <input class="inp" id="req_group_num" placeholder="e.g. Group 01, Group 02, Group 03"/>
-          <span class="hint">Enter Group Number (e.g. Group 01). An invite request will be sent to the Team Lead.</span>
+        <div id="req_groups_area">
+          <div style="text-align:center;padding:20px;color:var(--muted)">⏳ Loading groups from server...</div>
         </div>
         <div id="req_err"></div>
       </div>
       <div class="mf">
         <div class="sp"></div>
         <button class="btn" onclick="Modal.close()">Cancel</button>
-        <button class="btn pri" onclick="Modal.doSendSupervisionRequest()">Send Request</button>
+        <button class="btn pri" id="req_send_btn" disabled onclick="Modal.doSendSupervisionRequest()">${I.mail(14)} Send Request</button>
       </div>
     `);
+
+    // Fetch all groups from backend to show real options
+    fetch(API_URL + '/api/sync')
+      .then(r => r.ok ? r.json() : null)
+      .then(data => {
+        const allGroups = (data && data.groups) || DB.s.groups || [];
+        // Merge with local groups ensuring no duplicates
+        const localGroups = DB.s.groups || [];
+        const merged = [...allGroups];
+        localGroups.forEach(lg => { if (!merged.find(g => g.id === lg.id)) merged.push(lg); });
+        // Update local data with server data
+        if (data && data.groups) { DB.s.groups = merged; DB.s.invites = data.invites || DB.s.invites || []; }
+
+        const area = document.getElementById('req_groups_area');
+        if (!area) return;
+        if (!merged.length) {
+          area.innerHTML = '<p style="color:var(--red);font-size:12.5px">No groups found. Ensure the backend server is running.</p>';
+          return;
+        }
+        area.innerHTML = `
+          <div class="field">
+            <label>Select Group to Supervise</label>
+            <select class="inp" id="req_group_sel" onchange="document.getElementById('req_send_btn').disabled=!this.value">
+              <option value="">— Pick a group —</option>
+              ${merged.map(g => {
+                const lead = (data?.users||DB.s.users||[]).find(u => u.id === g.leadId);
+                return `<option value="${g.id}">${esc(g.name)}${g.project&&g.project!=='—'?' · '+esc(g.project):''}${lead?' (Lead: '+esc(lead.name)+')':''}</option>`;
+              }).join('')}
+            </select>
+            <span class="hint">Select the group you want to supervise. Request goes to their Team Lead.</span>
+          </div>`;
+      })
+      .catch(() => {
+        // Fallback to localStorage groups if backend not reachable
+        const area = document.getElementById('req_groups_area');
+        if (!area) return;
+        const groups = DB.s.groups || [];
+        if (!groups.length) { area.innerHTML = '<p style="color:var(--red);font-size:12.5px">No groups found. Cannot reach server.</p>'; return; }
+        area.innerHTML = `
+          <div class="field">
+            <label>Select Group (local data — server offline)</label>
+            <select class="inp" id="req_group_sel" onchange="document.getElementById('req_send_btn').disabled=!this.value">
+              <option value="">— Pick a group —</option>
+              ${groups.map(g => `<option value="${g.id}">${esc(g.name)}${g.project&&g.project!=='—'?' · '+esc(g.project):''}</option>`).join('')}
+            </select>
+          </div>`;
+      });
   },
 
-  doSendSupervisionRequest(){
-    const q = document.getElementById('req_group_num').value.trim();
-    if (!q) return Modal.err('req_err', 'Enter a Group Number (e.g., Group 01).');
-
-    const cleanQ = q.toLowerCase().replace(/^group\s*/i, '').trim();
-
-    const g = DB.s.groups.find(x => {
-      const gClean = x.name.toLowerCase().replace(/^group\s*/i, '').trim();
-      return (
-        x.name.toLowerCase() === q.toLowerCase() ||
-        x.id.toLowerCase() === q.toLowerCase() ||
-        gClean === cleanQ ||
-        ('0' + gClean) === cleanQ ||
-        gClean === ('0' + cleanQ) ||
-        x.name.toLowerCase().includes(q.toLowerCase())
-      );
-    });
-
-    if (!g) return Modal.err('req_err', `Group '${q}' not found. Try 'Group 01', 'Group 02', or 'Group 03'.`);
-
-    DB.s.invites = DB.s.invites || [];
+  async doSendSupervisionRequest(){
+    const sel = document.getElementById('req_group_sel');
+    if (!sel || !sel.value) return Modal.err('req_err', 'Please select a group.');
+    const groupId = sel.value;
     const facSubj = App.me.subjectCode || '23AID205';
-    const existing = DB.s.invites.find(i => i.groupId === g.id && i.facultyId === App.me.id && i.subjectCode === facSubj && i.status === 'pending');
-    if (existing) return Modal.err('req_err', 'You already have a pending supervision request for this group.');
 
-    const inv = {
-      id: 'inv-' + uid().slice(0, 8),
-      groupId: g.id,
-      groupName: g.name,
-      facultyId: App.me.id,
-      facultyName: App.me.name,
-      facultyEmail: App.me.email,
-      subjectCode: facSubj,
-      status: 'pending',
-      ts: now()
-    };
+    // Check if already pending in local data
+    DB.s.invites = DB.s.invites || [];
+    const alreadyLocal = DB.s.invites.find(i => i.groupId === groupId && i.facultyId === App.me.id && i.status === 'pending');
+    if (alreadyLocal) return Modal.err('req_err', 'You already have a pending request for this group.');
 
-    DB.s.invites.unshift(inv);
-    log(g.id, `sent a supervision request for subject <b>${esc(facSubj)}</b>`);
-    DB.save();
-    API.push();
+    const btn = document.getElementById('req_send_btn');
+    if (btn) { btn.disabled = true; btn.textContent = 'Sending…'; }
+
+    let sent = false;
+
+    // Try backend first (works if server is running on localhost:4000)
+    try {
+      const res = await fetch(API_URL + '/api/invites/direct', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          groupId,
+          facultyId: App.me.id,
+          facultyName: App.me.name,
+          facultyEmail: App.me.email,
+          subjectCode: facSubj
+        })
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        if (btn) { btn.disabled = false; btn.innerHTML = `${I.mail(14)} Send Request`; }
+        return Modal.err('req_err', data.error || 'Failed to send request.');
+      }
+      // Success via backend — refresh all data
+      sent = true;
+      await API.check();
+    } catch(e) {
+      // Backend not reachable — fall back to localStorage only
+    }
+
+    if (!sent) {
+      // Fallback: save in localStorage only
+      const g = DB.s.groups.find(x => x.id === groupId);
+      if (!g) return Modal.err('req_err', 'Group not found.');
+      const inv = {
+        id: 'inv-' + uid().slice(0, 8),
+        groupId: g.id, groupName: g.name,
+        facultyId: App.me.id, facultyName: App.me.name, facultyEmail: App.me.email,
+        subjectCode: facSubj, status: 'pending', ts: now()
+      };
+      DB.s.invites.unshift(inv);
+      log(g.id, `sent a supervision request for subject <b>${esc(facSubj)}</b>`);
+      DB.save();
+    }
+
     FX.tap('done');
     Modal.close();
-    toast(I.check(15), `Supervision request sent to ${g.name}!`);
+    const g = DB.s.groups.find(x => x.id === groupId);
+    toast(I.check(15), `Supervision request sent to ${g ? g.name : 'group'}!`);
     App.render();
   },
 
