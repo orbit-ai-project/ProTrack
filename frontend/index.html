@@ -200,6 +200,11 @@ select.inp{cursor:pointer;appearance:none;padding-right:28px;
 .chart3d .col{transform-box:fill-box;transform-origin:bottom;animation:barRise .62s var(--ease) both}
 @keyframes donutIn{from{opacity:0;transform:rotate(-140deg) scale(.7)}to{opacity:1;transform:none}}
 .donut-anim{transform-box:fill-box;transform-origin:center;animation:donutIn .85s var(--ease) both}
+.donut3d-wrap{perspective:640px;display:flex;justify-content:center;padding:6px 0 2px}
+.donut3d{transform:rotateX(54deg);transform-origin:50% 50%;animation:donut3dIn .9s var(--ease) both;
+  filter:drop-shadow(0 10px 12px rgba(16,24,40,.24))}
+.donut3d circle{transition:stroke-width .15s}
+@keyframes donut3dIn{from{opacity:0;transform:rotateX(54deg) rotateZ(-170deg) scale(.65)}to{opacity:1;transform:rotateX(54deg) rotateZ(0) scale(1)}}
 @keyframes drawLine{to{stroke-dashoffset:0}}
 .area-line{stroke-dasharray:1;stroke-dashoffset:1;animation:drawLine 1.15s ease .1s forwards}
 @keyframes areaFade{from{opacity:0}to{opacity:.13}}
@@ -207,8 +212,9 @@ select.inp{cursor:pointer;appearance:none;padding-right:28px;
 @keyframes hbarGrow{from{width:0}}
 .hbar-fill{animation:hbarGrow .7s var(--ease) both}
 @media(prefers-reduced-motion:reduce){
-  .chart3d,.chart3d .col,.donut-anim,.area-line,.area-fill,.hbar-fill{animation:none!important}
+  .chart3d,.chart3d .col,.donut-anim,.donut3d,.area-line,.area-fill,.hbar-fill{animation:none!important}
   .chart3d{transform:rotateX(15deg)}
+  .donut3d{transform:rotateX(54deg)}
   .area-line{stroke-dashoffset:0}.area-fill{opacity:.13}
 }
 .split{display:grid;grid-template-columns:1fr 320px;gap:16px;align-items:start}
@@ -806,18 +812,18 @@ const bar=(p,c)=>`<div class="bar"><i style="width:${p}%;background:${V_(c)}"></
    CHARTS — self-contained SVG/HTML (no external libraries)
    ============================================================ */
 const Charts={
-  donut(segs,size=148,thick=22){
-    const total=segs.reduce((a,s)=>a+s.value,0)||1, r=(size-thick)/2, C=2*Math.PI*r, cx=size/2, cy=size/2;
-    let off=0;
-    const arcs=segs.filter(s=>s.value>0).map(s=>{
-      const len=C*s.value/total;
-      const el=`<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${s.color}" stroke-width="${thick}" stroke-linecap="butt" stroke-dasharray="${len.toFixed(2)} ${(C-len).toFixed(2)}" stroke-dashoffset="${(-off).toFixed(2)}" transform="rotate(-90 ${cx} ${cy})"/>`;
-      off+=len; return el;
-    }).join('');
-    return `<svg class="donut-anim" viewBox="0 0 ${size} ${size}" width="${size}" height="${size}" style="flex:none">
-      <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="var(--line-2)" stroke-width="${thick}"/>${arcs}
-      <text x="${cx}" y="${cy-1}" text-anchor="middle" font-size="${(size*0.2).toFixed(0)}" font-weight="700" fill="var(--ink)">${total}</text>
-      <text x="${cx}" y="${(cy+size*0.14).toFixed(0)}" text-anchor="middle" font-size="${(size*0.075).toFixed(0)}" fill="var(--muted)">tasks</text></svg>`;
+  /* extruded 3D ring, tilted + animated (see .donut3d CSS) */
+  donut(segs,size=150,thick=24){
+    const total=segs.reduce((a,s)=>a+s.value,0)||1, r=(size-thick)/2, C=2*Math.PI*r, cx=size/2, cy=size/2, depth=9;
+    const mkArcs=(dy,tip)=>{ let off=0; return segs.filter(s=>s.value>0).map(s=>{ const len=C*s.value/total;
+      const el=`<circle cx="${cx}" cy="${(cy+dy).toFixed(1)}" r="${r}" fill="none" stroke="${s.color}" stroke-width="${thick}" stroke-dasharray="${len.toFixed(2)} ${(C-len).toFixed(2)}" stroke-dashoffset="${(-off).toFixed(2)}" transform="rotate(-90 ${cx} ${(cy+dy).toFixed(1)})">${tip?`<title>${esc(s.label)}: ${s.value} (${Math.round(100*s.value/total)}%)</title>`:''}</circle>`;
+      off+=len; return el; }).join(''); };
+    let wall=''; for(let k=depth;k>=1;k--) wall+=`<circle cx="${cx}" cy="${(cy+k).toFixed(1)}" r="${r}" fill="none" stroke="var(--line-2)" stroke-width="${thick}"/>`+mkArcs(k,false);
+    const vbH=size+depth+4;
+    return `<div class="donut3d-wrap"><svg class="donut3d" viewBox="0 0 ${size} ${vbH}" width="${size}" height="${vbH}" style="flex:none;overflow:visible">
+      ${wall}
+      <circle cx="${cx}" cy="${(cy+depth/2).toFixed(1)}" r="${r}" fill="none" stroke="rgba(16,24,40,.22)" stroke-width="${thick}"/>
+      <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="var(--line-2)" stroke-width="${thick}"/>${mkArcs(0,true)}</svg></div>`;
   },
   /* vertical 3D columns, tilted + animated (see .chart3d CSS) */
   vbars(items,h=196){
@@ -827,6 +833,7 @@ const Charts={
     const cols=items.map((it,idx)=>{
       const bh=Math.max(3,Math.round((h-padB-padT)*it.value/mx)), x=padX+idx*(bw+gap), y=h-padB-bh, c=it.color||'var(--accent)';
       return `<g class="col" style="animation-delay:${idx*70}ms">
+        <title>${esc(it.full||it.label)}: ${it.value}${it.suffix||''}</title>
         <ellipse cx="${x+bw/2+dp/2}" cy="${h-padB+3}" rx="${(bw*0.62).toFixed(0)}" ry="4" fill="rgba(16,24,40,.15)"/>
         <polygon points="${x+bw},${y} ${x+bw+dp},${y-dp} ${x+bw+dp},${y+bh-dp} ${x+bw},${y+bh}" fill="${c}" opacity="0.5"/>
         <polygon points="${x},${y} ${x+dp},${y-dp} ${x+bw+dp},${y-dp} ${x+bw},${y}" fill="${c}" opacity="0.82"/>
@@ -844,7 +851,7 @@ const Charts={
   hbars(items){
     const mx=Math.max(1,...items.map(i=>i.value));
     return `<div style="display:grid;gap:10px">${items.map(it=>`
-      <div style="display:flex;align-items:center;gap:10px">
+      <div style="display:flex;align-items:center;gap:10px" title="${it.full||it.label}: ${it.value}${it.suffix||''}">
         <div style="width:118px;min-width:118px;font-size:12px;color:var(--ink-2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${it.label}</div>
         <div style="flex:1;height:9px;border-radius:99px;background:var(--line-2);overflow:hidden"><div class="hbar-fill" style="height:100%;width:${Math.round(100*it.value/mx)}%;background:${it.color||'var(--accent)'};border-radius:99px"></div></div>
         <div style="width:56px;text-align:right;font-size:12px;font-weight:600">${it.value}${it.suffix||''}</div>
@@ -862,7 +869,8 @@ const Charts={
     return `<svg viewBox="0 0 ${w} ${h}" width="100%" height="${h}" preserveAspectRatio="xMidYMid meet">${grid}
       <path class="area-fill" d="${areaP}" fill="${color}"/>
       <path class="area-line" pathLength="1" d="${line}" fill="none" stroke="${color}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
-      <circle cx="${X(n-1).toFixed(1)}" cy="${Y(points[n-1].value).toFixed(1)}" r="3.5" fill="${color}"/>${labs}</svg>`;
+      <circle cx="${X(n-1).toFixed(1)}" cy="${Y(points[n-1].value).toFixed(1)}" r="3.5" fill="${color}"/>
+      ${points.map((p,i)=>`<circle cx="${X(i).toFixed(1)}" cy="${Y(p.value).toFixed(1)}" r="9" fill="#fff" opacity="0" style="pointer-events:all"><title>${esc(p.label)}: ${p.value}</title></circle>`).join('')}${labs}</svg>`;
   }
 };
 
@@ -1299,12 +1307,13 @@ const Page={
 
     /* progress by group (3D columns) */
     const groupCols=gs.map((g,i)=>{const p=pctOf(tasksOf(g.id));
-      return {label:'G'+String(i+1).padStart(2,'0'),value:p,suffix:'%',
+      return {label:'G'+String(i+1).padStart(2,'0'),full:g.name+' · '+g.project,value:p,suffix:'%',
         color:p>=70?V_('green'):p>=40?V_('accent'):V_('amber')};});
 
     /* subject-wise progress */
     const subjMap={}; all.forEach(t=>{const c=t.courseCode||'—';(subjMap[c]=subjMap[c]||[]).push(t);});
-    const subjBars=Object.keys(subjMap).map(c=>({label:c+' · '+subjMap[c].length+'t',value:pctOf(subjMap[c]),suffix:'%',
+    const subjBars=Object.keys(subjMap).map(c=>({label:c+' · '+subjMap[c].length+'t',
+      full:((SEM3.find(x=>x.code===c)||{}).name||c),value:pctOf(subjMap[c]),suffix:'%',
       color:V_('accent')})).sort((a,b)=>b.value-a.value);
 
     /* deadline load (open tasks by due day, −2 … +11) */
@@ -1335,7 +1344,10 @@ const Page={
     <div class="chart-grid">
       <div class="card"><div class="ch">${I.board(15)}<h3>Task status distribution</h3></div>
         <div class="cb" style="display:flex;gap:18px;align-items:center;flex-wrap:wrap">
-          ${Charts.donut(statusSegs)}
+          <div style="display:flex;flex-direction:column;align-items:center;gap:4px">
+            ${Charts.donut(statusSegs)}
+            <div style="font-size:12px;color:var(--muted)"><b style="color:var(--ink);font-size:14px">${all.length}</b> tasks</div>
+          </div>
           <div style="flex:1;min-width:150px;display:grid;gap:7px">
             ${statusSegs.map(s=>`<div style="display:flex;align-items:center;gap:8px;font-size:12.5px">
               <span class="pt" style="width:9px;height:9px;background:${s.color}"></span>
