@@ -25,7 +25,7 @@ const SUBJECTS = [
 ];
 
 /* ---------- in-memory store (persisted to data.json) ---------- */
-let store = { profiles: [], groups: [], tasks: [], activity: [], remarks: [] };
+let store = { profiles: [], groups: [], tasks: [], activity: [], remarks: [], invites: [] };
 
 function save() {
   fs.writeFileSync(DATA_FILE, JSON.stringify(store, null, 2));
@@ -57,10 +57,22 @@ function seed() {
 
   const defs = [
     { g: 'g1', name: 'Group 01', project: 'Smart Attendance System', course: '23AID205',
+      subs: ['23AID205','23AID204','23AID203'],
+      topics: { '23AID205': ['Face dataset & preprocessing','Model training','Accuracy evaluation'],
+                '23AID204': ['Core data structures','Complexity analysis'],
+                '23AID203': ['Protocol design','Signal testing'] },
       ms: [['Aarav Mehta','aarav@college.edu'],['Diya Sharma','diya@college.edu'],['Kabir Nair','kabir@college.edu'],['Ishita Rao','ishita@college.edu']] },
     { g: 'g2', name: 'Group 02', project: 'Campus Food Delivery App', course: '23AID204',
+      subs: ['23AID204','23AID206','23AID201'],
+      topics: { '23AID204': ['Cart data model','Search optimisation'],
+                '23AID206': ['API networking','Load testing'],
+                '23AID201': ['Order simulation','Analytics'] },
       ms: [['Rohan Gupta','rohan@college.edu'],['Sanya Kapoor','sanya@college.edu'],['Vivaan Joshi','vivaan@college.edu'],['Meera Iyer','meera@college.edu']] },
     { g: 'g3', name: 'Group 03', project: 'AI Study Planner', course: '23AID201',
+      subs: ['23AID201','23AID205','23MAT204'],
+      topics: { '23AID201': ['Scheduling model','Constraint checks'],
+                '23AID205': ['Feature engineering','Bias audit'],
+                '23MAT204': ['Optimisation maths'] },
       ms: [['Aditya Verma','aditya@college.edu'],['Nisha Bansal','nisha@college.edu'],['Arjun Reddy','arjun@college.edu'],['Tara Menon','tara@college.edu']] },
   ];
 
@@ -74,9 +86,8 @@ function seed() {
     const c = SUBJECTS.find(s => s.code === d.course);
     store.groups.push({ id: d.g, name: d.name, project: d.project,
       subject: c ? `${c.code} · ${c.name}` : '—', courseCode: d.course,
-      leadId: ids[0], facultyIds: gi < 2 ? [facId] : [],
-      subjectFacultyMap: gi < 2 ? { [d.course]: facId } : {},
-      createdAt: now - 30*day });
+      subjects: d.subs.slice(), topics: JSON.parse(JSON.stringify(d.topics)), subjectFacultyMap: {},
+      leadId: ids[0], facultyIds: gi < 2 ? [facId] : [], createdAt: now - 30*day });
   });
 
   const rows = [
@@ -102,7 +113,7 @@ function seed() {
   const CORE = ['23AID205','23AID204','23AID201','23AID203'];
   rows.forEach(([g, mi, title, desc, status, progress, prio, dd], i) => {
     store.tasks.push({ id: 't'+i, groupId: g, assigneeId: 'u-'+g+mi, title, desc, status, progress, prio,
-      courseCode: CORE[i % CORE.length], due: now + dd*day,
+      courseCode: CORE[i % CORE.length], topic: null, due: now + dd*day,
       createdAt: now - (10 - i%7)*day, updatedAt: now - (i%5)*36e5, comments: [] });
   });
 
