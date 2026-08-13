@@ -1650,26 +1650,42 @@ const Page={
   },
 
   pendingInvitesBanner(g){
-    if (!App.isLead || !g) return '';
+    if (!g || App.isFaculty) return '';
     DB.s.invites = DB.s.invites || [];
     const pending = DB.s.invites.filter(i => i.groupId === g.id && i.status === 'pending');
     if (!pending.length) return '';
 
-    return pending.map(inv => {
-      const c = SEM3.find(s => s.code === inv.subjectCode) || { code: inv.subjectCode, name: '' };
-      return `
-        <div class="banner warn" style="margin-bottom:14px; background:var(--amber-s); border-color:var(--amber);">
-          ${I.mail(18)}
-          <div style="flex:1; min-width:0">
-            <b>Faculty Supervision Request:</b> <b>${esc(inv.facultyName)}</b> (${esc(inv.facultyEmail)}) requested to supervise <b>${esc(g.name)}</b> for subject <span class="mono" style="font-weight:700">${esc(c.code)} · ${esc(c.name)}</span>.
-            <div style="display:flex; gap:8px; margin-top:8px">
-              <button class="btn sm pri" onclick="Page.respondInvite('${inv.id}', 'accept')">${I.check(14)} Accept Request</button>
-              <button class="btn sm dan" onclick="Page.respondInvite('${inv.id}', 'decline')">${I.x(14)} Decline</button>
-            </div>
-          </div>
+    return `
+      <div class="card" style="margin-bottom:16px; border:2px solid var(--amber); background:var(--amber-s)">
+        <div class="ch" style="border-bottom:1px solid rgba(176,118,26,0.2)">
+          ${I.mail(18)} <h3 style="color:var(--amber); font-weight:700">📩 Pending Supervision Requests (${pending.length})</h3>
+          <div class="sp"></div>
+          <span class="tag amber">Action Required</span>
         </div>
-      `;
-    }).join('');
+        <div class="cb" style="display:grid; gap:10px">
+          ${pending.map(inv => {
+            const c = SEM3.find(s => s.code === inv.subjectCode) || { code: inv.subjectCode, name: '' };
+            return `
+              <div style="display:flex; align-items:center; justify-content:space-between; padding:12px 14px; border:1px solid var(--line); border-radius:var(--r2); background:var(--surface)">
+                <div>
+                  <div style="font-weight:700; font-size:13.5px; color:var(--ink)">Faculty: ${esc(inv.facultyName)} <span style="font-weight:400; color:var(--muted)">(${esc(inv.facultyEmail)})</span></div>
+                  <div style="font-size:12px; color:var(--accent); font-weight:600; margin-top:3px">Subject: <span class="mono" style="font-weight:700">${esc(inv.subjectCode)}</span> · ${esc(c.name)}</div>
+                  <div style="font-size:11px; color:var(--muted); margin-top:2px">Target Group: <b>${esc(inv.groupName || g.name)}</b></div>
+                </div>
+                <div style="display:flex; gap:8px">
+                  ${App.isLead ? `
+                    <button class="btn sm pri" onclick="Page.respondInvite('${inv.id}', 'accept')">${I.check(14)} Accept Request</button>
+                    <button class="btn sm dan" onclick="Page.respondInvite('${inv.id}', 'decline')">${I.x(14)} Decline</button>
+                  ` : `
+                    <span style="font-size:12px; color:var(--muted); font-style:italic">Only Team Lead can accept</span>
+                  `}
+                </div>
+              </div>
+            `;
+          }).join('')}
+        </div>
+      </div>
+    `;
   },
 
   respondInvite(invId, action){
@@ -1694,6 +1710,7 @@ const Page={
     }
 
     DB.save();
+    API.push();
     FX.tap(action === 'accept' ? 'done' : 'med');
     App.render();
   },
@@ -3341,13 +3358,21 @@ const Modal={
     const q = document.getElementById('req_group_num').value.trim();
     if (!q) return Modal.err('req_err', 'Enter a Group Number (e.g., Group 01).');
 
-    const g = DB.s.groups.find(x =>
-      x.name.toLowerCase() === q.toLowerCase() ||
-      x.id.toLowerCase() === q.toLowerCase() ||
-      x.name.toLowerCase().includes(q.toLowerCase())
-    );
+    const cleanQ = q.toLowerCase().replace(/^group\s*/i, '').trim();
 
-    if (!g) return Modal.err('req_err', `No group found matching '${q}'. Try 'Group 01', 'Group 02', etc.`);
+    const g = DB.s.groups.find(x => {
+      const gClean = x.name.toLowerCase().replace(/^group\s*/i, '').trim();
+      return (
+        x.name.toLowerCase() === q.toLowerCase() ||
+        x.id.toLowerCase() === q.toLowerCase() ||
+        gClean === cleanQ ||
+        ('0' + gClean) === cleanQ ||
+        gClean === ('0' + cleanQ) ||
+        x.name.toLowerCase().includes(q.toLowerCase())
+      );
+    });
+
+    if (!g) return Modal.err('req_err', `Group '${q}' not found. Try 'Group 01', 'Group 02', or 'Group 03'.`);
 
     DB.s.invites = DB.s.invites || [];
     const facSubj = App.me.subjectCode || '23AID205';
@@ -3369,6 +3394,7 @@ const Modal={
     DB.s.invites.unshift(inv);
     log(g.id, `sent a supervision request for subject <b>${esc(facSubj)}</b>`);
     DB.save();
+    API.push();
     FX.tap('done');
     Modal.close();
     toast(I.check(15), `Supervision request sent to ${g.name}!`);
