@@ -109,10 +109,8 @@ select.inp{cursor:pointer;appearance:none;padding-right:28px;
 .sec{font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--faint)}
 
 /* ============ AUTH ============ */
-#auth{height:100%;display:grid;grid-template-columns:1fr 1fr;background:var(--surface)}
-#auth .pane{display:grid;place-items:center;padding:36px;overflow:auto}
-#auth .aside{background:var(--bg);border-left:1px solid var(--line)}
-.authbox{width:100%;max-width:352px}
+#auth{height:100%;display:grid;place-items:center;background:var(--bg);overflow:auto;padding:24px}
+.authbox{width:100%;max-width:420px;background:var(--surface);padding:32px;border-radius:var(--r3);border:1px solid var(--line);box-shadow:var(--sh2)}
 
 .logo{display:flex;align-items:center;gap:9px}
 .logo .m{width:28px;height:28px;border-radius:9px;background:linear-gradient(135deg,#2E7387,#52AB98);display:grid;place-items:center;box-shadow:0 5px 12px -5px rgba(30,80,95,.6)}
@@ -692,19 +690,7 @@ tbody tr:hover{background:var(--surface-2)}
 
 <!-- ============ AUTH ============ -->
 <div id="auth">
-  <div class="pane">
-    <div class="authbox" id="authBox"></div>
-  </div>
-  <div class="pane aside">
-    <div class="creds">
-      <div class="t">Demo accounts</div>
-      <div class="d">Click any account to fill the sign-in form. All demo passwords are shown below.</div>
-      <div id="credList"></div>
-      <div class="banner info" style="margin-top:14px">
-        <b>Note:</b>&nbsp;this is a coursework prototype. Accounts are stored in your browser only and passwords are hashed with a simple demo function — not production-grade security.
-      </div>
-    </div>
-  </div>
+  <div class="authbox" id="authBox"></div>
 </div>
 
 <!-- ============ SHELL ============ -->
@@ -1242,7 +1228,6 @@ const Auth={
                   : Auth.screen==='choose' ? Auth.chooseHTML()
                   : Auth.screen==='lead'   ? Auth.leadHTML()
                   : Auth.facultyHTML();
-    document.getElementById('credList').innerHTML = Auth.credsHTML();
     const f=box.querySelector('input'); if(f) setTimeout(()=>f.focus(),60);
   },
 
