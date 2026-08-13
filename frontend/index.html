@@ -848,10 +848,19 @@ const emailOk=e=>/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(e);
    API — all data lives on the backend now. This is the only
    place that talks to it; everywhere else just reads DB.s.
    ============================================================ */
-/* Same host as this page, port 4000 — so this works unchanged whether it's opened
-   as http://localhost:8123 (just you) or http://<your-LAN-IP>:8123 (teammates on
-   the same WiFi hitting your machine's backend). No per-teammate editing needed. */
-const API_URL = `${location.protocol}//${location.hostname}:4000`;
+/* Backend location, in order of priority:
+   1. ?api=<url> in the page URL — lets a page served from somewhere that isn't
+      also running the backend (e.g. GitHub Pages) be pointed at one explicitly,
+      such as a tunnel URL. Remembered in localStorage so it's a one-time link.
+   2. A previously-remembered override from #1.
+   3. Same host as this page, port 4000 — the default for localhost/LAN use,
+      where the backend runs alongside the page. */
+const K_API_OVERRIDE='orbit.apiOverride.v1';
+(function(){
+  const fromQuery=new URLSearchParams(location.search).get('api');
+  if(fromQuery) localStorage.setItem(K_API_OVERRIDE, fromQuery.replace(/\/$/,''));
+})();
+const API_URL = localStorage.getItem(K_API_OVERRIDE) || `${location.protocol}//${location.hostname}:4000`;
 const API = {
   /* sessionStorage on purpose: scoped to this one tab, so pasting the URL into a
      fresh tab (or a different browser) always lands on the sign-in screen instead
@@ -861,7 +870,9 @@ const API = {
 
   /* low-level authenticated call. Throws {message} on any non-2xx response. */
   async call(method, path, body){
-    const opts={ method, headers:{} };
+    /* bypasses localtunnel's one-time browser interstitial, which otherwise
+       returns an HTML "click to continue" page instead of JSON on the first hit */
+    const opts={ method, headers:{ 'bypass-tunnel-reminder':'true' } };
     if(body!==undefined){ opts.headers['Content-Type']='application/json'; opts.body=JSON.stringify(body); }
     if(API.token) opts.headers['Authorization']='Bearer '+API.token;
     let res;
