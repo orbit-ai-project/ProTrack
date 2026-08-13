@@ -6,20 +6,20 @@
 <title>Orbit AI — Project Tracker</title>
 <style>
 :root{
-  --bg:#F7F8FA;
+  --bg:#F5F5FB;
   --surface:#FFFFFF;
-  --surface-2:#FAFBFC;
-  --ink:#16181D;
-  --ink-2:#454B54;
-  --muted:#7A828E;
-  --faint:#9BA2AD;
-  --line:#E4E7EC;
-  --line-2:#EFF1F4;
+  --surface-2:#FAFAFE;
+  --ink:#17161F;
+  --ink-2:#494656;
+  --muted:#7C7A8B;
+  --faint:#9E9CAE;
+  --line:#E6E5EF;
+  --line-2:#F0EFF6;
 
-  --accent:#4C5FD5;
-  --accent-h:#4053C4;
-  --accent-soft:#EEF0FD;
-  --accent-line:#CDD4F7;
+  --accent:#6455F0;
+  --accent-h:#5344DC;
+  --accent-soft:#EEEBFE;
+  --accent-line:#D8D2FB;
 
   --gray:#7A828E;    --gray-s:#F2F3F5;
   --blue:#2E6FD9;    --blue-s:#EAF1FC;
@@ -42,6 +42,8 @@ body{
 }
 button,input,select,textarea{font-family:inherit;font-size:inherit;color:inherit}
 button{cursor:pointer;border:none;background:none}
+:focus{outline:none}
+button:focus-visible,a:focus-visible,.nav a:focus-visible,.crow:focus-visible,.gcard:focus-visible,.tc:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:5px}
 a{color:var(--accent);text-decoration:none}
 svg{display:block;flex:none}
 ::-webkit-scrollbar{width:11px;height:11px}
@@ -62,7 +64,7 @@ svg{display:block;flex:none}
 .btn:disabled{opacity:.5;cursor:not-allowed}
 .btn.pri{background:var(--accent);color:#fff;border-color:var(--accent)}
 .btn.pri:hover{background:var(--accent-h);border-color:var(--accent-h)}
-.btn.pri:active{background:#38489F}
+.btn.pri:active{background:#4736C6}
 .btn.gho{background:transparent;border-color:transparent;box-shadow:none;color:var(--muted)}
 .btn.gho:hover{background:var(--gray-s);color:var(--ink)}
 .btn.dan{color:var(--red);border-color:#EEDAD9;background:#fff}
@@ -84,7 +86,7 @@ select.inp{cursor:pointer;appearance:none;padding-right:28px;
   background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'><path d='M3 4.5L6 7.5l3-3' stroke='%237A828E' stroke-width='1.4' fill='none' stroke-linecap='round' stroke-linejoin='round'/></svg>");
   background-repeat:no-repeat;background-position:right 9px center}
 .inp:hover{border-color:#D6DAE1}
-.inp:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(76,95,213,.12)}
+.inp:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(100,85,240,.16)}
 .inp.err{border-color:var(--red);box-shadow:0 0 0 3px rgba(206,74,69,.1)}
 .errmsg{font-size:11.5px;color:var(--red);display:flex;align-items:center;gap:4px}
 
@@ -322,7 +324,7 @@ tbody tr:hover{background:var(--surface-2)}
   border:1px solid var(--line);border-radius:var(--r2);box-shadow:var(--sh1);overflow:hidden}
 .ai-card .ch{border-bottom:1px solid var(--line-2)}
 .ai-orb{width:26px;height:26px;border-radius:8px;display:grid;place-items:center;flex:none;
-  background:var(--accent);box-shadow:0 2px 8px rgba(76,95,213,.3)}
+  background:var(--accent);box-shadow:0 2px 8px rgba(100,85,240,.32)}
 .ai-orb svg{stroke:#fff}
 .ins{display:flex;gap:10px;padding:11px 14px;border-top:1px solid var(--line-2)}
 .ins:first-child{border-top:none}
@@ -406,7 +408,8 @@ tbody tr:hover{background:var(--surface-2)}
 /* ============ MOTION — minimal, subtle ============ */
 @keyframes rise{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
 @keyframes pop{from{opacity:0;transform:scale(.98)}to{opacity:1;transform:none}}
-.body .wrap{animation:rise .22s var(--ease)}
+@keyframes swingIn{0%{opacity:0;transform:perspective(1300px) rotateX(9deg) translateY(18px) scale(.985)}100%{opacity:1;transform:none}}
+.body .wrap{animation:swingIn .5s cubic-bezier(.2,.85,.3,1);transform-origin:50% 0}
 .tc{animation:pop .2s var(--ease) both}
 @keyframes cardIn3d{0%{opacity:0;transform:perspective(900px) rotateX(-22deg) translateY(22px) scale(.93)}100%{opacity:1;transform:none}}
 .gcard,.kpi{animation:cardIn3d .52s cubic-bezier(.34,1.5,.5,1)}
@@ -417,16 +420,23 @@ tbody tr:hover{background:var(--surface-2)}
 .board .col:nth-child(5){animation-delay:.16s}
 .btn{transition:background .12s,border-color .12s,color .12s,transform .08s}
 .btn:active{transform:translateY(1px)}
-/* interactive 3D tilt + depth on every card */
-.kpi,.gcard,.ai-card,.card{transform-style:preserve-3d;transition:transform .3s cubic-bezier(.34,1.42,.5,1),box-shadow .3s ease,border-color .12s;will-change:transform}
-/* reliable CSS-only 3D lift on hover (works even without the JS mouse-follow) */
-.kpi:hover,.gcard:hover,.ai-card:hover,.card:hover{
-  transform:perspective(840px) rotateX(7deg) rotateY(-9deg) translateY(-7px) scale(1.02);
-  box-shadow:-16px 28px 48px rgba(16,24,40,.22);z-index:3;position:relative;border-color:#CDD4F7}
-.kpi.tilting,.gcard.tilting,.ai-card.tilting,.card.tilting{z-index:3;position:relative}
+/* 3D + depth — strong tilt on small tiles, gentle lift on content cards (good UX) */
+.kpi,.gcard,.ai-card,.card{position:relative;transform-style:preserve-3d;transition:transform .3s cubic-bezier(.34,1.42,.5,1),box-shadow .3s ease,border-color .12s;will-change:transform}
+/* glossy sheen highlight on the tiles */
+.kpi::after,.gcard::after,.ai-card::after{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;opacity:0;transition:opacity .35s;background:linear-gradient(125deg,rgba(255,255,255,.34),transparent 44%)}
+.kpi:hover::after,.gcard:hover::after,.ai-card:hover::after{opacity:1}
+/* small tiles → full 3D tilt (reliable CSS-only, works without the JS mouse-follow) */
+.kpi:hover,.gcard:hover,.ai-card:hover{
+  transform:perspective(860px) rotateX(7deg) rotateY(-9deg) translateY(-7px) scale(1.02);
+  box-shadow:-16px 28px 48px rgba(16,24,40,.22);z-index:3;border-color:var(--accent-line)}
+/* content cards (tables, feeds, charts) → gentle lift only, stays readable */
+.card:hover{transform:translateY(-4px) scale(1.006);box-shadow:var(--sh3);z-index:2}
+.kpi.tilting,.gcard.tilting,.ai-card.tilting{z-index:3}
 @media(prefers-reduced-motion:reduce){
   .kpi,.gcard,.ai-card,.card{transition:box-shadow .12s,border-color .12s}
   .kpi:hover,.gcard:hover,.ai-card:hover,.card:hover{transform:translateY(-3px);box-shadow:var(--sh2)}
+  .kpi::after,.gcard::after,.ai-card::after{display:none}
+  .body .wrap{animation:none}
 }
 
 /* completed tasks turn green (+ a one-shot flash the moment they're finished) */
@@ -1974,7 +1984,7 @@ const Sparkle={
     const r=el.getBoundingClientRect();
     if(!r.width) return;
     const cx=r.left+r.width/2, cy=r.top+r.height/2;
-    const cols=['#1E8A5C','#4C5FD5','#B0761A','#2E6FD9','#3FB86A','#7A5AB8'];
+    const cols=['#1E8A5C','#6455F0','#B0761A','#2E6FD9','#3FB86A','#7A5AB8'];
     const layer=document.createElement('div'); layer.className='sparkle-layer';
     const N=16;
     for(let i=0;i<N;i++){
@@ -2018,7 +2028,7 @@ const Confetti={
     cv.width=W*dpr; cv.height=H*dpr; cv.style.width=W+'px'; cv.style.height=H+'px';
     document.body.appendChild(cv);
     const ctx=cv.getContext('2d'); ctx.scale(dpr,dpr);
-    const cols=['#4C5FD5','#1E8A5C','#B0761A','#CE4A45','#2E6FD9','#7A5AB8','#3FB86A','#E0A82E'];
+    const cols=['#6455F0','#1E8A5C','#B0761A','#CE4A45','#2E6FD9','#7A5AB8','#3FB86A','#E0A82E'];
     const N=120, P=[];
     for(let i=0;i<N;i++){
       const ang=-Math.PI/2 + (Math.random()-.5)*2.3, spd=6+Math.random()*9.5;
@@ -2049,7 +2059,7 @@ const Confetti={
 const Tilt={
   bind(){
     if(window.matchMedia && window.matchMedia('(prefers-reduced-motion:reduce)').matches) return;
-    document.querySelectorAll('.kpi,.gcard,.ai-card,.card').forEach(el=>{
+    document.querySelectorAll('.kpi,.gcard,.ai-card').forEach(el=>{
       if(el.dataset.tilt) return; el.dataset.tilt='1';
       el.addEventListener('pointermove',e=>{
         if(e.pointerType && e.pointerType!=='mouse') return;
