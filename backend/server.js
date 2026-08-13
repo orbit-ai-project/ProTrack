@@ -450,6 +450,19 @@ app.get('/api/sync', (req, res) => {
 });
 
 
+const path = require('path');
+
+// Serve static frontend files so http://localhost:4000/ opens the web app UI
+app.use(express.static(path.join(__dirname, '../frontend')));
+app.use(express.static(path.join(__dirname, '..')));
+
 /* ---------- health + start ---------- */
-app.get('/', (req, res) => res.json({ ok: true, service: 'ProTrack API', endpoints: '/api/*' }));
-app.listen(PORT, () => console.log(`\n🚀 ProTrack API running at http://localhost:${PORT}\n`));
+app.get('/api', (req, res) => res.json({ ok: true, service: 'ProTrack API', endpoints: '/api/*' }));
+app.get('*', (req, res) => {
+  if (req.path.startsWith('/api')) {
+    return res.status(404).json({ error: 'Endpoint not found' });
+  }
+  res.sendFile(path.join(__dirname, '../frontend/index.html'));
+});
+
+app.listen(PORT, () => console.log(`\n🚀 ProTrack Web App & API running at http://localhost:${PORT}\n`));
