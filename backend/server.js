@@ -28,7 +28,7 @@ const byEmail   = e => store.profiles.find(u => u.email.toLowerCase() === String
 const findGroup = id => store.groups.find(g => g.id === id);
 const findTask  = id => store.tasks.find(t => t.id === id);
 
-const publicUser = u => ({ id: u.id, name: u.name, email: u.email, role: u.role,
+const publicUser = u => ({ id: u.id, name: u.name, email: u.email, role: u.role, subjectCode: u.subjectCode,
   groupId: u.groupId, color: u.color, photo: u.photo, createdAt: u.createdAt });
 
 const isFaculty = u => u.role === 'Faculty';
@@ -92,13 +92,13 @@ app.post('/api/auth/register-lead', (req, res) => {
 });
 
 app.post('/api/auth/register-faculty', (req, res) => {
-  const { name, email, password } = req.body || {};
+  const { name, email, password, subjectCode } = req.body || {};
   if (!name) return res.status(400).json({ error: 'Enter your full name.' });
   if (!emailOk(email)) return res.status(400).json({ error: 'Enter a valid email address.' });
   if ((password || '').length < 6) return res.status(400).json({ error: 'Password must be at least 6 characters.' });
   if (byEmail(email)) return res.status(409).json({ error: 'An account with that email already exists.' });
   const u = { id: 'u-' + uid().slice(0, 8), name, email, passHash: bcrypt.hashSync(password, 10),
-    role: 'Faculty', groupId: null, color: '#5A6BD8', createdAt: now() };
+    role: 'Faculty', subjectCode: subjectCode || '23AID205', groupId: null, color: '#5A6BD8', createdAt: now() };
   store.profiles.push(u); save();
   res.json({ token: sign(u.id), user: publicUser(u) });
 });
@@ -294,24 +294,90 @@ function broadcastSync() {
   }
 }
 
+app.post('/api/invites/send', auth, (req, res) => {
+  if (!isFaculty(req.user)) return res.status(403).json({ error: 'Only faculty can send supervision requests.' });
+  const { groupQuery } = req.body || {};
+  if (!groupQuery) return res.status(400).json({ error: 'Enter Group Number or Group Name (e.g., Group 01).' });
+
+  const targetGroup = store.groups.find(g =>
+    g.name.toLowerCase() === groupQuery.trim().toLowerCase() ||
+    g.id.toLowerCase() === groupQuery.trim().toLowerCase() ||
+    g.name.toLowerCase().includes(groupQuery.trim().toLowerCase())
+  );
+
+  if (!targetGroup) return res.status(404).json({ error: `Group '${groupQuery}' not found. Verify the Group Number.` });
+
+  store.invites = store.invites || [];
+  const existing = store.invites.find(i => i.groupId === targetGroup.id && i.facultyId === req.user.id && i.status === 'pending');
+  if (existing) return res.status(409).json({ error: 'Supervision request already pending for this group.' });
+
+  const inv = {
+    id: 'inv-' + uid().slice(0, 8),
+    groupId: targetGroup.id,
+    groupName: targetGroup.name,
+    facultyId: req.user.id,
+    facultyName: req.user.name,
+    facultyEmail: req.user.email,
+    subjectCode: req.user.subjectCode || '23AID205',
+    status: 'pending',
+    ts: now()
+  };
+
+  store.invites.unshift(inv);
+  logAct(targetGroup.id, req.user.id, `sent a supervision request for subject ${inv.subjectCode}`);
+  save();
+  broadcastSync();
+  res.json({ ok: true, invite: inv });
+});
+
+app.post('/api/invites/respond', auth, (req, res) => {
+  if (!isLead(req.user)) return res.status(403).json({ error: 'Only Team Lead can respond to supervision requests.' });
+  const { inviteId, action } = req.body || {};
+  store.invites = store.invites || [];
+  const inv = store.invites.find(i => i.id === inviteId && i.groupId === req.user.groupId);
+  if (!inv) return res.status(404).json({ error: 'Invite request not found.' });
+
+  inv.status = action === 'accept' ? 'accepted' : 'declined';
+
+  if (action === 'accept') {
+    const g = findGroup(inv.groupId);
+    if (g) {
+      g.facultyIds = g.facultyIds || [];
+      if (!g.facultyIds.includes(inv.facultyId)) g.facultyIds.push(inv.facultyId);
+      g.subjectFacultyMap = g.subjectFacultyMap || {};
+      g.subjectFacultyMap[inv.subjectCode] = inv.facultyId;
+    }
+    logAct(inv.groupId, req.user.id, `accepted supervision request from ${inv.facultyName} for ${inv.subjectCode}`);
+  } else {
+    logAct(inv.groupId, req.user.id, `declined supervision request from ${inv.facultyName}`);
+  }
+
+  save();
+  broadcastSync();
+  res.json({ ok: true });
+});
+
 app.post('/api/sync', (req, res) => {
-  const { users, groups, tasks, activity, remarks } = req.body || {};
+  const { users, groups, tasks, activity, remarks, invites } = req.body || {};
   if (users) store.profiles = users;
   if (groups) store.groups = groups;
   if (tasks) store.tasks = tasks;
   if (activity) store.activity = activity;
   if (remarks) store.remarks = remarks;
+  if (invites) store.invites = invites;
   save();
   broadcastSync();
   res.json({ ok: true });
 });
+
 app.get('/api/sync', (req, res) => {
   res.json({
     users: store.profiles,
     groups: store.groups,
     tasks: store.tasks,
     activity: store.activity,
-    remarks: store.remarks
+    remarks: store.remarks,
+    invites: store.invites || []
   });
 });
 

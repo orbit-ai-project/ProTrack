@@ -49,11 +49,11 @@ function seed() {
   const facHash = bcrypt.hashSync('faculty123', 10);
   const stuHash = bcrypt.hashSync('student123', 10);
 
-  store = { profiles: [], groups: [], tasks: [], activity: [], remarks: [] };
+  store = { profiles: [], groups: [], tasks: [], activity: [], remarks: [], invites: [] };
 
   const facId = 'u-fac1';
   store.profiles.push({ id: facId, name: 'Dr. Anjali Sharma', email: 'sharma@college.edu',
-    passHash: facHash, role: 'Faculty', groupId: null, color: '#5A6BD8', createdAt: now - 40*day });
+    passHash: facHash, role: 'Faculty', subjectCode: '23AID205', groupId: null, color: '#5A6BD8', createdAt: now - 40*day });
 
   const defs = [
     { g: 'g1', name: 'Group 01', project: 'Smart Attendance System', course: '23AID205',
@@ -74,7 +74,9 @@ function seed() {
     const c = SUBJECTS.find(s => s.code === d.course);
     store.groups.push({ id: d.g, name: d.name, project: d.project,
       subject: c ? `${c.code} · ${c.name}` : '—', courseCode: d.course,
-      leadId: ids[0], facultyIds: gi < 2 ? [facId] : [], createdAt: now - 30*day });
+      leadId: ids[0], facultyIds: gi < 2 ? [facId] : [],
+      subjectFacultyMap: gi < 2 ? { [d.course]: facId } : {},
+      createdAt: now - 30*day });
   });
 
   const rows = [
