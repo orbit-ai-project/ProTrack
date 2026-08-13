@@ -1392,16 +1392,23 @@ const Auth={
   },
 
   registerFaculty(){
-    const g=id=>document.getElementById(id).value.trim();
-    const name=g('f_name'), email=g('f_email'), pw=document.getElementById('f_pass').value, pw2=document.getElementById('f_pass2').value;
+    const g=id=>document.getElementById(id);
+    const name=(g('f_name')?.value||'').trim();
+    const email=(g('f_email')?.value||'').trim();
+    const subjectEl=g('f_subj');
+    const subjectCode=subjectEl?subjectEl.value:'23AID205';
+    const pw=g('f_pass')?.value||'';
+    const pw2=g('f_pass2')?.value||'';
     if(!name) return Auth.showErr('f_err','Enter your full name.');
     if(!emailOk(email)) return Auth.showErr('f_err','Enter a valid email address.');
     if(userByEmail(email)) return Auth.showErr('f_err','An account with that email already exists.');
     if(pw.length<6) return Auth.showErr('f_err','Password must be at least 6 characters.');
     if(pw!==pw2) return Auth.showErr('f_err','The two passwords do not match.');
+    if(!subjectCode) return Auth.showErr('f_err','Please select your teaching subject.');
     const uidv='u-'+uid();
-    DB.s.users.push({id:uidv,name,email,pass:hash(pw),role:'Faculty',groupId:null,color:AVC[DB.s.users.length%AVC.length],createdAt:now()});
+    DB.s.users.push({id:uidv,name,email,pass:hash(pw),role:'Faculty',subjectCode,groupId:null,color:AVC[DB.s.users.length%AVC.length],createdAt:now()});
     DB.save(); App.signIn(uidv);
+    setTimeout(()=>toast(I.check(15),`Faculty account created · Subject: ${subjectCode}`),300);
   }
 };
 
@@ -1733,11 +1740,14 @@ const Page={
     if(!gs.length) return Page.notAssigned();
 
     const ids=gs.map(g=>g.id);
-    const all=DB.s.tasks.filter(t=>ids.includes(t.groupId) && t.courseCode === facSubj);
+    // Show all tasks for supervised groups — subjectCode is used to highlight subject badge only
+    const all=DB.s.tasks.filter(t=>ids.includes(t.groupId));
+    // Tasks specifically for faculty's teaching subject
+    const mySubjTasks=all.filter(t=>t.courseCode===facSubj);
     const students=gs.reduce((a,g)=>a+membersOf(g.id).length,0);
-    const done=all.filter(t=>t.status==='done').length;
-    const blocked=all.filter(t=>t.status==='blocked');
-    const overdue=all.filter(t=>t.status!=='done'&&t.due<now());
+    const done=mySubjTasks.filter(t=>t.status==='done').length;
+    const blocked=mySubjTasks.filter(t=>t.status==='blocked');
+    const overdue=mySubjTasks.filter(t=>t.status!=='done'&&t.due<now());
 
     return `
     <div class="ph">
@@ -2082,7 +2092,11 @@ const Page={
           <p>${g.name} · Incoming faculty supervision requests</p>
         </div>
         <div class="sp"></div>
-        <button class="btn" onclick="API.check().then(App.render)">${I.activity(15)} Refresh</button>
+        <button class="btn pri" onclick="API.check().then(()=>{App.render();toast(I.check(15),'Refreshed from server');})">${I.activity(15)} Sync from Server</button>
+      </div>
+      <div class="banner info" style="margin-bottom:14px">
+        ${I.activity(16)}
+        <div><b>How requests arrive:</b> Faculty sends a Group Number request → it's saved on the local backend (localhost:4000) → when you click <b>Sync from Server</b> or wait up to 8 seconds, it appears here. Both users must be connected to the same backend.</div>
       </div>
 
       ${pending.length ? `
