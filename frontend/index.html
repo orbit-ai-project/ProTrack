@@ -416,9 +416,10 @@ tbody tr:hover{background:var(--surface-2)}
 .board .col:nth-child(5){animation-delay:.16s}
 .btn{transition:background .12s,border-color .12s,color .12s,transform .08s}
 .btn:active{transform:translateY(1px)}
-/* interactive 3D tilt on dashboard tiles */
-.kpi,.gcard{transform-style:preserve-3d;transition:transform .2s var(--ease),box-shadow .2s var(--ease),border-color .12s;will-change:transform}
-.kpi.tilting,.gcard.tilting{box-shadow:var(--sh3)}
+/* interactive 3D tilt + depth on every card */
+.kpi,.gcard,.ai-card,.card{transform-style:preserve-3d;transition:transform .16s var(--ease),box-shadow .16s var(--ease),border-color .12s;will-change:transform}
+.kpi.tilting,.gcard.tilting,.ai-card.tilting,.card.tilting{border-color:#D2D7DF;z-index:2;position:relative}
+@media(prefers-reduced-motion:reduce){.kpi,.gcard,.ai-card,.card{transition:box-shadow .12s,border-color .12s}}
 
 /* completed tasks turn green (+ a one-shot flash the moment they're finished) */
 .tc.is-done{background:var(--green-s);border-color:#CBE7D6}
@@ -2040,15 +2041,17 @@ const Confetti={
 const Tilt={
   bind(){
     if(window.matchMedia && window.matchMedia('(prefers-reduced-motion:reduce)').matches) return;
-    document.querySelectorAll('.kpi,.gcard').forEach(el=>{
+    document.querySelectorAll('.kpi,.gcard,.ai-card,.card').forEach(el=>{
+      if(el.dataset.tilt) return; el.dataset.tilt='1';
       el.addEventListener('pointermove',e=>{
         if(e.pointerType && e.pointerType!=='mouse') return;
         const r=el.getBoundingClientRect();
         const px=(e.clientX-r.left)/r.width-.5, py=(e.clientY-r.top)/r.height-.5;
         el.classList.add('tilting');
-        el.style.transform=`perspective(720px) rotateY(${px*7}deg) rotateX(${-py*7}deg) translateY(-2px)`;
+        el.style.transform=`perspective(820px) rotateX(${(-py*7).toFixed(2)}deg) rotateY(${(px*9).toFixed(2)}deg) translateZ(10px)`;
+        el.style.boxShadow=`${(-px*22).toFixed(0)}px ${(16-py*10).toFixed(0)}px 34px rgba(16,24,40,.18)`;
       });
-      el.addEventListener('pointerleave',()=>{ el.classList.remove('tilting'); el.style.transform=''; });
+      el.addEventListener('pointerleave',()=>{ el.classList.remove('tilting'); el.style.transform=''; el.style.boxShadow=''; });
     });
   }
 };
