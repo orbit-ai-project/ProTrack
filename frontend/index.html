@@ -1015,6 +1015,23 @@ const Sync={
   init(){
     if(Sync.ch) Sync.ch.onmessage=e=>{ if(e.data&&e.data.t==='state') Sync.pull(e.data.from); };
     window.addEventListener('storage',e=>{ if(e.key===K_STATE) Sync.pull(); });
+
+    // Live Server-Sent Events (SSE) connection for instant real-time push from backend
+    try {
+      const es = new EventSource(API_URL + '/api/events');
+      es.onmessage = (e) => {
+        if (App.me) {
+          API.check().then(() => {
+            const s = Sync.sig();
+            if (s !== Sync.lastSig) {
+              Sync.lastSig = s;
+              App.render();
+            }
+          });
+        }
+      };
+    } catch(e) {}
+
     setInterval(Sync.beat,3000);
     /* only re-render when something actually changed and no input is focused — no idle repaint, no cursor flicker */
     setInterval(()=>{ if(!App.me||Sync.busy()) return;
