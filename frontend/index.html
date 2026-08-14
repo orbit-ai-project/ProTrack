@@ -33,33 +33,7 @@
   --sh3:0 14px 34px rgba(20,55,68,.16), 0 3px 8px rgba(30,20,60,.08);
   --ease:cubic-bezier(.2,.7,.3,1);
 }
-body.dark{
-  --bg:#12181B;
-  --surface:#1A2327;
-  --surface-2:#222C31;
-  --ink:#E6EEF0;
-  --ink-2:#B0BEC5;
-  --muted:#80949D;
-  --faint:#546E7A;
-  --line:#2C3940;
-  --line-2:#243036;
-
-  --accent:#52AB98;
-  --accent-h:#64BBA9;
-  --accent-soft:#1C3532;
-  --accent-line:#28524B;
-
-  --gray:#80949D;    --gray-s:#243036;
-  --blue:#4D90FE;    --blue-s:#172A46;
-  --red:#E57373;     --red-s:#3A1F21;
-  --amber:#FFB74D;   --amber-s:#392B17;
-  --green:#4DB6AC;   --green-s:#173531;
-
-  --sh1:0 1px 2px rgba(0,0,0,.3);
-  --sh2:0 2px 6px rgba(0,0,0,.4), 0 8px 20px rgba(0,0,0,.3);
-  --sh3:0 14px 34px rgba(0,0,0,.6), 0 3px 8px rgba(0,0,0,.4);
-}
-*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;transition:background-color .15s,border-color .15s,color .15s}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 html,body{height:100%}
 body{
   font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Inter',Roboto,Helvetica,Arial,sans-serif;
@@ -94,7 +68,7 @@ svg{display:block;flex:none}
 .btn.pri:active{filter:brightness(.95)}
 .btn.gho{background:transparent;border-color:transparent;box-shadow:none;color:var(--muted)}
 .btn.gho:hover{background:var(--gray-s);color:var(--ink)}
-.btn.dan{color:var(--red);border-color:var(--line);background:var(--surface)}
+.btn.dan{color:var(--red);border-color:#EEDAD9;background:#fff}
 .btn.dan:hover{background:var(--red-s)}
 .btn.sm{height:27px;padding:0 9px;font-size:12px}
 .btn.ico{width:32px;padding:0}
@@ -106,7 +80,7 @@ svg{display:block;flex:none}
 .field .hint{font-size:11.5px;color:var(--faint)}
 .inp{
   width:100%;height:34px;padding:0 10px;border-radius:var(--r1);
-  background:var(--surface);border:1px solid var(--line);color:var(--ink);transition:border-color .12s,box-shadow .12s;outline:none;
+  background:#fff;border:1px solid var(--line);transition:border-color .12s,box-shadow .12s;outline:none;
 }
 textarea.inp{height:auto;padding:8px 10px;resize:vertical;min-height:76px;line-height:1.55}
 select.inp{cursor:pointer;appearance:none;padding-right:28px;
@@ -135,8 +109,10 @@ select.inp{cursor:pointer;appearance:none;padding-right:28px;
 .sec{font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--faint)}
 
 /* ============ AUTH ============ */
-#auth{height:100%;display:grid;place-items:center;background:var(--bg);overflow:auto;padding:24px}
-.authbox{width:100%;max-width:420px;background:var(--surface);padding:32px;border-radius:var(--r3);border:1px solid var(--line);box-shadow:var(--sh2)}
+#auth{height:100%;display:grid;grid-template-columns:1fr 1fr;background:var(--surface)}
+#auth .pane{display:grid;place-items:center;padding:36px;overflow:auto}
+#auth .aside{background:var(--bg);border-left:1px solid var(--line)}
+.authbox{width:100%;max-width:352px}
 
 .logo{display:flex;align-items:center;gap:9px}
 .logo .m{width:28px;height:28px;border-radius:9px;background:linear-gradient(135deg,#2E7387,#52AB98);display:grid;place-items:center;box-shadow:0 5px 12px -5px rgba(30,80,95,.6)}
@@ -151,18 +127,18 @@ select.inp{cursor:pointer;appearance:none;padding-right:28px;
 .switcher button:hover{text-decoration:underline}
 
 .rolecards{display:grid;gap:8px;margin-bottom:4px}
-.rolecards button{display:flex;gap:10px;align-items:flex-start;text-align:left;padding:11px 12px;border:1px solid var(--line);border-radius:var(--r2);background:var(--surface);transition:border-color .12s,background .12s}
-.rolecards button:hover{border-color:var(--accent-line);background:var(--surface-2)}
+.rolecards button{display:flex;gap:10px;align-items:flex-start;text-align:left;padding:11px 12px;border:1px solid var(--line);border-radius:var(--r2);background:#fff;transition:border-color .12s,background .12s}
+.rolecards button:hover{border-color:#CDD2DA;background:var(--surface-2)}
 .rolecards button.on{border-color:var(--accent);background:var(--accent-soft)}
 .rolecards .ri{width:30px;height:30px;border-radius:var(--r1);background:var(--gray-s);display:grid;place-items:center;color:var(--ink-2)}
-.rolecards button.on .ri{background:var(--surface);color:var(--accent)}
+.rolecards button.on .ri{background:#fff;color:var(--accent)}
 .rolecards .rt{font-weight:600;font-size:13px}
 .rolecards .rd{font-size:12px;color:var(--muted);line-height:1.4;margin-top:1px}
 
 .creds{width:100%;max-width:360px}
 .creds .t{font-size:12px;font-weight:600;margin-bottom:3px}
 .creds .d{font-size:12px;color:var(--muted);line-height:1.5;margin-bottom:14px}
-.crow{display:flex;align-items:center;gap:9px;padding:9px 11px;border:1px solid var(--line);border-radius:var(--r2);background:var(--surface);margin-bottom:6px;cursor:pointer;transition:border-color .12s}
+.crow{display:flex;align-items:center;gap:9px;padding:9px 11px;border:1px solid var(--line);border-radius:var(--r2);background:#fff;margin-bottom:6px;cursor:pointer;transition:border-color .12s}
 .crow:hover{border-color:var(--accent-line);background:var(--accent-soft)}
 .crow .e{font-size:12px;font-weight:500}
 .crow .r{font-size:11.5px;color:var(--muted)}
@@ -283,13 +259,13 @@ tbody tr:hover{background:var(--surface-2)}
 
 /* ---------- board ---------- */
 .board{display:grid;grid-template-columns:repeat(5,minmax(216px,1fr));gap:10px;align-items:start}
-.col{background:var(--surface-2);border:1px solid var(--line);border-radius:var(--r2);padding:9px;min-height:150px;transition:background .12s,border-color .12s}
+.col{background:#F1F2F5;border:1px solid transparent;border-radius:var(--r2);padding:9px;min-height:150px;transition:background .12s,border-color .12s}
 .col.over{background:var(--accent-soft);border-color:var(--accent-line)}
 .col h4{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:600;color:var(--ink-2);margin-bottom:9px;padding:0 3px}
 .col h4 .n{margin-left:auto;color:var(--faint);font-weight:500;font-size:11.5px}
 .cards{display:grid;gap:7px;min-height:36px}
 
-.tc{background:var(--surface);border:1px solid var(--line);border-radius:var(--r1);padding:10px 11px;box-shadow:var(--sh1);
+.tc{background:#fff;border:1px solid var(--line);border-radius:var(--r1);padding:10px 11px;box-shadow:var(--sh1);
   cursor:pointer;transition:border-color .12s,box-shadow .12s,opacity .12s}
 .tc:hover{border-color:#D2D7DF;box-shadow:var(--sh2)}
 .tc.drag{cursor:grab}
@@ -315,9 +291,9 @@ tbody tr:hover{background:var(--surface-2)}
 .tl:last-child::after{display:none}
 
 /* ---------- modal ---------- */
-.scrim{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:100;display:grid;place-items:center;padding:20px;overflow:auto;animation:fi .12s}
+.scrim{position:fixed;inset:0;background:rgba(16,24,40,.4);z-index:100;display:grid;place-items:center;padding:20px;overflow:auto;animation:fi .12s}
 @keyframes fi{from{opacity:0}to{opacity:1}}
-.modal{width:min(540px,100%);background:var(--surface);border:1px solid var(--line);border-radius:var(--r3);box-shadow:var(--sh3);margin:auto;animation:mi .16s var(--ease)}
+.modal{width:min(540px,100%);background:#fff;border-radius:var(--r3);box-shadow:var(--sh3);margin:auto;animation:mi .16s var(--ease)}
 @keyframes mi{from{opacity:0;transform:translateY(8px) scale(.99)}to{opacity:1;transform:none}}
 .modal .mh{display:flex;align-items:center;gap:10px;padding:15px 18px;border-bottom:1px solid var(--line-2)}
 .modal .mh h3{font-size:15px;font-weight:600;flex:1;letter-spacing:-.01em}
@@ -354,9 +330,9 @@ tbody tr:hover{background:var(--surface-2)}
 .empty .h{font-weight:600;color:var(--ink-2);font-size:13px;margin-bottom:3px}
 
 .banner{display:flex;align-items:flex-start;gap:10px;padding:11px 13px;border-radius:var(--r2);font-size:12.5px;line-height:1.5}
-.banner.warn{background:var(--amber-s);border:1px solid var(--line);color:var(--amber)}
-.banner.info{background:var(--accent-soft);border:1px solid var(--accent-line);color:var(--accent)}
-.banner.dan{background:var(--red-s);border:1px solid var(--line);color:var(--red)}
+.banner.warn{background:var(--amber-s);border:1px solid #F0E0C4;color:#7A5310}
+.banner.info{background:var(--accent-soft);border:1px solid var(--accent-line);color:#3A47A8}
+.banner.dan{background:var(--red-s);border:1px solid #EEDAD9;color:#9E3833}
 .banner b{font-weight:600}
 
 /* ============ AI ============ */
@@ -716,7 +692,19 @@ tbody tr:hover{background:var(--surface-2)}
 
 <!-- ============ AUTH ============ -->
 <div id="auth">
-  <div class="authbox" id="authBox"></div>
+  <div class="pane">
+    <div class="authbox" id="authBox"></div>
+  </div>
+  <div class="pane aside">
+    <div class="creds">
+      <div class="t">Demo accounts</div>
+      <div class="d">Click any account to fill the sign-in form. All demo passwords are shown below.</div>
+      <div id="credList"></div>
+      <div class="banner info" style="margin-top:14px">
+        <b>Note:</b>&nbsp;this is a coursework prototype. Accounts are stored in your browser only and passwords are hashed with a simple demo function — not production-grade security.
+      </div>
+    </div>
+  </div>
 </div>
 
 <!-- ============ SHELL ============ -->
@@ -741,7 +729,6 @@ tbody tr:hover{background:var(--surface-2)}
       </div>
       <div class="live"><i></i>Live</div>
       <div class="bellwrap"><button class="btn ico sm gho" id="bellBtn" title="Notifications" onclick="event.stopPropagation();Notify.toggle()"></button></div>
-      <button class="btn ico sm gho" id="themeBtn" title="Toggle Light/Dark Theme" onclick="Theme.toggle()"></button>
       <button class="btn ico sm gho" id="fxBtn" title="Sound &amp; haptics" onclick="FX.toggle()"></button>
     </div>
     <div class="body" id="view"></div>
@@ -795,8 +782,6 @@ const I = {
   target:s=>I._(`<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.4"/>`,s),
   chart:s=>I._(`<path d="M4 4v16h16"/><rect x="7.5" y="11" width="2.8" height="6" rx="0.6"/><rect x="12.6" y="7" width="2.8" height="10" rx="0.6"/><rect x="17.7" y="14" width="2.8" height="3" rx="0.6"/>`,s),
   cam:s=>I._(`<path d="M4 8a2 2 0 0 1 2-2h1.5l1.2-1.6a1 1 0 0 1 .8-.4h5a1 1 0 0 1 .8.4L17.5 6H19a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><circle cx="12" cy="12.5" r="3.2"/>`,s),
-  sun:s=>I._(`<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>`,s),
-  moon:s=>I._(`<path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9z"/>`,s),
   settings:s=>I._(`<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>`,s)
 };
 
@@ -836,26 +821,6 @@ const FX = {
   }
 };
 document.addEventListener('pointerdown', e=>{ if(e.target.closest('button,.tc,.gcard,.crow,.fi,tbody tr')) FX.tap('light'); }, true);
-
-const Theme = {
-  get isDark() { return document.body.classList.contains('dark'); },
-  init() {
-    const saved = localStorage.getItem('orbit.theme');
-    if (saved === 'dark' || (!saved && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-      document.body.classList.add('dark');
-    }
-  },
-  toggle() {
-    document.body.classList.toggle('dark');
-    const isNowDark = document.body.classList.contains('dark');
-    localStorage.setItem('orbit.theme', isNowDark ? 'dark' : 'light');
-    FX.tap('light');
-    const btn = document.getElementById('themeBtn');
-    if (btn) btn.innerHTML = isNowDark ? I.sun(15) : I.moon(15);
-    toast(I.spark(14), isNowDark ? 'Dark Theme Activated' : 'Light Theme Activated');
-  }
-};
-Theme.init();
 
 /* ============================================================
    constants
@@ -1099,15 +1064,6 @@ function dueOf(ts){ const d=Math.ceil((ts-now())/864e5);
 const dstr=ts=>new Date(ts).toLocaleDateString('en-GB',{day:'2-digit',month:'short'});
 const inputDate=ts=>{const d=new Date(ts);return new Date(d.getTime()-d.getTimezoneOffset()*6e4).toISOString().slice(0,10);};
 
-function inviteSLA(ts) {
-  const slaMs = 48 * 3600 * 1000;
-  const remaining = (ts + slaMs) - Date.now();
-  if (remaining <= 0) return `<span class="tag" style="background:var(--red-s);color:var(--red);font-weight:600">${I.clock(12)} SLA Expired</span>`;
-  const hrs = Math.floor(remaining / (3600 * 1000));
-  const mins = Math.floor((remaining % (3600 * 1000)) / (60 * 1000));
-  return `<span class="tag" style="background:var(--accent-soft);color:var(--accent);font-weight:600">${I.clock(12)} Response SLA: ${hrs}h ${mins}m left</span>`;
-}
-
 function log(groupId,text){ DB.s.activity.unshift({id:uid(),groupId,userId:App.me.id,text,ts:now()});
   DB.s.activity=DB.s.activity.slice(0,200); }
 
@@ -1286,6 +1242,7 @@ const Auth={
                   : Auth.screen==='choose' ? Auth.chooseHTML()
                   : Auth.screen==='lead'   ? Auth.leadHTML()
                   : Auth.facultyHTML();
+    document.getElementById('credList').innerHTML = Auth.credsHTML();
     const f=box.querySelector('input'); if(f) setTimeout(()=>f.focus(),60);
   },
 
@@ -1470,7 +1427,7 @@ const App={
     setInterval(() => { if (App.me) API.check(); }, 8000);
     // Re-fetch when user switches back to this tab
     document.addEventListener('visibilitychange', () => { if (!document.hidden && App.me) API.check(); });
-    const sid = sessionStorage.getItem(K_SESSION);
+    const sid=localStorage.getItem(K_SESSION);
     if(sid && user(sid)) App.signIn(sid, true); else Auth.render();
   },
 
@@ -1479,7 +1436,7 @@ const App={
 
   signIn(id, silent){
     App.me=user(id);
-    sessionStorage.setItem(K_SESSION,id);
+    localStorage.setItem(K_SESSION,id);
     document.getElementById('auth').classList.add('hidden');
     document.getElementById('shell').classList.remove('hidden');
     App.tab='dashboard'; App.openGroup=null;
@@ -1490,9 +1447,7 @@ const App={
   signOut(){
     let p={}; try{p=JSON.parse(localStorage.getItem(K_PRESENCE))||{};}catch(e){}
     delete p[App.me.id]; localStorage.setItem(K_PRESENCE,JSON.stringify(p));
-    App.me=null;
-    sessionStorage.removeItem(K_SESSION);
-    localStorage.removeItem(K_SESSION);
+    App.me=null; localStorage.removeItem(K_SESSION);
     document.getElementById('shell').classList.add('hidden');
     document.getElementById('auth').classList.remove('hidden');
     Modal.close(); Auth.go('signin');
@@ -1536,63 +1491,53 @@ const App={
 
   render(){
     if(!App.me) return;
-    try {
-      App.me=user(App.me.id)||App.me;
-      const items=App.navItems();
-      document.getElementById('nav').innerHTML =
-        `<div class="lbl sec">${App.isFaculty?'Faculty':'Workspace'}</div>` +
-        items.map(([id,n,ic,badge])=>`<a class="${App.tab===id?'on':''}" onclick="App.go('${id}')">${ic(16)}<span>${n}</span>${badge?`<span class="n">${badge}</span>`:''}</a>`).join('');
+    App.me=user(App.me.id)||App.me;
+    const items=App.navItems();
+    document.getElementById('nav').innerHTML =
+      `<div class="lbl sec">${App.isFaculty?'Faculty':'Workspace'}</div>` +
+      items.map(([id,n,ic,badge])=>`<a class="${App.tab===id?'on':''}" onclick="App.go('${id}')">${ic(16)}<span>${n}</span>${badge?`<span class="n">${badge}</span>`:''}</a>`).join('');
 
-      const on=online();
-      document.getElementById('userBox').innerHTML =
-        `<div style="position:relative">${av(App.me)}${dot(on[App.me.id])}</div>
-         <div style="flex:1;min-width:0"><div class="nm">${esc(App.me.name)}</div><div class="rl">${esc(App.me.role)}</div></div>
-         ${I.chev(14)}`;
+    const on=online();
+    document.getElementById('userBox').innerHTML =
+      `<div style="position:relative">${av(App.me)}${dot(on[App.me.id])}</div>
+       <div style="flex:1;min-width:0"><div class="nm">${esc(App.me.name)}</div><div class="rl">${esc(App.me.role)}</div></div>
+       ${I.chev(14)}`;
 
-      const titles={dashboard:'Dashboard',assistant:'AI Assistant',analytics:'Analytics',subjects:'Subjects',calendar:'Calendar',groups:'Groups',people:'People',activity:'Activity',
-        board:'Task Board',mytasks:'My Tasks',team:'My Team',groupactivity:'Activity',group:'Group',settings:'Settings'};
-      const g=App.openGroup?group(App.openGroup):null;
-      const subC=App.openSubjectCode?SEM3.find(s=>s.code===App.openSubjectCode):null;
-      document.getElementById('topTitle').innerHTML = App.tab==='group' && g
-        ? `<span class="crumb">Groups /</span> ${esc(g.name)}`
-        : App.tab==='subject' && subC
-        ? `<span class="crumb">Subjects /</span> ${esc(subC.code)}`
-        : (titles[App.tab]||'');
+    const titles={dashboard:'Dashboard',assistant:'AI Assistant',analytics:'Analytics',subjects:'Subjects',calendar:'Calendar',groups:'Groups',people:'People',activity:'Activity',
+      board:'Task Board',mytasks:'My Tasks',team:'My Team',groupactivity:'Activity',group:'Group',settings:'Settings'};
+    const g=App.openGroup?group(App.openGroup):null;
+    const subC=App.openSubjectCode?SEM3.find(s=>s.code===App.openSubjectCode):null;
+    document.getElementById('topTitle').innerHTML = App.tab==='group' && g
+      ? `<span class="crumb">Groups /</span> ${esc(g.name)}`
+      : App.tab==='subject' && subC
+      ? `<span class="crumb">Subjects /</span> ${esc(subC.code)}`
+      : (titles[App.tab]||'');
 
-      Notify.paint();
-      Theme.paint();
+    Notify.paint();
 
-      const v=document.getElementById('view'); const sc=v.scrollTop;
-      Board._rects=Board.capture();
-      let pageHTML = '';
-      try {
-        pageHTML = App.tab==='dashboard' ? (App.isFaculty?Page.facDash():Page.stuDash()) :
-          App.tab==='assistant' ? Page.assistant() :
-          App.tab==='analytics' ? Page.analytics() :
-          App.tab==='subjects'  ? Page.subjectsHub() :
-          App.tab==='subject'   ? Page.subjectDetail(App.openSubjectCode) :
-          App.tab==='calendar'  ? Page.calendar() :
-          App.tab==='groups'    ? Page.groups() :
-          App.tab==='people'    ? Page.people() :
-          App.tab==='activity'  ? Page.activity(null) :
-          App.tab==='group'     ? Page.groupDetail(App.openGroup) :
-          App.tab==='board'     ? Page.board() :
-          App.tab==='mytasks'   ? Page.mytasks() :
-          App.tab==='team'      ? Page.team() :
-          App.tab==='requests'   ? Page.requestsPage() :
-          App.tab==='settings'   ? Page.settings() :
-          App.tab==='groupactivity' ? Page.activity(App.me.groupId) : '';
-      } catch(err) {
-        console.error('View render error:', err);
-        pageHTML = App.isFaculty ? Page.facDash() : Page.stuDash();
-      }
-      v.innerHTML=`<div class="wrap">${pageHTML}</div>`;
-      v.scrollTop=sc;
-      try { Board.bind(); AI.bind(); Tilt.bind(); } catch(e) {}
-      Sync.lastSig=Sync.sig();
-    } catch(err) {
-      console.error('App.render error:', err);
-    }
+    const v=document.getElementById('view'); const sc=v.scrollTop;
+    Board._rects=Board.capture();
+    v.innerHTML=`<div class="wrap">${
+      App.tab==='dashboard' ? (App.isFaculty?Page.facDash():Page.stuDash()) :
+      App.tab==='assistant' ? Page.assistant() :
+      App.tab==='analytics' ? Page.analytics() :
+      App.tab==='subjects'  ? Page.subjectsHub() :
+      App.tab==='subject'   ? Page.subjectDetail(App.openSubjectCode) :
+      App.tab==='calendar'  ? Page.calendar() :
+      App.tab==='groups'    ? Page.groups() :
+      App.tab==='people'    ? Page.people() :
+      App.tab==='activity'  ? Page.activity(null) :
+      App.tab==='group'     ? Page.groupDetail(App.openGroup) :
+      App.tab==='board'     ? Page.board() :
+      App.tab==='mytasks'   ? Page.mytasks() :
+      App.tab==='team'      ? Page.team() :
+      App.tab==='requests'   ? Page.requestsPage() :
+      App.tab==='settings'   ? Page.settings() :
+      App.tab==='groupactivity' ? Page.activity(App.me.groupId) : ''
+    }</div>`;
+    v.scrollTop=sc;
+    Board.bind(); AI.bind(); Tilt.bind();
+    Sync.lastSig=Sync.sig();
   }
 };
 
@@ -1734,26 +1679,19 @@ const Page={
     return `
       <div class="card" style="margin-bottom:16px; border:2px solid var(--amber); background:var(--amber-s)">
         <div class="ch" style="border-bottom:1px solid rgba(176,118,26,0.2)">
-          ${I.mail(18)} <h3 style="color:var(--amber); font-weight:700">Pending Supervision Requests (${pending.length})</h3>
+          ${I.mail(18)} <h3 style="color:var(--amber); font-weight:700">📩 Pending Supervision Requests (${pending.length})</h3>
           <div class="sp"></div>
-          <span class="tag amber">${I.clock(12)} Action Required</span>
+          <span class="tag amber">Action Required</span>
         </div>
         <div class="cb" style="display:grid; gap:10px">
           ${pending.map(inv => {
             const c = SEM3.find(s => s.code === inv.subjectCode) || { code: inv.subjectCode, name: '' };
-            const fUser = user(inv.facultyId);
             return `
               <div style="display:flex; align-items:center; justify-content:space-between; padding:12px 14px; border:1px solid var(--line); border-radius:var(--r2); background:var(--surface)">
-                <div style="display:flex; align-items:center; gap:12px">
-                  ${av(fUser || { name: inv.facultyName, photo: null }, 'lg')}
-                  <div>
-                    <div style="font-weight:700; font-size:13.5px; color:var(--ink)">Faculty: ${esc(inv.facultyName)} <span style="font-weight:400; color:var(--muted)">(${esc(inv.facultyEmail)})</span></div>
-                    <div style="font-size:12px; color:var(--accent); font-weight:600; margin-top:3px">Subject: <span class="mono" style="font-weight:700">${esc(inv.subjectCode)}</span> · ${esc(c.name)}</div>
-                    <div style="font-size:11px; color:var(--muted); margin-top:2px; display:flex; gap:8px; align-items:center">
-                      <span>Target Group: <b>${esc(inv.groupName || g.name)}</b></span>
-                      ${inviteSLA(inv.ts)}
-                    </div>
-                  </div>
+                <div>
+                  <div style="font-weight:700; font-size:13.5px; color:var(--ink)">Faculty: ${esc(inv.facultyName)} <span style="font-weight:400; color:var(--muted)">(${esc(inv.facultyEmail)})</span></div>
+                  <div style="font-size:12px; color:var(--accent); font-weight:600; margin-top:3px">Subject: <span class="mono" style="font-weight:700">${esc(inv.subjectCode)}</span> · ${esc(c.name)}</div>
+                  <div style="font-size:11px; color:var(--muted); margin-top:2px">Target Group: <b>${esc(inv.groupName || g.name)}</b></div>
                 </div>
                 <div style="display:flex; gap:8px">
                   ${App.isLead ? `
@@ -1822,42 +1760,28 @@ const Page={
     const facSubj = App.me.subjectCode || '23AID205';
     const subjObj = SEM3.find(s => s.code === facSubj) || { code: facSubj, name: 'Subject' };
     if(!gs.length) return Page.notAssigned();
+
     const ids=gs.map(g=>g.id);
-    const ts=DB.s.tasks.filter(t=>ids.includes(t.groupId));
-    const blocked=ts.filter(t=>t.status==='blocked'), overdue=ts.filter(t=>dueOf(t.due).late && t.status!=='done');
+    // Show all tasks for supervised groups — subjectCode is used to highlight subject badge only
+    const all=DB.s.tasks.filter(t=>ids.includes(t.groupId));
+    // Tasks specifically for faculty's teaching subject
+    const mySubjTasks=all.filter(t=>t.courseCode===facSubj);
+    const students=gs.reduce((a,g)=>a+membersOf(g.id).length,0);
+    const done=mySubjTasks.filter(t=>t.status==='done').length;
+    const blocked=mySubjTasks.filter(t=>t.status==='blocked');
+    const overdue=mySubjTasks.filter(t=>t.status!=='done'&&t.due<now());
+
     return `
     <div class="ph">
-      <div>
-        <h1>Faculty Dashboard</h1>
-        <p>Teaching Subject: <b>${esc(subjObj.code)} · ${esc(subjObj.name)}</b> · Supervising ${gs.length} group${gs.length===1?'':'s'}</p>
-      </div>
+      <div><h1>Dashboard</h1><p>${gs.length} group${gs.length===1?'':'s'} supervised · Subject: <b>${esc(subjObj.code)} · ${esc(subjObj.name)}</b></p></div>
       <div class="sp"></div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap">
-        <button class="btn" onclick="Export.groupReport()">${I.chart(15)} Export Report (CSV)</button>
-        <button class="btn" onclick="Modal.sendSupervisionRequest('bulk')">${I.folder(15)} Upload File Requests</button>
-        <button class="btn pri" onclick="Modal.sendSupervisionRequest('single')">${I.mail(15)} Request Group by Number</button>
-      </div>
+      <button class="btn pri" onclick="Modal.sendSupervisionRequest()">${I.mail(15)} Request Group by Number</button>
     </div>
 
-    <div class="kpis">
-      ${Page.kpi('Groups Supervised',gs.length,'active project teams','accent')}
-      ${Page.kpi('Total Tasks',ts.length,'across all your groups')}
-      ${Page.kpi('Completed',ts.filter(t=>t.status==='done').length,pctOf(ts)+'% done','green')}
-      ${Page.kpi('Needs Attention',blocked.length+overdue.length,`${blocked.length} blocked, ${overdue.length} overdue`,blocked.length+overdue.length?'red':null)}
-    </div>
-
-    <div class="card" style="margin-bottom:16px">
-      <div class="ch">${I.cap(16)}<h3>Teaching Subject Overview</h3><div class="sp"></div><span class="mono" style="background:var(--accent-soft);color:var(--accent);padding:3px 8px;border-radius:6px;font-weight:700">${esc(facSubj)}</span></div>
-      <div class="cb" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px">
-        <div>
-          <div style="font-weight:700;font-size:14px;color:var(--ink)">${esc(subjObj.name)}</div>
-          <div style="font-size:12px;color:var(--muted);margin-top:2px">Showing group progress for this course subject.</div>
-        </div>
-        <div style="display:flex;gap:8px">
-          <button class="btn sm" onclick="Modal.sendSupervisionRequest('bulk')">${I.folder(13)} Upload File Requests</button>
-          <button class="btn sm pri" onclick="Modal.sendSupervisionRequest('single')">${I.plus(13)} Add Group Request</button>
-        </div>
-      </div>
+    <div class="banner info" style="margin-bottom:16px">
+      ${I.cap(16)}
+      <div style="flex:1"><b>Teaching Subject:</b> <span class="mono" style="font-weight:700">${esc(subjObj.code)}</span> · ${esc(subjObj.name)}. You see tasks &amp; progress strictly for your subject.</div>
+      <button class="btn sm" onclick="Modal.sendSupervisionRequest()">${I.plus(13)} Add Group Request</button>
     </div>
 
     ${blocked.length||overdue.length ? `<div class="banner warn" style="margin-bottom:16px">${I.alert(16)}
@@ -1884,119 +1808,15 @@ const Page={
     return `<div class="ph">
         <div><h1>Dashboard</h1><p>Teaching Subject: <b>${esc(subjObj.code)} · ${esc(subjObj.name)}</b></p></div>
         <div class="sp"></div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap">
-          <button class="btn" onclick="Modal.sendSupervisionRequest('bulk')">${I.folder(15)} Upload File Requests</button>
-          <button class="btn pri" onclick="Modal.sendSupervisionRequest('single')">${I.mail(15)} Request Group by Number</button>
-        </div>
+        <button class="btn pri" onclick="Modal.sendSupervisionRequest()">${I.mail(15)} Request Group by Number</button>
       </div>
-      <div class="card"><div class="cb" style="padding:32px 22px;text-align:center">
-        <div style="display:grid;place-items:center;margin-bottom:12px;color:var(--accent)">${I.folder(32)}</div>
-        <div style="font-size:16px;font-weight:600;margin-bottom:6px">No groups assigned to you yet</div>
-        <p style="color:var(--muted);max-width:460px;margin:0 auto 18px;line-height:1.6">
-          Send a supervision request by typing a Group Number (e.g., Group 01, 02, 03) or upload a CSV / TXT file containing group numbers to send requests in bulk.
-        </p>
-        <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
-          <button class="btn pri" onclick="Modal.sendSupervisionRequest('single')">${I.mail(15)} Send Request by Group Number</button>
-          <button class="btn" onclick="Modal.sendSupervisionRequest('bulk')">${I.folder(15)} Upload File (CSV / TXT)</button>
-        </div>
+      <div class="card"><div class="cb" style="padding:30px 22px;text-align:center">
+        <div style="display:grid;place-items:center;margin-bottom:12px">${I.folder(26)}</div>
+        <div style="font-weight:600;font-size:14px;margin-bottom:5px">Send a supervision request to a Group Number</div>
+        <p style="color:var(--muted);font-size:12.5px;max-width:440px;margin:0 auto 16px;line-height:1.6">
+          Enter a Group Number (e.g. <b>Group 01</b>) to send a supervision request for <b>${esc(subjObj.code)}</b>. Once the Team Lead accepts, their subject tasks will show here.</p>
+        <button class="btn pri" onclick="Modal.sendSupervisionRequest()">${I.mail(15)} Send Request by Group Number</button>
       </div></div>`;
-  },
-
-  /* ---------- SUPERVISION REQUESTS PAGE (Team Lead / Members) ---------- */
-  requestsPage(){
-    const g = group(App.me.groupId);
-    if (!g) return Page.noGroup();
-
-    DB.s.invites = DB.s.invites || [];
-
-    const pending  = DB.s.invites.filter(i => i.groupId === g.id && i.status === 'pending');
-    const accepted = DB.s.invites.filter(i => i.groupId === g.id && i.status === 'accepted');
-    const declined = DB.s.invites.filter(i => i.groupId === g.id && i.status === 'declined');
-
-    const renderRow = (inv, showActions) => {
-      const c = SEM3.find(s => s.code === inv.subjectCode) || { code: inv.subjectCode, name: 'Subject' };
-      const fUser = user(inv.facultyId);
-      const statusTag = inv.status === 'accepted'
-        ? `<span class="tag" style="background:var(--green-s);color:var(--green);font-weight:600">${I.check(13)} Accepted</span>`
-        : inv.status === 'declined'
-        ? `<span class="tag" style="background:var(--red-s);color:var(--red);font-weight:600">${I.x(13)} Declined</span>`
-        : `<span class="tag" style="background:var(--amber-s);color:var(--amber);font-weight:600">${I.clock(13)} Pending</span>`;
-
-      return `
-        <div style="display:flex;align-items:center;gap:14px;padding:14px 16px;border:1px solid var(--line);border-radius:var(--r2);background:var(--surface);margin-bottom:9px">
-          ${av(fUser || { name: inv.facultyName, photo: null }, 'lg')}
-          <div style="flex:1;min-width:0">
-            <div style="font-weight:700;font-size:13.5px">${esc(inv.facultyName)}</div>
-            <div style="font-size:12px;color:var(--muted);margin-top:1px">${esc(inv.facultyEmail)}</div>
-            <div style="display:flex;gap:6px;align-items:center;margin-top:5px;flex-wrap:wrap">
-              <span class="mono" style="background:var(--accent-soft);color:var(--accent);border:1px solid var(--accent-line);border-radius:5px;padding:2px 7px;font-size:11px;font-weight:700">${esc(c.code)}</span>
-              <span style="font-size:12px;color:var(--ink-2)">${esc(c.name)}</span>
-            </div>
-            <div style="font-size:11px;color:var(--muted);margin-top:4px;display:flex;gap:8px;align-items:center">
-              <span>Requested: ${ago(inv.ts)}</span>
-              ${inv.status === 'pending' ? inviteSLA(inv.ts) : ''}
-            </div>
-          </div>
-          <div style="display:flex;flex-direction:column;align-items:flex-end;gap:8px">
-            ${statusTag}
-            ${showActions && App.isLead ? `
-              <div style="display:flex;gap:7px">
-                <button class="btn sm pri" onclick="Page.respondInvite('${inv.id}','accept')">${I.check(13)} Accept</button>
-                <button class="btn sm dan" onclick="Page.respondInvite('${inv.id}','decline')">${I.x(13)} Decline</button>
-              </div>` : ''}
-          </div>
-        </div>
-      `;
-    };
-
-    return `
-      <div class="ph">
-        <div>
-          <h1>Supervision Requests</h1>
-          <p>${g.name} · Incoming faculty supervision requests</p>
-        </div>
-        <div class="sp"></div>
-        <div class="live" style="margin-right:8px"><i></i>Live 8s Sync</div>
-        <button class="btn pri" onclick="API.check().then(()=>{App.render();toast(I.check(15),'Refreshed from server');})">${I.activity(15)} Sync from Server</button>
-      </div>
-      <div class="banner info" style="margin-bottom:14px">
-        ${I.activity(16)}
-        <div><b>Real-Time Synchronization:</b> Supervision requests sent by faculty appear here automatically for Team Leads. You can accept or decline supervision per course subject.</div>
-      </div>
-
-      ${pending.length ? `
-        <div class="card" style="margin-bottom:16px;border:2px solid var(--amber)">
-          <div class="ch" style="background:var(--amber-s);border-radius:var(--r2) var(--r2) 0 0">
-            ${I.mail(18)} <h3 style="color:var(--amber);font-weight:700">Pending Requests — Action Required (${pending.length})</h3>
-            <div class="sp"></div>
-            ${App.isLead ? '' : `<span style="font-size:12px;color:var(--muted);font-style:italic">Only Team Lead can accept/decline</span>`}
-          </div>
-          <div class="cb">${pending.map(i => renderRow(i, true)).join('')}</div>
-        </div>
-      ` : `
-        <div class="card" style="margin-bottom:16px">
-          <div class="cb" style="text-align:center;padding:32px 20px">
-            <div style="display:grid;place-items:center;margin-bottom:10px;color:var(--muted)">${I.inbox(32)}</div>
-            <div style="font-weight:600;font-size:14px;margin-bottom:6px">No pending supervision requests</div>
-            <p style="color:var(--muted);font-size:12.5px">When a faculty member sends a supervision request for your group number, it will appear here.</p>
-          </div>
-        </div>
-      `}
-
-      ${accepted.length ? `
-        <div class="card" style="margin-bottom:16px">
-          <div class="ch">${I.check(16)}<h3 style="color:var(--green);font-weight:700">Accepted Requests (${accepted.length})</h3></div>
-          <div class="cb">${accepted.map(i => renderRow(i, false)).join('')}</div>
-        </div>
-      ` : ''}
-
-      ${declined.length ? `
-        <div class="card" style="margin-bottom:16px">
-          <div class="ch">${I.x(16)}<h3 style="color:var(--red);font-weight:700">Declined Requests (${declined.length})</h3></div>
-          <div class="cb">${declined.map(i => renderRow(i, false)).join('')}</div>
-        </div>
-      ` : ''}
-    `;
   },
 
   /* ---------- FACULTY analytics ---------- */
@@ -3172,7 +2992,7 @@ const AI={
         desc:`${esc(max.m.name.split(' ')[0])} is carrying ${max.open} open tasks vs a team average of ${avg.toFixed(1)}. Consider rebalancing.`});
     }
     const p=pctOf(tasks);
-    const doneRecent=tasks.filter(t=>t.status==='done'&&(now()-(t.updatedAt||t.createdAt||now()))<7*864e5).length;
+    const doneRecent=tasks.filter(t=>t.status==='done'&&now()-t.updatedAt<7*864e5).length;
     out.push({c:p>=70?'green':'accent',icon:I.trend,conf:'High',bar:p,
       title:`Overall completion at ${p}%`,
       desc:`${doneRecent} task${doneRecent===1?'':'s'} completed in the last 7 days across ${tasks.length} tracked.`});
@@ -3456,27 +3276,6 @@ const Notify={
    CALENDAR
    ============================================================ */
 const Export = {
-  groupReport() {
-    const gs = myGroups();
-    if (!gs.length) return toast(I.alert(15), 'No groups to export');
-    
-    let csv = 'Group ID,Group Name,Subject,Leader Name,Members Count,Tasks Completed,Total Tasks,Completion %';
-    gs.forEach(g => {
-      const ms = membersOf(g.id);
-      const lead = ms.find(m => m.role === 'Team Lead') || { name: 'N/A' };
-      const ts = DB.s.tasks.filter(t => t.groupId === g.id);
-      const done = ts.filter(t => t.status === 'done').length;
-      const pct = ts.length ? Math.round((done / ts.length) * 100) : 0;
-      csv += `\n"${g.id}","${g.name}","${g.subjectCode||'23AID205'}","${lead.name}",${ms.length},${done},${ts.length},${pct}%`;
-    });
-
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = `Faculty_Supervision_Report_${new Date().toISOString().slice(0,10)}.csv`;
-    link.click();
-    toast(I.check(15), 'Progress Report CSV downloaded!');
-  },
   toCSV(gid) {
     const targetGid = gid || (App.me && App.me.groupId);
     const g = group(targetGid);
@@ -3986,175 +3785,32 @@ const Modal={
     DB.save(); FX.tap('error'); Modal.close(); toast(I.trash(15),`${m.name} removed`); App.render();
   },
 
-  sendSupervisionRequest(mode = 'single'){
+  sendSupervisionRequest(){
     const facSubj = App.me.subjectCode || '23AID205';
     const subjObj = SEM3.find(s => s.code === facSubj) || { code: facSubj, name: 'Subject' };
-
-    const modeTabHeaders = `
-      <div style="display:flex;border-bottom:1px solid var(--line);margin-bottom:16px;gap:8px">
-        <button class="tab-btn" onclick="Modal.sendSupervisionRequest('single')" 
-          style="padding:8px 12px;font-weight:600;font-size:13px;border:none;background:none;cursor:pointer;border-bottom:2px solid ${mode === 'single' ? 'var(--accent)' : 'transparent'};color:${mode === 'single' ? 'var(--accent)' : 'var(--muted)'}">
-          ${I.mail(14)} Single Request
-        </button>
-        <button class="tab-btn" onclick="Modal.sendSupervisionRequest('bulk')" 
-          style="padding:8px 12px;font-weight:600;font-size:13px;border:none;background:none;cursor:pointer;border-bottom:2px solid ${mode === 'bulk' ? 'var(--accent)' : 'transparent'};color:${mode === 'bulk' ? 'var(--accent)' : 'var(--muted)'}">
-          ${I.folder(14)} Bulk CSV / File Upload
-        </button>
-      </div>
-    `;
-
-    const singleContent = `
-      <div class="field">
-        <label>Target Group Number or Team Lead Name</label>
-        <input class="inp" id="req_group_input" placeholder="e.g. 01, 02, 03, or Team Lead Name" autofocus/>
-        <span class="hint">Type the Group Name (e.g. "03" / "Group 03") or the Team Lead's name.</span>
-      </div>
-    `;
-
-    const bulkContent = `
-      <div class="field">
-        <label>Upload CSV or Text File</label>
-        <div style="border:2px dashed var(--accent-line); border-radius:var(--r2); padding:22px; text-align:center; background:var(--surface-2); cursor:pointer" 
-             onclick="document.getElementById('bulk_file_inp').click()">
-          ${I.folder(28)}
-          <div style="font-weight:600; font-size:13px; margin-top:8px; color:var(--accent)">Click or drop CSV / TXT file here</div>
-          <div style="font-size:11.5px; color:var(--muted); margin-top:4px">Accepts comma-separated or line-by-line group numbers (e.g., Group 01, Group 02, 03)</div>
-          <input type="file" id="bulk_file_inp" accept=".csv,.txt,.tsv" style="display:none" onchange="Modal.parseBulkFile(this)"/>
-        </div>
-      </div>
-      <div id="bulk_preview_area" style="margin-top:12px"></div>
-    `;
-
     Modal.open(`
       <div class="mh">
-        ${I.mail(18)} <h3>Supervision Request Dispatcher</h3>
+        ${I.mail(18)} <h3>Send Supervision Request</h3>
         <button class="btn ico sm gho" onclick="Modal.close()">${I.x(15)}</button>
       </div>
       <div class="mb">
-        <div class="banner info" style="margin-bottom:14px">
+        <div class="banner info" style="margin-bottom:12px">
           ${I.cap(16)}
           <div><b>Teaching Subject:</b> <span class="mono">${esc(subjObj.code)}</span> · ${esc(subjObj.name)}</div>
         </div>
-        ${modeTabHeaders}
-        ${mode === 'single' ? singleContent : bulkContent}
+        <div class="field">
+          <label>Target Group Number or Team Lead Name</label>
+          <input class="inp" id="req_group_input" placeholder="e.g. 03, Group 03, or yugal" autofocus/>
+          <span class="hint">Type the Group Name (e.g. "03" / "Group 03") or the Team Lead's name.</span>
+        </div>
         <div id="req_err"></div>
       </div>
       <div class="mf">
         <div class="sp"></div>
         <button class="btn" onclick="Modal.close()">Cancel</button>
-        ${mode === 'single' 
-          ? `<button class="btn pri" id="req_send_btn" onclick="Modal.doSendSupervisionRequest()">${I.send(14)} Send Request</button>`
-          : `<button class="btn pri" id="bulk_send_btn" disabled onclick="Modal.doSendBulkSupervisionRequests()">${I.send(14)} Send Bulk Requests</button>`}
+        <button class="btn pri" id="req_send_btn" onclick="Modal.doSendSupervisionRequest()">${I.mail(14)} Send Request</button>
       </div>
     `);
-  },
-
-  parseBulkFile(inp){
-    const f = inp.files && inp.files[0];
-    if (!f) return;
-    const r = new FileReader();
-    r.onload = () => {
-      const text = r.result || '';
-      const items = text.split(/[\r\n,;\t]+/).map(s => s.trim()).filter(Boolean);
-      const uniqueItems = [...new Set(items)];
-      Modal._parsedBulkGroups = uniqueItems;
-
-      const previewArea = document.getElementById('bulk_preview_area');
-      const sendBtn = document.getElementById('bulk_send_btn');
-
-      if (!uniqueItems.length) {
-        if (previewArea) previewArea.innerHTML = `<div class="errmsg">${I.alert(13)}No valid group numbers found in file.</div>`;
-        if (sendBtn) sendBtn.disabled = true;
-        return;
-      }
-
-      if (sendBtn) sendBtn.disabled = false;
-      if (previewArea) {
-        previewArea.innerHTML = `
-          <div style="border:1px solid var(--line); border-radius:var(--r2); padding:12px 14px; background:var(--surface)">
-            <div style="font-weight:600; font-size:12.5px; color:var(--ink); margin-bottom:8px">
-              ${I.check(14)} Extracted ${uniqueItems.length} group target${uniqueItems.length > 1 ? 's' : ''} from file:
-            </div>
-            <div style="display:flex; gap:6px; flex-wrap:wrap; max-height:120px; overflow:auto">
-              ${uniqueItems.map(g => `<span class="tag" style="background:var(--accent-soft);color:var(--accent);font-weight:600;padding:4px 8px">${esc(g)}</span>`).join('')}
-            </div>
-          </div>
-        `;
-      }
-    };
-    r.readAsText(f);
-  },
-
-  async doSendBulkSupervisionRequests(){
-    const targets = Modal._parsedBulkGroups || [];
-    if (!targets.length) return Modal.err('req_err', 'No group targets loaded from file.');
-
-    const btn = document.getElementById('bulk_send_btn');
-    if (btn) { btn.disabled = true; btn.textContent = 'Processing Bulk Requests...'; }
-
-    try {
-      const res = await fetch(API_URL + '/api/sync');
-      if (res.ok) {
-        const data = await res.json();
-        if (data && data.users) { DB.s = data; localStorage.setItem(K_STATE, JSON.stringify(DB.s)); }
-      }
-    } catch(e) {}
-
-    const cleanStr = s => s.toLowerCase().replace(/^group\s*/i, '').trim();
-    const facSubj = App.me.subjectCode || '23AID205';
-
-    let successCount = 0;
-    let failedGroups = [];
-
-    for (const q of targets) {
-      const targetQ = cleanStr(q);
-      let matchedGroup = DB.s.groups.find(g => {
-        const gNameClean = cleanStr(g.name);
-        return (
-          g.name.toLowerCase() === q.toLowerCase() ||
-          g.id.toLowerCase() === q.toLowerCase() ||
-          gNameClean === targetQ ||
-          ('0' + gNameClean) === targetQ ||
-          gNameClean === ('0' + targetQ)
-        );
-      });
-
-      if (!matchedGroup) {
-        const matchedLead = DB.s.users.find(u =>
-          u.role === 'Team Lead' && (u.name.toLowerCase() === q.toLowerCase() || u.name.toLowerCase().includes(q.toLowerCase()))
-        );
-        if (matchedLead && matchedLead.groupId) matchedGroup = DB.s.groups.find(g => g.id === matchedLead.groupId);
-      }
-
-      if (!matchedGroup) {
-        failedGroups.push(q);
-        continue;
-      }
-
-      try {
-        const res = await fetch(API_URL + '/api/invites/direct', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            groupId: matchedGroup.id,
-            facultyId: App.me.id,
-            facultyName: App.me.name,
-            facultyEmail: App.me.email,
-            subjectCode: facSubj
-          })
-        });
-        if (res.ok) successCount++;
-        else failedGroups.push(q);
-      } catch(e) {
-        failedGroups.push(q);
-      }
-    }
-
-    await API.check();
-    FX.tap('done');
-    Modal.close();
-    toast(I.check(15), `Bulk Requests Complete: ${successCount} sent successfully! ${failedGroups.length ? '(' + failedGroups.length + ' not matched)' : ''}`);
-    App.render();
   },
 
   async doSendSupervisionRequest(){
@@ -4206,7 +3862,7 @@ const Modal={
     }
 
     if (!matchedGroup) {
-      if (btn) { btn.disabled = false; btn.innerHTML = `${I.send(14)} Send Request`; }
+      if (btn) { btn.disabled = false; btn.innerHTML = `${I.mail(14)} Send Request`; }
       return Modal.err('req_err', `No group or Team Lead matches '${q}'. Try '03' or 'yugal'.`);
     }
 
@@ -4217,7 +3873,7 @@ const Modal={
     DB.s.invites = DB.s.invites || [];
     const alreadyLocal = DB.s.invites.find(i => i.groupId === groupId && i.facultyId === App.me.id && i.status === 'pending');
     if (alreadyLocal) {
-      if (btn) { btn.disabled = false; btn.innerHTML = `${I.send(14)} Send Request`; }
+      if (btn) { btn.disabled = false; btn.innerHTML = `${I.mail(14)} Send Request`; }
       return Modal.err('req_err', `You already have a pending request for ${matchedGroup.name}.`);
     }
 
@@ -4238,7 +3894,7 @@ const Modal={
       });
       const data = await res.json();
       if (!res.ok) {
-        if (btn) { btn.disabled = false; btn.innerHTML = `${I.send(14)} Send Request`; }
+        if (btn) { btn.disabled = false; btn.innerHTML = `${I.mail(14)} Send Request`; }
         return Modal.err('req_err', data.error || 'Failed to send request.');
       }
       sent = true;
