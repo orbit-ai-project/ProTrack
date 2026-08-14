@@ -813,11 +813,38 @@ const FX = {
       case 'med':   FX.vibe(12); FX.tone(880,.045,.022); break;
       case 'pick':  FX.vibe(9);  FX.tone(700,.04,.02); break;
       case 'drop':  FX.vibe([12,24,16]); FX.tone(560,.06,.026); break;
-      case 'done':  FX.vibe([10,32,18]); FX.tone(720,.07,.026); setTimeout(()=>FX.tone(960,.09,.024),70); break;
+      case 'done':  FX.vibe([10,32,18]); FX.tone(720,.07,.026); setTimeout(()=>FX.tone(960,.09,.024),70); FX.confetti(); break;
       case 'error': FX.vibe([26,44,26]); FX.tone(240,.12,.032); break;
       case 'hover': FX.tone(1500,.02,.008); break;
       default:      FX.vibe(8); FX.tone(980,.04,.02);
     }
+  },
+  confetti(){
+    try {
+      const c = document.createElement('canvas');
+      c.style.cssText = 'position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:99999';
+      document.body.appendChild(c);
+      const ctx = c.getContext('2d');
+      c.width = window.innerWidth; c.height = window.innerHeight;
+      const colors = ['#52AB98', '#2B6777', '#3E9B87', '#FFB74D', '#2E6FD9', '#CE4A45'];
+      const pts = Array.from({ length: 65 }, () => ({
+        x: c.width / 2 + (Math.random() - 0.5) * 320,
+        y: c.height / 3 + (Math.random() - 0.5) * 150,
+        vx: (Math.random() - 0.5) * 14, vy: (Math.random() - 0.7) * 14,
+        size: Math.random() * 8 + 4, color: colors[Math.floor(Math.random() * colors.length)], alpha: 1
+      }));
+      let f = 0;
+      function anim() {
+        ctx.clearRect(0, 0, c.width, c.height);
+        pts.forEach(p => {
+          p.x += p.vx; p.y += p.vy; p.vy += 0.4; p.alpha -= 0.016;
+          ctx.globalAlpha = Math.max(0, p.alpha); ctx.fillStyle = p.color;
+          ctx.fillRect(p.x, p.y, p.size, p.size);
+        });
+        f++; if (f < 65) requestAnimationFrame(anim); else c.remove();
+      }
+      anim();
+    } catch(e) {}
   }
 };
 document.addEventListener('pointerdown', e=>{ if(e.target.closest('button,.tc,.gcard,.crow,.fi,tbody tr')) FX.tap('light'); }, true);
@@ -1224,12 +1251,62 @@ document.addEventListener('click', (e) => {
   }
 });
 document.addEventListener('keydown', (e) => {
-  if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+  if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
     e.preventDefault();
-    const inp = document.getElementById('globalSearchInp');
-    if (inp) { inp.focus(); inp.select(); }
+    CommandPalette.open();
   }
 });
+
+const CommandPalette = {
+  open() {
+    Modal.open(`
+      <div class="mh">
+        ${I.spark(18)} <h3>Command Palette</h3>
+        <button class="btn ico sm gho" onclick="Modal.close()">${I.x(15)}</button>
+      </div>
+      <div class="mb" style="gap:12px">
+        <div style="position:relative">
+          <input class="inp" id="cp_search_inp" placeholder="Type a command or search page..." autofocus onkeyup="CommandPalette.filter(this.value)"/>
+        </div>
+        <div id="cp_list" style="display:grid; gap:6px">
+          ${CommandPalette.items().map(it => `
+            <div onclick="Modal.close(); ${it.action}" style="padding:10px 12px; border:1px solid var(--line); border-radius:var(--r2); background:var(--surface); cursor:pointer; display:flex; align-items:center; gap:10px;" onmouseover="this.style.background='var(--surface-2)'" onmouseout="this.style.background='var(--surface)'">
+              ${it.icon(16)}
+              <div style="font-weight:600; font-size:13px; flex:1; color:var(--ink);">${esc(it.name)}</div>
+              <span class="mono" style="font-size:11px; color:var(--faint);">${it.key || ''}</span>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    `);
+  },
+  items() {
+    return [
+      { name: 'Go to Dashboard', icon: I.home, action: "App.go('dashboard')", key: 'Ctrl+D' },
+      { name: 'Open Task Board', icon: I.board, action: "App.go('board')", key: 'Ctrl+B' },
+      { name: 'View Project Roadmap Timeline', icon: I.trend, action: "App.go('timeline')", key: 'Ctrl+T' },
+      { name: 'Run AI Quality & Workload Audit', icon: I.ai, action: "AI.auditModal()", key: 'Ctrl+A' },
+      { name: 'Open Full Calendar', icon: I.cal, action: "App.go('calendar')", key: 'Ctrl+C' },
+      { name: 'Supervision Requests', icon: I.mail, action: "App.go('requests')", key: 'Ctrl+R' },
+      { name: 'Account Settings', icon: I.settings, action: "App.go('settings')", key: 'Ctrl+S' },
+      { name: 'Toggle Light / Dark Theme', icon: I.sun, action: 'Theme.toggle()', key: 'Ctrl+U' },
+      { name: 'Print PDF Summary Report', icon: I.chart, action: 'Export.printReport()', key: 'Ctrl+P' }
+    ];
+  },
+  filter(q) {
+    const listEl = document.getElementById('cp_list');
+    if (!listEl) return;
+    const clean = (q || '').toLowerCase().trim();
+    const filtered = CommandPalette.items().filter(it => it.name.toLowerCase().includes(clean));
+    listEl.innerHTML = filtered.map(it => `
+      <div onclick="Modal.close(); ${it.action}" style="padding:10px 12px; border:1px solid var(--line); border-radius:var(--r2); background:var(--surface); cursor:pointer; display:flex; align-items:center; gap:10px;" onmouseover="this.style.background='var(--surface-2)'" onmouseout="this.style.background='var(--surface)'">
+        ${it.icon(16)}
+        <div style="font-weight:600; font-size:13px; flex:1; color:var(--ink);">${esc(it.name)}</div>
+        <span class="mono" style="font-size:11px; color:var(--faint);">${it.key || ''}</span>
+      </div>
+    `).join('');
+  }
+};
 
 function liveCountdown(ts) {
   const diff = ts - now();
@@ -2848,6 +2925,83 @@ const Confetti={
       }
       if(alive && el<3000) requestAnimationFrame(frame); else cv.remove();
     })(start);
+  },
+
+  timeline(){
+    const g = App.isFaculty ? (myGroups()[0] || null) : group(App.me.groupId);
+    const tasks = g ? tasksOf(g.id) : DB.s.tasks.slice(0, 15);
+
+    const milestones = [
+      { name: 'Semester III Kickoff & Topic Selection', date: '01 Aug 2026', done: true },
+      { name: 'Architecture Design & Mid-Sem Review', date: '25 Aug 2026', done: true },
+      { name: 'Core Feature Integration & Testing', date: '15 Sep 2026', done: false },
+      { name: 'Final Evaluation & Code Audit', date: '10 Oct 2026', done: false }
+    ];
+
+    return `
+      <div class="ph">
+        <div>
+          <h1>Project Roadmap & Timeline</h1>
+          <p>${g ? esc(g.name) + ' · ' + esc(g.project || 'Project Timeline') : 'Interactive Gantt Milestone View'}</p>
+        </div>
+        <div class="sp"></div>
+        <button class="btn" onclick="Export.printReport(${g ? "'" + g.id + "'" : ''})">${I.chart(15)} Print PDF Report</button>
+        <button class="btn pri" onclick="Modal.taskForm()">${I.plus(15)} Add Milestone Task</button>
+      </div>
+
+      <div class="card" style="margin-bottom:16px; padding:18px;">
+        <div class="ch" style="margin-bottom:14px;">
+          ${I.trend(18)} <h3 style="font-weight:700">Course Milestones (Semester 3)</h3>
+          <div class="sp"></div>
+          <span class="tag accent">${I.spark(12)} Live Track</span>
+        </div>
+        <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap:12px;">
+          ${milestones.map(m => `
+            <div style="padding:12px; border:1px solid var(--line); border-radius:var(--r2); background:${m.done ? 'var(--green-s)' : 'var(--surface)'};">
+              <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:6px;">
+                <span class="mono" style="font-size:11px; font-weight:700; color:${m.done ? 'var(--green)' : 'var(--muted)'}">${m.date}</span>
+                <span class="tag ${m.done ? 'green' : 'gray'}" style="font-weight:600">${m.done ? '✓ Completed' : 'Pending'}</span>
+              </div>
+              <div style="font-weight:600; font-size:12.5px; color:var(--ink);">${esc(m.name)}</div>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="ch">
+          ${I.board(18)} <h3>Task Gantt View (${tasks.length} tasks)</h3>
+          <div class="sp"></div>
+          <button class="btn sm gho" onclick="Export.toCSV(${g ? "'" + g.id + "'" : ''})">${I.folder(14)} Export CSV</button>
+        </div>
+        <div class="cb" style="display:grid; gap:12px;">
+          ${tasks.map(t => {
+            const u = user(t.assigneeId);
+            const st = stat(t.status);
+            const pr = t.progress || 0;
+            return `
+              <div style="padding:12px 14px; border:1px solid var(--line); border-radius:var(--r2); background:var(--surface);">
+                <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:6px;">
+                  <div style="display:flex; align-items:center; gap:8px;">
+                    <span class="mono" style="background:var(--accent-soft); color:var(--accent); font-weight:700; font-size:11px; padding:2px 7px; border-radius:4px">${esc(t.courseCode || '23AID201')}</span>
+                    <span style="font-weight:700; font-size:13.5px; color:var(--ink)">${esc(t.title)}</span>
+                  </div>
+                  <div style="display:flex; align-items:center; gap:8px;">
+                    <span class="tag" style="background:${S_(st.c)}; color:${V_(st.c)}; font-weight:600">${st.n}</span>
+                    ${av(u, 'xs')}
+                  </div>
+                </div>
+                <div style="display:flex; align-items:center; gap:12px; margin-top:8px;">
+                  <div class="bar" style="flex:1;"><i style="width:${pr}%; background:${V_(st.c)};"></i></div>
+                  <span class="mono" style="font-size:11.5px; font-weight:700; color:var(--muted)">${pr}%</span>
+                  <span style="font-size:11.5px; color:var(--muted)">Due ${dueOf(t.due).t}</span>
+                </div>
+              </div>
+            `;
+          }).join('')}
+        </div>
+      </div>
+    `;
   }
 };
 
@@ -3196,6 +3350,63 @@ const AI={
       <li>Check <b>who is overloaded</b></li>
       <li>Suggest <b>what to focus on next</b></li>
       <li>Give a <b>project summary</b></li></ul>`;
+  },
+
+  auditModal(){
+    const g = group(App.me.groupId) || (myGroups()[0] || null);
+    if (!g) return toast(I.alert(15), 'No group selected to audit');
+    const tasks = tasksOf(g.id);
+    const ms = membersOf(g.id);
+
+    const overdue = tasks.filter(t => t.status !== 'done' && t.due < now());
+    const blocked = tasks.filter(t => t.status === 'blocked');
+    const done = tasks.filter(t => t.status === 'done');
+    const pct = tasks.length ? Math.round((done.length / tasks.length) * 100) : 0;
+
+    let auditGrade = 'A+';
+    let auditColor = 'var(--green)';
+    if (overdue.length > 2 || blocked.length > 1) { auditGrade = 'B'; auditColor = 'var(--amber)'; }
+    if (overdue.length > 4 || blocked.length > 3) { auditGrade = 'C'; auditColor = 'var(--red)'; }
+
+    const recommendations = [];
+    if (blocked.length) recommendations.push(`Resolve ${blocked.length} blocked task(s) immediately.`);
+    if (overdue.length) recommendations.push(`${overdue.length} task(s) are overdue. Reassign or extend deadline.`);
+    if (ms.length < 4) recommendations.push(`Team has only ${ms.length} members. Add Developer, Tester, and QnA.`);
+    if (!recommendations.length) recommendations.push('Workload is balanced and tasks are on track!');
+
+    Modal.open(`
+      <div class="mh">
+        ${I.ai(18)} <h3>AI Quality & Workload Audit</h3>
+        <button class="btn ico sm gho" onclick="Modal.close()">${I.x(15)}</button>
+      </div>
+      <div class="mb" style="gap:14px">
+        <div style="display:flex; align-items:center; justify-content:space-between; padding:16px; background:var(--accent-soft); border:1px solid var(--accent-line); border-radius:var(--r2);">
+          <div>
+            <div style="font-size:12px; color:var(--muted); text-transform:uppercase; font-weight:700">Project Quality Grade</div>
+            <div style="font-size:32px; font-weight:800; color:${auditColor}">${auditGrade}</div>
+            <div style="font-size:12px; color:var(--ink)">Completion: <b>${pct}%</b> · Tasks: <b>${tasks.length}</b></div>
+          </div>
+          <div style="text-align:right">
+            <div style="font-size:12px; color:var(--muted)">Overdue: <b style="color:var(--red)">${overdue.length}</b></div>
+            <div style="font-size:12px; color:var(--muted); margin-top:2px">Blocked: <b style="color:var(--amber)">${blocked.length}</b></div>
+          </div>
+        </div>
+
+        <div style="border:1px solid var(--line); border-radius:var(--r2); padding:14px; background:var(--surface);">
+          <div style="font-weight:700; font-size:13px; margin-bottom:8px; display:flex; align-items:center; gap:6px">
+            ${I.spark(15)} AI Actionable Recommendations:
+          </div>
+          <ul style="padding-left:18px; font-size:12.5px; color:var(--ink); display:grid; gap:6px">
+            ${recommendations.map(r => `<li>${esc(r)}</li>`).join('')}
+          </ul>
+        </div>
+      </div>
+      <div class="mf">
+        <div class="sp"></div>
+        <button class="btn" onclick="Modal.close()">Close Audit</button>
+        <button class="btn pri" onclick="Export.printReport('${g.id}')">${I.chart(14)} Download Audit PDF</button>
+      </div>
+    `);
   }
 };
 
@@ -3296,6 +3507,98 @@ const Notify={
    CALENDAR
    ============================================================ */
 const Export = {
+  printReport(gid) {
+    const targetGid = gid || (App.me && App.me.groupId);
+    const g = group(targetGid) || (myGroups()[0] || null);
+    if (!g) return toast(I.alert(15), 'No group selected to generate report');
+
+    const tasks = tasksOf(g.id);
+    const ms = membersOf(g.id);
+
+    const win = window.open('', '_blank');
+    if (!win) return toast(I.alert(15), 'Popups blocked. Allow popups to print PDF');
+
+    const doneCount = tasks.filter(t => t.status === 'done').length;
+    const pct = tasks.length ? Math.round((doneCount / tasks.length) * 100) : 0;
+
+    win.document.write(`
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Pro Track Report — ${esc(g.name)}</title>
+        <style>
+          body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; padding: 24px; color: #1C2A2E; }
+          h1 { color: #2B6777; font-size: 20px; margin-bottom: 4px; }
+          .sub { color: #6E7C81; font-size: 13px; margin-bottom: 20px; }
+          .card { border: 1px solid #E2E8EA; border-radius: 8px; padding: 14px; margin-bottom: 16px; background: #F6F8F9; }
+          table { width: 100%; border-collapse: collapse; margin-top: 14px; font-size: 12px; }
+          th { text-align: left; background: #2B6777; color: #fff; padding: 8px 10px; }
+          td { border-bottom: 1px solid #EEF1F2; padding: 8px 10px; }
+          .badge { display: inline-block; padding: 2px 6px; border-radius: 4px; font-weight: 600; font-size: 11px; }
+          .green { background: #E6F2EF; color: #3E9B87; }
+          .amber { background: #FCF3E4; color: #B0761A; }
+        </style>
+      </head>
+      <body>
+        <h1>Pro Track — Project Summary Report</h1>
+        <div class="sub">Group: <b>${esc(g.name)}</b> · Project: <b>${esc(g.project || 'Project')}</b> · Date: ${new Date().toLocaleDateString('en-GB')}</div>
+
+        <div class="card">
+          <div style="display:flex; justify-content:space-between;">
+            <div><b>Total Tasks:</b> ${tasks.length}</div>
+            <div><b>Completed Tasks:</b> ${doneCount}</div>
+            <div><b>Completion Rate:</b> ${pct}%</div>
+            <div><b>Team Members:</b> ${ms.length}</div>
+          </div>
+        </div>
+
+        <h3>Team Members</h3>
+        <table>
+          <thead>
+            <tr><th>Name</th><th>Role</th><th>Email</th><th>Assigned Tasks</th></tr>
+          </thead>
+          <tbody>
+            ${ms.map(m => `
+              <tr>
+                <td><b>${esc(m.name)}</b></td>
+                <td>${esc(m.role)}</td>
+                <td>${esc(m.email)}</td>
+                <td>${tasksFor(m.id).length}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+
+        <h3 style="margin-top:20px;">Task Breakdown</h3>
+        <table>
+          <thead>
+            <tr><th>Title</th><th>Subject</th><th>Assignee</th><th>Status</th><th>Priority</th><th>Due Date</th></tr>
+          </thead>
+          <tbody>
+            ${tasks.map(t => {
+              const u = user(t.assigneeId);
+              return `
+                <tr>
+                  <td><b>${esc(t.title)}</b></td>
+                  <td>${esc(t.courseCode || '')}</td>
+                  <td>${u ? esc(u.name) : 'Unassigned'}</td>
+                  <td><span class="badge ${t.status === 'done' ? 'green' : 'amber'}">${stat(t.status).n}</span></td>
+                  <td>${t.prio}</td>
+                  <td>${dueOf(t.due).t}</td>
+                </tr>
+              `;
+            }).join('')}
+          </tbody>
+        </table>
+
+        <script>window.onload = function() { window.print(); };</script>
+      </body>
+      </html>
+    `);
+    win.document.close();
+    FX.tap('done');
+    toast(I.check(15), 'Print / PDF Report generated!');
+  },
   toCSV(gid) {
     const targetGid = gid || (App.me && App.me.groupId);
     const g = group(targetGid);
