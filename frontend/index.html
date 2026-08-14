@@ -94,7 +94,7 @@ svg{display:block;flex:none}
 .btn.pri:active{filter:brightness(.95)}
 .btn.gho{background:transparent;border-color:transparent;box-shadow:none;color:var(--muted)}
 .btn.gho:hover{background:var(--gray-s);color:var(--ink)}
-.btn.dan{color:var(--red);border-color:#EEDAD9;background:#fff}
+.btn.dan{color:var(--red);border-color:var(--line);background:var(--surface)}
 .btn.dan:hover{background:var(--red-s)}
 .btn.sm{height:27px;padding:0 9px;font-size:12px}
 .btn.ico{width:32px;padding:0}
@@ -106,7 +106,7 @@ svg{display:block;flex:none}
 .field .hint{font-size:11.5px;color:var(--faint)}
 .inp{
   width:100%;height:34px;padding:0 10px;border-radius:var(--r1);
-  background:#fff;border:1px solid var(--line);transition:border-color .12s,box-shadow .12s;outline:none;
+  background:var(--surface);border:1px solid var(--line);color:var(--ink);transition:border-color .12s,box-shadow .12s;outline:none;
 }
 textarea.inp{height:auto;padding:8px 10px;resize:vertical;min-height:76px;line-height:1.55}
 select.inp{cursor:pointer;appearance:none;padding-right:28px;
@@ -151,18 +151,18 @@ select.inp{cursor:pointer;appearance:none;padding-right:28px;
 .switcher button:hover{text-decoration:underline}
 
 .rolecards{display:grid;gap:8px;margin-bottom:4px}
-.rolecards button{display:flex;gap:10px;align-items:flex-start;text-align:left;padding:11px 12px;border:1px solid var(--line);border-radius:var(--r2);background:#fff;transition:border-color .12s,background .12s}
-.rolecards button:hover{border-color:#CDD2DA;background:var(--surface-2)}
+.rolecards button{display:flex;gap:10px;align-items:flex-start;text-align:left;padding:11px 12px;border:1px solid var(--line);border-radius:var(--r2);background:var(--surface);transition:border-color .12s,background .12s}
+.rolecards button:hover{border-color:var(--accent-line);background:var(--surface-2)}
 .rolecards button.on{border-color:var(--accent);background:var(--accent-soft)}
 .rolecards .ri{width:30px;height:30px;border-radius:var(--r1);background:var(--gray-s);display:grid;place-items:center;color:var(--ink-2)}
-.rolecards button.on .ri{background:#fff;color:var(--accent)}
+.rolecards button.on .ri{background:var(--surface);color:var(--accent)}
 .rolecards .rt{font-weight:600;font-size:13px}
 .rolecards .rd{font-size:12px;color:var(--muted);line-height:1.4;margin-top:1px}
 
 .creds{width:100%;max-width:360px}
 .creds .t{font-size:12px;font-weight:600;margin-bottom:3px}
 .creds .d{font-size:12px;color:var(--muted);line-height:1.5;margin-bottom:14px}
-.crow{display:flex;align-items:center;gap:9px;padding:9px 11px;border:1px solid var(--line);border-radius:var(--r2);background:#fff;margin-bottom:6px;cursor:pointer;transition:border-color .12s}
+.crow{display:flex;align-items:center;gap:9px;padding:9px 11px;border:1px solid var(--line);border-radius:var(--r2);background:var(--surface);margin-bottom:6px;cursor:pointer;transition:border-color .12s}
 .crow:hover{border-color:var(--accent-line);background:var(--accent-soft)}
 .crow .e{font-size:12px;font-weight:500}
 .crow .r{font-size:11.5px;color:var(--muted)}
@@ -283,13 +283,13 @@ tbody tr:hover{background:var(--surface-2)}
 
 /* ---------- board ---------- */
 .board{display:grid;grid-template-columns:repeat(5,minmax(216px,1fr));gap:10px;align-items:start}
-.col{background:#F1F2F5;border:1px solid transparent;border-radius:var(--r2);padding:9px;min-height:150px;transition:background .12s,border-color .12s}
+.col{background:var(--surface-2);border:1px solid var(--line);border-radius:var(--r2);padding:9px;min-height:150px;transition:background .12s,border-color .12s}
 .col.over{background:var(--accent-soft);border-color:var(--accent-line)}
 .col h4{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:600;color:var(--ink-2);margin-bottom:9px;padding:0 3px}
 .col h4 .n{margin-left:auto;color:var(--faint);font-weight:500;font-size:11.5px}
 .cards{display:grid;gap:7px;min-height:36px}
 
-.tc{background:#fff;border:1px solid var(--line);border-radius:var(--r1);padding:10px 11px;box-shadow:var(--sh1);
+.tc{background:var(--surface);border:1px solid var(--line);border-radius:var(--r1);padding:10px 11px;box-shadow:var(--sh1);
   cursor:pointer;transition:border-color .12s,box-shadow .12s,opacity .12s}
 .tc:hover{border-color:#D2D7DF;box-shadow:var(--sh2)}
 .tc.drag{cursor:grab}
@@ -315,9 +315,9 @@ tbody tr:hover{background:var(--surface-2)}
 .tl:last-child::after{display:none}
 
 /* ---------- modal ---------- */
-.scrim{position:fixed;inset:0;background:rgba(16,24,40,.4);z-index:100;display:grid;place-items:center;padding:20px;overflow:auto;animation:fi .12s}
+.scrim{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:100;display:grid;place-items:center;padding:20px;overflow:auto;animation:fi .12s}
 @keyframes fi{from{opacity:0}to{opacity:1}}
-.modal{width:min(540px,100%);background:#fff;border-radius:var(--r3);box-shadow:var(--sh3);margin:auto;animation:mi .16s var(--ease)}
+.modal{width:min(540px,100%);background:var(--surface);border:1px solid var(--line);border-radius:var(--r3);box-shadow:var(--sh3);margin:auto;animation:mi .16s var(--ease)}
 @keyframes mi{from{opacity:0;transform:translateY(8px) scale(.99)}to{opacity:1;transform:none}}
 .modal .mh{display:flex;align-items:center;gap:10px;padding:15px 18px;border-bottom:1px solid var(--line-2)}
 .modal .mh h3{font-size:15px;font-weight:600;flex:1;letter-spacing:-.01em}
@@ -354,9 +354,9 @@ tbody tr:hover{background:var(--surface-2)}
 .empty .h{font-weight:600;color:var(--ink-2);font-size:13px;margin-bottom:3px}
 
 .banner{display:flex;align-items:flex-start;gap:10px;padding:11px 13px;border-radius:var(--r2);font-size:12.5px;line-height:1.5}
-.banner.warn{background:var(--amber-s);border:1px solid #F0E0C4;color:#7A5310}
-.banner.info{background:var(--accent-soft);border:1px solid var(--accent-line);color:#3A47A8}
-.banner.dan{background:var(--red-s);border:1px solid #EEDAD9;color:#9E3833}
+.banner.warn{background:var(--amber-s);border:1px solid var(--line);color:var(--amber)}
+.banner.info{background:var(--accent-soft);border:1px solid var(--accent-line);color:var(--accent)}
+.banner.dan{background:var(--red-s);border:1px solid var(--line);color:var(--red)}
 .banner b{font-weight:600}
 
 /* ============ AI ============ */
