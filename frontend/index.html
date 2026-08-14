@@ -1443,8 +1443,9 @@ const App={
     // Poll server every 8 seconds to pick up invites from other sessions
     setInterval(() => { if (App.me) API.check(); }, 8000);
     // Re-fetch when user switches back to this tab
-    document.addEventListener('visibilitychange', () => { if (!document.hidden && App.me) API.check(); });
-    const sid=localStorage.getItem(K_SESSION);
+    // Clear legacy persistent session from localStorage for privacy
+    localStorage.removeItem(K_SESSION);
+    const sid = sessionStorage.getItem(K_SESSION);
     if(sid && user(sid)) App.signIn(sid, true); else Auth.render();
   },
 
@@ -1453,7 +1454,7 @@ const App={
 
   signIn(id, silent){
     App.me=user(id);
-    localStorage.setItem(K_SESSION,id);
+    sessionStorage.setItem(K_SESSION,id);
     document.getElementById('auth').classList.add('hidden');
     document.getElementById('shell').classList.remove('hidden');
     App.tab='dashboard'; App.openGroup=null;
@@ -1464,7 +1465,9 @@ const App={
   signOut(){
     let p={}; try{p=JSON.parse(localStorage.getItem(K_PRESENCE))||{};}catch(e){}
     delete p[App.me.id]; localStorage.setItem(K_PRESENCE,JSON.stringify(p));
-    App.me=null; localStorage.removeItem(K_SESSION);
+    App.me=null;
+    sessionStorage.removeItem(K_SESSION);
+    localStorage.removeItem(K_SESSION);
     document.getElementById('shell').classList.add('hidden');
     document.getElementById('auth').classList.remove('hidden');
     Modal.close(); Auth.go('signin');
