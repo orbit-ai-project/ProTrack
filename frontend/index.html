@@ -741,7 +741,7 @@ tbody tr:hover{background:var(--surface-2)}
       </div>
       <div class="live"><i></i>Live</div>
       <div class="bellwrap"><button class="btn ico sm gho" id="bellBtn" title="Notifications" onclick="event.stopPropagation();Notify.toggle()"></button></div>
-      <button class="btn ico sm gho" id="themeBtn" title="Toggle Light/Dark Theme" onclick="Theme.toggle()">${I.moon(15)}</button>
+      <button class="btn ico sm gho" id="themeBtn" title="Toggle Light/Dark Theme" onclick="Theme.toggle()"></button>
       <button class="btn ico sm gho" id="fxBtn" title="Sound &amp; haptics" onclick="FX.toggle()"></button>
     </div>
     <div class="body" id="view"></div>
@@ -1559,6 +1559,7 @@ const App={
       : (titles[App.tab]||'');
 
     Notify.paint();
+    Theme.paint();
 
     const v=document.getElementById('view'); const sc=v.scrollTop;
     Board._rects=Board.capture();
