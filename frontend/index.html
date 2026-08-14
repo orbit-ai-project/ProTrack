@@ -813,7 +813,7 @@ const FX = {
       case 'med':   FX.vibe(12); FX.tone(880,.045,.022); break;
       case 'pick':  FX.vibe(9);  FX.tone(700,.04,.02); break;
       case 'drop':  FX.vibe([12,24,16]); FX.tone(560,.06,.026); break;
-      case 'done':  FX.vibe([10,32,18]); FX.tone(720,.07,.026); setTimeout(()=>FX.tone(960,.09,.024),70); FX.confetti(); break;
+      case 'done':  FX.vibe([10,32,18]); FX.tone(720,.07,.026); setTimeout(()=>FX.tone(960,.09,.024),70); break;
       case 'error': FX.vibe([26,44,26]); FX.tone(240,.12,.032); break;
       case 'hover': FX.tone(1500,.02,.008); break;
       default:      FX.vibe(8); FX.tone(980,.04,.02);
@@ -1536,7 +1536,7 @@ const App={
     document.getElementById('shell').classList.remove('hidden');
     App.tab='dashboard'; App.openGroup=null;
     Sync.beat(); App.render();
-    if(!silent){ FX.tap('done'); toast(I.check(15),`Signed in as ${App.me.name}`); }
+    if(!silent){ FX.tap('med'); toast(I.check(15),`Signed in as ${App.me.name}`); }
   },
 
   signOut(){
@@ -3119,7 +3119,10 @@ const Board={
     DB.save(); FX.tap(status==='done'?'done':'drop');
     toast(status==='done'?I.check(15):I.arrow(15), status==='done'?`Completed: ${t.title}`:`Moved to ${to}`);
     App.render();
-    if(status==='done') setTimeout(()=>Confetti.celebrate(document.querySelector(`.tc[data-id="${id}"]`)),180);
+    if(status==='done') {
+      FX.confetti();
+      setTimeout(()=>Confetti.celebrate(document.querySelector(`.tc[data-id="${id}"]`)),180);
+    }
   }
 };
 
