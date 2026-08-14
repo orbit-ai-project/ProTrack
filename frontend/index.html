@@ -2892,10 +2892,7 @@ const Confetti={
     Confetti.fire(ox,oy);
   },
   popup(){
-    const d=document.createElement('div'); d.className='celebrate';
-    d.innerHTML=`<div class="celebrate-card">${I.check(18)}<span>Task completed! 🎉</span></div>`;
-    document.body.appendChild(d);
-    setTimeout(()=>{ d.classList.add('out'); setTimeout(()=>d.remove(),320); },1550);
+    // Floating popup badge disabled as requested
   },
   fire(ox,oy){
     const W=window.innerWidth, H=window.innerHeight, dpr=Math.min(2,window.devicePixelRatio||1);
