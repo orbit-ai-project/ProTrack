@@ -1064,6 +1064,15 @@ function dueOf(ts){ const d=Math.ceil((ts-now())/864e5);
 const dstr=ts=>new Date(ts).toLocaleDateString('en-GB',{day:'2-digit',month:'short'});
 const inputDate=ts=>{const d=new Date(ts);return new Date(d.getTime()-d.getTimezoneOffset()*6e4).toISOString().slice(0,10);};
 
+function inviteSLA(ts) {
+  const slaMs = 48 * 3600 * 1000;
+  const remaining = (ts + slaMs) - Date.now();
+  if (remaining <= 0) return `<span class="tag" style="background:var(--red-s);color:var(--red);font-weight:600">${I.clock(12)} SLA Expired</span>`;
+  const hrs = Math.floor(remaining / (3600 * 1000));
+  const mins = Math.floor((remaining % (3600 * 1000)) / (60 * 1000));
+  return `<span class="tag" style="background:var(--accent-soft);color:var(--accent);font-weight:600">${I.clock(12)} Response SLA: ${hrs}h ${mins}m left</span>`;
+}
+
 function log(groupId,text){ DB.s.activity.unshift({id:uid(),groupId,userId:App.me.id,text,ts:now()});
   DB.s.activity=DB.s.activity.slice(0,200); }
 
@@ -1427,7 +1436,7 @@ const App={
     setInterval(() => { if (App.me) API.check(); }, 8000);
     // Re-fetch when user switches back to this tab
     document.addEventListener('visibilitychange', () => { if (!document.hidden && App.me) API.check(); });
-    const sid=localStorage.getItem(K_SESSION);
+    const sid = sessionStorage.getItem(K_SESSION);
     if(sid && user(sid)) App.signIn(sid, true); else Auth.render();
   },
 
@@ -1436,7 +1445,7 @@ const App={
 
   signIn(id, silent){
     App.me=user(id);
-    localStorage.setItem(K_SESSION,id);
+    sessionStorage.setItem(K_SESSION,id);
     document.getElementById('auth').classList.add('hidden');
     document.getElementById('shell').classList.remove('hidden');
     App.tab='dashboard'; App.openGroup=null;
@@ -1447,7 +1456,9 @@ const App={
   signOut(){
     let p={}; try{p=JSON.parse(localStorage.getItem(K_PRESENCE))||{};}catch(e){}
     delete p[App.me.id]; localStorage.setItem(K_PRESENCE,JSON.stringify(p));
-    App.me=null; localStorage.removeItem(K_SESSION);
+    App.me=null;
+    sessionStorage.removeItem(K_SESSION);
+    localStorage.removeItem(K_SESSION);
     document.getElementById('shell').classList.add('hidden');
     document.getElementById('auth').classList.remove('hidden');
     Modal.close(); Auth.go('signin');
@@ -1679,19 +1690,26 @@ const Page={
     return `
       <div class="card" style="margin-bottom:16px; border:2px solid var(--amber); background:var(--amber-s)">
         <div class="ch" style="border-bottom:1px solid rgba(176,118,26,0.2)">
-          ${I.mail(18)} <h3 style="color:var(--amber); font-weight:700">📩 Pending Supervision Requests (${pending.length})</h3>
+          ${I.mail(18)} <h3 style="color:var(--amber); font-weight:700">Pending Supervision Requests (${pending.length})</h3>
           <div class="sp"></div>
-          <span class="tag amber">Action Required</span>
+          <span class="tag amber">${I.clock(12)} Action Required</span>
         </div>
         <div class="cb" style="display:grid; gap:10px">
           ${pending.map(inv => {
             const c = SEM3.find(s => s.code === inv.subjectCode) || { code: inv.subjectCode, name: '' };
+            const fUser = user(inv.facultyId);
             return `
               <div style="display:flex; align-items:center; justify-content:space-between; padding:12px 14px; border:1px solid var(--line); border-radius:var(--r2); background:var(--surface)">
-                <div>
-                  <div style="font-weight:700; font-size:13.5px; color:var(--ink)">Faculty: ${esc(inv.facultyName)} <span style="font-weight:400; color:var(--muted)">(${esc(inv.facultyEmail)})</span></div>
-                  <div style="font-size:12px; color:var(--accent); font-weight:600; margin-top:3px">Subject: <span class="mono" style="font-weight:700">${esc(inv.subjectCode)}</span> · ${esc(c.name)}</div>
-                  <div style="font-size:11px; color:var(--muted); margin-top:2px">Target Group: <b>${esc(inv.groupName || g.name)}</b></div>
+                <div style="display:flex; align-items:center; gap:12px">
+                  ${av(fUser || { name: inv.facultyName, photo: null }, 'lg')}
+                  <div>
+                    <div style="font-weight:700; font-size:13.5px; color:var(--ink)">Faculty: ${esc(inv.facultyName)} <span style="font-weight:400; color:var(--muted)">(${esc(inv.facultyEmail)})</span></div>
+                    <div style="font-size:12px; color:var(--accent); font-weight:600; margin-top:3px">Subject: <span class="mono" style="font-weight:700">${esc(inv.subjectCode)}</span> · ${esc(c.name)}</div>
+                    <div style="font-size:11px; color:var(--muted); margin-top:2px; display:flex; gap:8px; align-items:center">
+                      <span>Target Group: <b>${esc(inv.groupName || g.name)}</b></span>
+                      ${inviteSLA(inv.ts)}
+                    </div>
+                  </div>
                 </div>
                 <div style="display:flex; gap:8px">
                   ${App.isLead ? `
@@ -1760,28 +1778,35 @@ const Page={
     const facSubj = App.me.subjectCode || '23AID205';
     const subjObj = SEM3.find(s => s.code === facSubj) || { code: facSubj, name: 'Subject' };
     if(!gs.length) return Page.notAssigned();
-
     const ids=gs.map(g=>g.id);
-    // Show all tasks for supervised groups — subjectCode is used to highlight subject badge only
-    const all=DB.s.tasks.filter(t=>ids.includes(t.groupId));
-    // Tasks specifically for faculty's teaching subject
-    const mySubjTasks=all.filter(t=>t.courseCode===facSubj);
-    const students=gs.reduce((a,g)=>a+membersOf(g.id).length,0);
-    const done=mySubjTasks.filter(t=>t.status==='done').length;
-    const blocked=mySubjTasks.filter(t=>t.status==='blocked');
-    const overdue=mySubjTasks.filter(t=>t.status!=='done'&&t.due<now());
-
+    const ts=DB.s.tasks.filter(t=>ids.includes(t.groupId));
+    const blocked=ts.filter(t=>t.status==='blocked'), overdue=ts.filter(t=>dueOf(t.due).late && t.status!=='done');
     return `
     <div class="ph">
-      <div><h1>Dashboard</h1><p>${gs.length} group${gs.length===1?'':'s'} supervised · Subject: <b>${esc(subjObj.code)} · ${esc(subjObj.name)}</b></p></div>
+      <div>
+        <h1>Faculty Dashboard</h1>
+        <p>Teaching Subject: <b>${esc(subjObj.code)} · ${esc(subjObj.name)}</b> · Supervising ${gs.length} group${gs.length===1?'':'s'}</p>
+      </div>
       <div class="sp"></div>
       <button class="btn pri" onclick="Modal.sendSupervisionRequest()">${I.mail(15)} Request Group by Number</button>
     </div>
 
-    <div class="banner info" style="margin-bottom:16px">
-      ${I.cap(16)}
-      <div style="flex:1"><b>Teaching Subject:</b> <span class="mono" style="font-weight:700">${esc(subjObj.code)}</span> · ${esc(subjObj.name)}. You see tasks &amp; progress strictly for your subject.</div>
-      <button class="btn sm" onclick="Modal.sendSupervisionRequest()">${I.plus(13)} Add Group Request</button>
+    <div class="kpis">
+      ${Page.kpi('Groups Supervised',gs.length,'active project teams','accent')}
+      ${Page.kpi('Total Tasks',ts.length,'across all your groups')}
+      ${Page.kpi('Completed',ts.filter(t=>t.status==='done').length,pctOf(ts)+'% done','green')}
+      ${Page.kpi('Needs Attention',blocked.length+overdue.length,`${blocked.length} blocked, ${overdue.length} overdue`,blocked.length+overdue.length?'red':null)}
+    </div>
+
+    <div class="card" style="margin-bottom:16px">
+      <div class="ch">${I.cap(16)}<h3>Teaching Subject Overview</h3><div class="sp"></div><span class="mono" style="background:var(--accent-soft);color:var(--accent);padding:3px 8px;border-radius:6px;font-weight:700">${esc(facSubj)}</span></div>
+      <div class="cb" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px">
+        <div>
+          <div style="font-weight:700;font-size:14px;color:var(--ink)">${esc(subjObj.name)}</div>
+          <div style="font-size:12px;color:var(--muted);margin-top:2px">Showing group progress for this course subject.</div>
+        </div>
+        <button class="btn sm" onclick="Modal.sendSupervisionRequest()">${I.plus(13)} Add Group Request</button>
+      </div>
     </div>
 
     ${blocked.length||overdue.length ? `<div class="banner warn" style="margin-bottom:16px">${I.alert(16)}
@@ -1812,11 +1837,109 @@ const Page={
       </div>
       <div class="card"><div class="cb" style="padding:30px 22px;text-align:center">
         <div style="display:grid;place-items:center;margin-bottom:12px">${I.folder(26)}</div>
-        <div style="font-weight:600;font-size:14px;margin-bottom:5px">Send a supervision request to a Group Number</div>
-        <p style="color:var(--muted);font-size:12.5px;max-width:440px;margin:0 auto 16px;line-height:1.6">
-          Enter a Group Number (e.g. <b>Group 01</b>) to send a supervision request for <b>${esc(subjObj.code)}</b>. Once the Team Lead accepts, their subject tasks will show here.</p>
+        <div style="font-size:16px;font-weight:600;margin-bottom:6px">No groups assigned to you yet</div>
+        <p style="color:var(--muted);max-width:440px;margin:0 auto 16px;line-height:1.6">
+          Send a supervision request using Group Number (e.g., Group 01, Group 02, Group 03) to supervise student project teams for <b>${esc(facSubj)}</b>.
+        </p>
         <button class="btn pri" onclick="Modal.sendSupervisionRequest()">${I.mail(15)} Send Request by Group Number</button>
       </div></div>`;
+  },
+
+  /* ---------- SUPERVISION REQUESTS PAGE (Team Lead / Members) ---------- */
+  requestsPage(){
+    const g = group(App.me.groupId);
+    if (!g) return Page.noGroup();
+
+    DB.s.invites = DB.s.invites || [];
+
+    const pending  = DB.s.invites.filter(i => i.groupId === g.id && i.status === 'pending');
+    const accepted = DB.s.invites.filter(i => i.groupId === g.id && i.status === 'accepted');
+    const declined = DB.s.invites.filter(i => i.groupId === g.id && i.status === 'declined');
+
+    const renderRow = (inv, showActions) => {
+      const c = SEM3.find(s => s.code === inv.subjectCode) || { code: inv.subjectCode, name: 'Subject' };
+      const fUser = user(inv.facultyId);
+      const statusTag = inv.status === 'accepted'
+        ? `<span class="tag" style="background:var(--green-s);color:var(--green);font-weight:600">${I.check(13)} Accepted</span>`
+        : inv.status === 'declined'
+        ? `<span class="tag" style="background:var(--red-s);color:var(--red);font-weight:600">${I.x(13)} Declined</span>`
+        : `<span class="tag" style="background:var(--amber-s);color:var(--amber);font-weight:600">${I.clock(13)} Pending</span>`;
+
+      return `
+        <div style="display:flex;align-items:center;gap:14px;padding:14px 16px;border:1px solid var(--line);border-radius:var(--r2);background:var(--surface);margin-bottom:9px">
+          ${av(fUser || { name: inv.facultyName, photo: null }, 'lg')}
+          <div style="flex:1;min-width:0">
+            <div style="font-weight:700;font-size:13.5px">${esc(inv.facultyName)}</div>
+            <div style="font-size:12px;color:var(--muted);margin-top:1px">${esc(inv.facultyEmail)}</div>
+            <div style="display:flex;gap:6px;align-items:center;margin-top:5px;flex-wrap:wrap">
+              <span class="mono" style="background:var(--accent-soft);color:var(--accent);border:1px solid var(--accent-line);border-radius:5px;padding:2px 7px;font-size:11px;font-weight:700">${esc(c.code)}</span>
+              <span style="font-size:12px;color:var(--ink-2)">${esc(c.name)}</span>
+            </div>
+            <div style="font-size:11px;color:var(--muted);margin-top:4px;display:flex;gap:8px;align-items:center">
+              <span>Requested: ${ago(inv.ts)}</span>
+              ${inv.status === 'pending' ? inviteSLA(inv.ts) : ''}
+            </div>
+          </div>
+          <div style="display:flex;flex-direction:column;align-items:flex-end;gap:8px">
+            ${statusTag}
+            ${showActions && App.isLead ? `
+              <div style="display:flex;gap:7px">
+                <button class="btn sm pri" onclick="Page.respondInvite('${inv.id}','accept')">${I.check(13)} Accept</button>
+                <button class="btn sm dan" onclick="Page.respondInvite('${inv.id}','decline')">${I.x(13)} Decline</button>
+              </div>` : ''}
+          </div>
+        </div>
+      `;
+    };
+
+    return `
+      <div class="ph">
+        <div>
+          <h1>Supervision Requests</h1>
+          <p>${g.name} · Incoming faculty supervision requests</p>
+        </div>
+        <div class="sp"></div>
+        <div class="live" style="margin-right:8px"><i></i>Live 8s Sync</div>
+        <button class="btn pri" onclick="API.check().then(()=>{App.render();toast(I.check(15),'Refreshed from server');})">${I.activity(15)} Sync from Server</button>
+      </div>
+      <div class="banner info" style="margin-bottom:14px">
+        ${I.activity(16)}
+        <div><b>Real-Time Synchronization:</b> Supervision requests sent by faculty appear here automatically for Team Leads. You can accept or decline supervision per course subject.</div>
+      </div>
+
+      ${pending.length ? `
+        <div class="card" style="margin-bottom:16px;border:2px solid var(--amber)">
+          <div class="ch" style="background:var(--amber-s);border-radius:var(--r2) var(--r2) 0 0">
+            ${I.mail(18)} <h3 style="color:var(--amber);font-weight:700">Pending Requests — Action Required (${pending.length})</h3>
+            <div class="sp"></div>
+            ${App.isLead ? '' : `<span style="font-size:12px;color:var(--muted);font-style:italic">Only Team Lead can accept/decline</span>`}
+          </div>
+          <div class="cb">${pending.map(i => renderRow(i, true)).join('')}</div>
+        </div>
+      ` : `
+        <div class="card" style="margin-bottom:16px">
+          <div class="cb" style="text-align:center;padding:32px 20px">
+            <div style="display:grid;place-items:center;margin-bottom:10px;color:var(--muted)">${I.inbox(32)}</div>
+            <div style="font-weight:600;font-size:14px;margin-bottom:6px">No pending supervision requests</div>
+            <p style="color:var(--muted);font-size:12.5px">When a faculty member sends a supervision request for your group number, it will appear here.</p>
+          </div>
+        </div>
+      `}
+
+      ${accepted.length ? `
+        <div class="card" style="margin-bottom:16px">
+          <div class="ch">${I.check(16)}<h3 style="color:var(--green);font-weight:700">Accepted Requests (${accepted.length})</h3></div>
+          <div class="cb">${accepted.map(i => renderRow(i, false)).join('')}</div>
+        </div>
+      ` : ''}
+
+      ${declined.length ? `
+        <div class="card" style="margin-bottom:16px">
+          <div class="ch">${I.x(16)}<h3 style="color:var(--red);font-weight:700">Declined Requests (${declined.length})</h3></div>
+          <div class="cb">${declined.map(i => renderRow(i, false)).join('')}</div>
+        </div>
+      ` : ''}
+    `;
   },
 
   /* ---------- FACULTY analytics ---------- */
@@ -3785,32 +3908,175 @@ const Modal={
     DB.save(); FX.tap('error'); Modal.close(); toast(I.trash(15),`${m.name} removed`); App.render();
   },
 
-  sendSupervisionRequest(){
+  sendSupervisionRequest(mode = 'single'){
     const facSubj = App.me.subjectCode || '23AID205';
     const subjObj = SEM3.find(s => s.code === facSubj) || { code: facSubj, name: 'Subject' };
+
+    const modeTabHeaders = `
+      <div style="display:flex;border-bottom:1px solid var(--line);margin-bottom:16px;gap:8px">
+        <button class="tab-btn" onclick="Modal.sendSupervisionRequest('single')" 
+          style="padding:8px 12px;font-weight:600;font-size:13px;border:none;background:none;cursor:pointer;border-bottom:2px solid ${mode === 'single' ? 'var(--accent)' : 'transparent'};color:${mode === 'single' ? 'var(--accent)' : 'var(--muted)'}">
+          ${I.mail(14)} Single Request
+        </button>
+        <button class="tab-btn" onclick="Modal.sendSupervisionRequest('bulk')" 
+          style="padding:8px 12px;font-weight:600;font-size:13px;border:none;background:none;cursor:pointer;border-bottom:2px solid ${mode === 'bulk' ? 'var(--accent)' : 'transparent'};color:${mode === 'bulk' ? 'var(--accent)' : 'var(--muted)'}">
+          ${I.folder(14)} Bulk CSV / File Upload
+        </button>
+      </div>
+    `;
+
+    const singleContent = `
+      <div class="field">
+        <label>Target Group Number or Team Lead Name</label>
+        <input class="inp" id="req_group_input" placeholder="e.g. 01, 02, 03, or Team Lead Name" autofocus/>
+        <span class="hint">Type the Group Name (e.g. "03" / "Group 03") or the Team Lead's name.</span>
+      </div>
+    `;
+
+    const bulkContent = `
+      <div class="field">
+        <label>Upload CSV or Text File</label>
+        <div style="border:2px dashed var(--accent-line); border-radius:var(--r2); padding:22px; text-align:center; background:var(--surface-2); cursor:pointer" 
+             onclick="document.getElementById('bulk_file_inp').click()">
+          ${I.folder(28)}
+          <div style="font-weight:600; font-size:13px; margin-top:8px; color:var(--accent)">Click or drop CSV / TXT file here</div>
+          <div style="font-size:11.5px; color:var(--muted); margin-top:4px">Accepts comma-separated or line-by-line group numbers (e.g., Group 01, Group 02, 03)</div>
+          <input type="file" id="bulk_file_inp" accept=".csv,.txt,.tsv" style="display:none" onchange="Modal.parseBulkFile(this)"/>
+        </div>
+      </div>
+      <div id="bulk_preview_area" style="margin-top:12px"></div>
+    `;
+
     Modal.open(`
       <div class="mh">
-        ${I.mail(18)} <h3>Send Supervision Request</h3>
+        ${I.mail(18)} <h3>Supervision Request Dispatcher</h3>
         <button class="btn ico sm gho" onclick="Modal.close()">${I.x(15)}</button>
       </div>
       <div class="mb">
-        <div class="banner info" style="margin-bottom:12px">
+        <div class="banner info" style="margin-bottom:14px">
           ${I.cap(16)}
           <div><b>Teaching Subject:</b> <span class="mono">${esc(subjObj.code)}</span> · ${esc(subjObj.name)}</div>
         </div>
-        <div class="field">
-          <label>Target Group Number or Team Lead Name</label>
-          <input class="inp" id="req_group_input" placeholder="e.g. 03, Group 03, or yugal" autofocus/>
-          <span class="hint">Type the Group Name (e.g. "03" / "Group 03") or the Team Lead's name.</span>
-        </div>
+        ${modeTabHeaders}
+        ${mode === 'single' ? singleContent : bulkContent}
         <div id="req_err"></div>
       </div>
       <div class="mf">
         <div class="sp"></div>
         <button class="btn" onclick="Modal.close()">Cancel</button>
-        <button class="btn pri" id="req_send_btn" onclick="Modal.doSendSupervisionRequest()">${I.mail(14)} Send Request</button>
+        ${mode === 'single' 
+          ? `<button class="btn pri" id="req_send_btn" onclick="Modal.doSendSupervisionRequest()">${I.send(14)} Send Request</button>`
+          : `<button class="btn pri" id="bulk_send_btn" disabled onclick="Modal.doSendBulkSupervisionRequests()">${I.send(14)} Send Bulk Requests</button>`}
       </div>
     `);
+  },
+
+  parseBulkFile(inp){
+    const f = inp.files && inp.files[0];
+    if (!f) return;
+    const r = new FileReader();
+    r.onload = () => {
+      const text = r.result || '';
+      const items = text.split(/[\r\n,;\t]+/).map(s => s.trim()).filter(Boolean);
+      const uniqueItems = [...new Set(items)];
+      Modal._parsedBulkGroups = uniqueItems;
+
+      const previewArea = document.getElementById('bulk_preview_area');
+      const sendBtn = document.getElementById('bulk_send_btn');
+
+      if (!uniqueItems.length) {
+        if (previewArea) previewArea.innerHTML = `<div class="errmsg">${I.alert(13)}No valid group numbers found in file.</div>`;
+        if (sendBtn) sendBtn.disabled = true;
+        return;
+      }
+
+      if (sendBtn) sendBtn.disabled = false;
+      if (previewArea) {
+        previewArea.innerHTML = `
+          <div style="border:1px solid var(--line); border-radius:var(--r2); padding:12px 14px; background:var(--surface)">
+            <div style="font-weight:600; font-size:12.5px; color:var(--ink); margin-bottom:8px">
+              ${I.check(14)} Extracted ${uniqueItems.length} group target${uniqueItems.length > 1 ? 's' : ''} from file:
+            </div>
+            <div style="display:flex; gap:6px; flex-wrap:wrap; max-height:120px; overflow:auto">
+              ${uniqueItems.map(g => `<span class="tag" style="background:var(--accent-soft);color:var(--accent);font-weight:600;padding:4px 8px">${esc(g)}</span>`).join('')}
+            </div>
+          </div>
+        `;
+      }
+    };
+    r.readAsText(f);
+  },
+
+  async doSendBulkSupervisionRequests(){
+    const targets = Modal._parsedBulkGroups || [];
+    if (!targets.length) return Modal.err('req_err', 'No group targets loaded from file.');
+
+    const btn = document.getElementById('bulk_send_btn');
+    if (btn) { btn.disabled = true; btn.textContent = 'Processing Bulk Requests...'; }
+
+    try {
+      const res = await fetch(API_URL + '/api/sync');
+      if (res.ok) {
+        const data = await res.json();
+        if (data && data.users) { DB.s = data; localStorage.setItem(K_STATE, JSON.stringify(DB.s)); }
+      }
+    } catch(e) {}
+
+    const cleanStr = s => s.toLowerCase().replace(/^group\s*/i, '').trim();
+    const facSubj = App.me.subjectCode || '23AID205';
+
+    let successCount = 0;
+    let failedGroups = [];
+
+    for (const q of targets) {
+      const targetQ = cleanStr(q);
+      let matchedGroup = DB.s.groups.find(g => {
+        const gNameClean = cleanStr(g.name);
+        return (
+          g.name.toLowerCase() === q.toLowerCase() ||
+          g.id.toLowerCase() === q.toLowerCase() ||
+          gNameClean === targetQ ||
+          ('0' + gNameClean) === targetQ ||
+          gNameClean === ('0' + targetQ)
+        );
+      });
+
+      if (!matchedGroup) {
+        const matchedLead = DB.s.users.find(u =>
+          u.role === 'Team Lead' && (u.name.toLowerCase() === q.toLowerCase() || u.name.toLowerCase().includes(q.toLowerCase()))
+        );
+        if (matchedLead && matchedLead.groupId) matchedGroup = DB.s.groups.find(g => g.id === matchedLead.groupId);
+      }
+
+      if (!matchedGroup) {
+        failedGroups.push(q);
+        continue;
+      }
+
+      try {
+        const res = await fetch(API_URL + '/api/invites/direct', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            groupId: matchedGroup.id,
+            facultyId: App.me.id,
+            facultyName: App.me.name,
+            facultyEmail: App.me.email,
+            subjectCode: facSubj
+          })
+        });
+        if (res.ok) successCount++;
+        else failedGroups.push(q);
+      } catch(e) {
+        failedGroups.push(q);
+      }
+    }
+
+    await API.check();
+    FX.tap('done');
+    Modal.close();
+    toast(I.check(15), `Bulk Requests Complete: ${successCount} sent successfully! ${failedGroups.length ? '(' + failedGroups.length + ' not matched)' : ''}`);
+    App.render();
   },
 
   async doSendSupervisionRequest(){
@@ -3862,7 +4128,7 @@ const Modal={
     }
 
     if (!matchedGroup) {
-      if (btn) { btn.disabled = false; btn.innerHTML = `${I.mail(14)} Send Request`; }
+      if (btn) { btn.disabled = false; btn.innerHTML = `${I.send(14)} Send Request`; }
       return Modal.err('req_err', `No group or Team Lead matches '${q}'. Try '03' or 'yugal'.`);
     }
 
@@ -3873,7 +4139,7 @@ const Modal={
     DB.s.invites = DB.s.invites || [];
     const alreadyLocal = DB.s.invites.find(i => i.groupId === groupId && i.facultyId === App.me.id && i.status === 'pending');
     if (alreadyLocal) {
-      if (btn) { btn.disabled = false; btn.innerHTML = `${I.mail(14)} Send Request`; }
+      if (btn) { btn.disabled = false; btn.innerHTML = `${I.send(14)} Send Request`; }
       return Modal.err('req_err', `You already have a pending request for ${matchedGroup.name}.`);
     }
 
@@ -3894,7 +4160,7 @@ const Modal={
       });
       const data = await res.json();
       if (!res.ok) {
-        if (btn) { btn.disabled = false; btn.innerHTML = `${I.mail(14)} Send Request`; }
+        if (btn) { btn.disabled = false; btn.innerHTML = `${I.send(14)} Send Request`; }
         return Modal.err('req_err', data.error || 'Failed to send request.');
       }
       sent = true;
