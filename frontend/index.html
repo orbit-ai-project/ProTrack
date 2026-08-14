@@ -1536,54 +1536,63 @@ const App={
 
   render(){
     if(!App.me) return;
-    App.me=user(App.me.id)||App.me;
-    const items=App.navItems();
-    document.getElementById('nav').innerHTML =
-      `<div class="lbl sec">${App.isFaculty?'Faculty':'Workspace'}</div>` +
-      items.map(([id,n,ic,badge])=>`<a class="${App.tab===id?'on':''}" onclick="App.go('${id}')">${ic(16)}<span>${n}</span>${badge?`<span class="n">${badge}</span>`:''}</a>`).join('');
+    try {
+      App.me=user(App.me.id)||App.me;
+      const items=App.navItems();
+      document.getElementById('nav').innerHTML =
+        `<div class="lbl sec">${App.isFaculty?'Faculty':'Workspace'}</div>` +
+        items.map(([id,n,ic,badge])=>`<a class="${App.tab===id?'on':''}" onclick="App.go('${id}')">${ic(16)}<span>${n}</span>${badge?`<span class="n">${badge}</span>`:''}</a>`).join('');
 
-    const on=online();
-    document.getElementById('userBox').innerHTML =
-      `<div style="position:relative">${av(App.me)}${dot(on[App.me.id])}</div>
-       <div style="flex:1;min-width:0"><div class="nm">${esc(App.me.name)}</div><div class="rl">${esc(App.me.role)}</div></div>
-       ${I.chev(14)}`;
+      const on=online();
+      document.getElementById('userBox').innerHTML =
+        `<div style="position:relative">${av(App.me)}${dot(on[App.me.id])}</div>
+         <div style="flex:1;min-width:0"><div class="nm">${esc(App.me.name)}</div><div class="rl">${esc(App.me.role)}</div></div>
+         ${I.chev(14)}`;
 
-    const titles={dashboard:'Dashboard',assistant:'AI Assistant',analytics:'Analytics',subjects:'Subjects',calendar:'Calendar',groups:'Groups',people:'People',activity:'Activity',
-      board:'Task Board',mytasks:'My Tasks',team:'My Team',groupactivity:'Activity',group:'Group',settings:'Settings'};
-    const g=App.openGroup?group(App.openGroup):null;
-    const subC=App.openSubjectCode?SEM3.find(s=>s.code===App.openSubjectCode):null;
-    document.getElementById('topTitle').innerHTML = App.tab==='group' && g
-      ? `<span class="crumb">Groups /</span> ${esc(g.name)}`
-      : App.tab==='subject' && subC
-      ? `<span class="crumb">Subjects /</span> ${esc(subC.code)}`
-      : (titles[App.tab]||'');
+      const titles={dashboard:'Dashboard',assistant:'AI Assistant',analytics:'Analytics',subjects:'Subjects',calendar:'Calendar',groups:'Groups',people:'People',activity:'Activity',
+        board:'Task Board',mytasks:'My Tasks',team:'My Team',groupactivity:'Activity',group:'Group',settings:'Settings'};
+      const g=App.openGroup?group(App.openGroup):null;
+      const subC=App.openSubjectCode?SEM3.find(s=>s.code===App.openSubjectCode):null;
+      document.getElementById('topTitle').innerHTML = App.tab==='group' && g
+        ? `<span class="crumb">Groups /</span> ${esc(g.name)}`
+        : App.tab==='subject' && subC
+        ? `<span class="crumb">Subjects /</span> ${esc(subC.code)}`
+        : (titles[App.tab]||'');
 
-    Notify.paint();
-    Theme.paint();
+      Notify.paint();
+      Theme.paint();
 
-    const v=document.getElementById('view'); const sc=v.scrollTop;
-    Board._rects=Board.capture();
-    v.innerHTML=`<div class="wrap">${
-      App.tab==='dashboard' ? (App.isFaculty?Page.facDash():Page.stuDash()) :
-      App.tab==='assistant' ? Page.assistant() :
-      App.tab==='analytics' ? Page.analytics() :
-      App.tab==='subjects'  ? Page.subjectsHub() :
-      App.tab==='subject'   ? Page.subjectDetail(App.openSubjectCode) :
-      App.tab==='calendar'  ? Page.calendar() :
-      App.tab==='groups'    ? Page.groups() :
-      App.tab==='people'    ? Page.people() :
-      App.tab==='activity'  ? Page.activity(null) :
-      App.tab==='group'     ? Page.groupDetail(App.openGroup) :
-      App.tab==='board'     ? Page.board() :
-      App.tab==='mytasks'   ? Page.mytasks() :
-      App.tab==='team'      ? Page.team() :
-      App.tab==='requests'   ? Page.requestsPage() :
-      App.tab==='settings'   ? Page.settings() :
-      App.tab==='groupactivity' ? Page.activity(App.me.groupId) : ''
-    }</div>`;
-    v.scrollTop=sc;
-    Board.bind(); AI.bind(); Tilt.bind();
-    Sync.lastSig=Sync.sig();
+      const v=document.getElementById('view'); const sc=v.scrollTop;
+      Board._rects=Board.capture();
+      let pageHTML = '';
+      try {
+        pageHTML = App.tab==='dashboard' ? (App.isFaculty?Page.facDash():Page.stuDash()) :
+          App.tab==='assistant' ? Page.assistant() :
+          App.tab==='analytics' ? Page.analytics() :
+          App.tab==='subjects'  ? Page.subjectsHub() :
+          App.tab==='subject'   ? Page.subjectDetail(App.openSubjectCode) :
+          App.tab==='calendar'  ? Page.calendar() :
+          App.tab==='groups'    ? Page.groups() :
+          App.tab==='people'    ? Page.people() :
+          App.tab==='activity'  ? Page.activity(null) :
+          App.tab==='group'     ? Page.groupDetail(App.openGroup) :
+          App.tab==='board'     ? Page.board() :
+          App.tab==='mytasks'   ? Page.mytasks() :
+          App.tab==='team'      ? Page.team() :
+          App.tab==='requests'   ? Page.requestsPage() :
+          App.tab==='settings'   ? Page.settings() :
+          App.tab==='groupactivity' ? Page.activity(App.me.groupId) : '';
+      } catch(err) {
+        console.error('View render error:', err);
+        pageHTML = App.isFaculty ? Page.facDash() : Page.stuDash();
+      }
+      v.innerHTML=`<div class="wrap">${pageHTML}</div>`;
+      v.scrollTop=sc;
+      try { Board.bind(); AI.bind(); Tilt.bind(); } catch(e) {}
+      Sync.lastSig=Sync.sig();
+    } catch(err) {
+      console.error('App.render error:', err);
+    }
   }
 };
 
@@ -3163,7 +3172,7 @@ const AI={
         desc:`${esc(max.m.name.split(' ')[0])} is carrying ${max.open} open tasks vs a team average of ${avg.toFixed(1)}. Consider rebalancing.`});
     }
     const p=pctOf(tasks);
-    const doneRecent=tasks.filter(t=>t.status==='done'&&now()-t.updatedAt<7*864e5).length;
+    const doneRecent=tasks.filter(t=>t.status==='done'&&(now()-(t.updatedAt||t.createdAt||now()))<7*864e5).length;
     out.push({c:p>=70?'green':'accent',icon:I.trend,conf:'High',bar:p,
       title:`Overall completion at ${p}%`,
       desc:`${doneRecent} task${doneRecent===1?'':'s'} completed in the last 7 days across ${tasks.length} tracked.`});
