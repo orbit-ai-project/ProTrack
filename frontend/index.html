@@ -1315,7 +1315,7 @@ function liveCountdown(ts) {
   const mins = Math.floor((diff % 36e5) / 6e4);
   const secs = Math.floor((diff % 6e4) / 1000);
   if (hrs < 24) {
-    return `<span class="tag" style="background:var(--accent-soft);color:var(--accent);font-weight:600">⏳ ${hrs}h ${mins}m ${secs}s left</span>`;
+    return `<span class="tag" style="background:var(--accent-soft);color:var(--accent);font-weight:600">${I.clock(12)} ${hrs}h ${mins}m ${secs}s left</span>`;
   }
   return null;
 }
@@ -1776,7 +1776,7 @@ const Page={
     return `
       <div class="card" style="margin-bottom:16px; border:2px solid var(--amber); background:var(--amber-s)">
         <div class="ch" style="border-bottom:1px solid rgba(176,118,26,0.2)">
-          ${I.mail(18)} <h3 style="color:var(--amber); font-weight:700">📩 Pending Supervision Requests (${pending.length})</h3>
+          ${I.mail(18)} <h3 style="color:var(--amber); font-weight:700">Pending Supervision Requests (${pending.length})</h3>
           <div class="sp"></div>
           <span class="tag amber">Action Required</span>
         </div>
@@ -2178,11 +2178,11 @@ const Page={
         ? `<span class="tag" style="background:var(--green-s);color:var(--green)">✓ Accepted</span>`
         : inv.status === 'declined'
         ? `<span class="tag" style="background:var(--red-s);color:var(--red)">✗ Declined</span>`
-        : `<span class="tag" style="background:var(--amber-s);color:var(--amber)">⏳ Pending</span>`;
+        : `<span class="tag" style="background:var(--amber-s);color:var(--amber);display:inline-flex;align-items:center;gap:4px">${I.clock(12)} Pending</span>`;
 
       return `
         <div style="display:flex;align-items:center;gap:14px;padding:14px 16px;border:1px solid var(--line);border-radius:var(--r2);background:var(--surface);margin-bottom:9px">
-          <div style="width:42px;height:42px;border-radius:50%;background:var(--accent-soft);display:grid;place-items:center;flex:none;font-size:18px">👩‍🏫</div>
+          <div style="width:42px;height:42px;border-radius:50%;background:var(--accent-soft);color:var(--accent);display:grid;place-items:center;flex:none">${I.users(20)}</div>
           <div style="flex:1;min-width:0">
             <div style="font-weight:700;font-size:13.5px">${esc(inv.facultyName)}</div>
             <div style="font-size:12px;color:var(--muted);margin-top:1px">${esc(inv.facultyEmail)}</div>
@@ -2221,7 +2221,7 @@ const Page={
       ${pending.length ? `
         <div class="card" style="margin-bottom:16px;border:2px solid var(--amber)">
           <div class="ch" style="background:var(--amber-s);border-radius:var(--r2) var(--r2) 0 0">
-            ${I.mail(18)} <h3 style="color:var(--amber)">📩 Pending — Action Required (${pending.length})</h3>
+            ${I.mail(18)} <h3 style="color:var(--amber)">Pending — Action Required (${pending.length})</h3>
             <div class="sp"></div>
             ${App.isLead ? '' : `<span style="font-size:12px;color:var(--muted);font-style:italic">Only Team Lead can accept/decline</span>`}
           </div>
@@ -2230,7 +2230,7 @@ const Page={
       ` : `
         <div class="card" style="margin-bottom:16px">
           <div class="cb" style="text-align:center;padding:28px 20px">
-            <div style="font-size:30px;margin-bottom:10px">📭</div>
+            <div style="display:flex;justify-content:center;margin-bottom:10px;color:var(--faint)">${I.inbox(32)}</div>
             <div style="font-weight:600;font-size:14px;margin-bottom:6px">No pending supervision requests</div>
             <p style="color:var(--muted);font-size:12.5px">When a faculty member sends a Group Number supervision request, it will appear here for the Team Lead to accept or decline.</p>
           </div>
