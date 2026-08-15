@@ -1908,17 +1908,19 @@ const Page={
   /* ---------- FACULTY analytics ---------- */
   analytics(){
     const gs=myGroups(); if(!gs.length) return Page.notAssigned();
-    const ids=gs.map(g=>g.id), all=DB.s.tasks.filter(t=>ids.includes(t.groupId));
-    const students=gs.reduce((a,g)=>a+membersOf(g.id).length,0);
-    const done=all.filter(t=>t.status==='done').length;
-    const blocked=all.filter(t=>t.status==='blocked');
-    const overdue=all.filter(t=>t.status!=='done'&&t.due<now());
+    const selG = App.analyticsGroupFilter || 'all';
+    const activeGs = selG === 'all' ? gs : gs.filter(g => g.id === selG);
+    const ids = activeGs.map(g=>g.id), all = DB.s.tasks.filter(t=>ids.includes(t.groupId));
+    const students = activeGs.reduce((a,g)=>a+membersOf(g.id).length,0);
+    const done = all.filter(t=>t.status==='done').length;
+    const blocked = all.filter(t=>t.status==='blocked');
+    const overdue = all.filter(t=>t.status!=='done'&&t.due<now());
 
     /* status donut */
     const statusSegs=STATUSES.map(s=>({label:s.n,c:s.c,value:all.filter(t=>t.status===s.id).length,color:V_(s.c)}));
 
     /* progress by group (3D columns) */
-    const groupCols=gs.map((g,i)=>{const p=pctOf(tasksOf(g.id));
+    const groupCols=activeGs.map((g,i)=>{const p=pctOf(tasksOf(g.id));
       return {label:'G'+String(i+1).padStart(2,'0'),full:g.name+' · '+g.project,value:p,suffix:'%',
         color:p>=70?V_('green'):p>=40?V_('accent'):V_('amber')};});
 
@@ -1933,17 +1935,27 @@ const Page={
     const loadPts=[]; for(let d=-2;d<=11;d++) loadPts.push({label:d<0?'−'+(-d):(d===0?'now':'+'+d),value:dmap[d]||0});
 
     /* top contributors */
-    const members=gs.flatMap(g=>membersOf(g.id));
-    const memRows=members.map(m=>{const mt=tasksFor(m.id);return {m,done:mt.filter(t=>t.status==='done').length,total:mt.length,pct:pctOf(mt)};})
+    const members=activeGs.flatMap(g=>membersOf(g.id));
+    const memRows=members.map(m=>{const mt=tasksFor(m.id).filter(t=>ids.includes(t.groupId));return {m,done:mt.filter(t=>t.status==='done').length,total:mt.length,pct:pctOf(mt)};})
       .sort((a,b)=>b.done-a.done||b.pct-a.pct).slice(0,8);
     const maxDone=Math.max(1,...memRows.map(r=>r.done));
 
     const attention=[...blocked.map(t=>['red','Blocked',t]),...overdue.sort((a,b)=>a.due-b.due).map(t=>['amber','Overdue',t])].slice(0,7);
 
     return `
-    <div class="ph"><div><h1>Analytics</h1>
-      <p>Live analysis across ${gs.length} group${gs.length===1?'':'s'} · ${students} students · ${all.length} tasks</p></div>
-      <div class="sp"></div><div class="live"><i></i>Live</div></div>
+    <div class="ph">
+      <div>
+        <h1>Analytics</h1>
+        <p>Live analysis across ${activeGs.length} group${activeGs.length===1?'':'s'} · ${students} students · ${all.length} tasks</p>
+      </div>
+      <div class="sp"></div>
+      <select class="inp" style="width:170px;height:32px;font-size:12px;cursor:pointer" onchange="App.analyticsGroupFilter=this.value;App.render()">
+        <option value="all" ${selG==='all'?'selected':''}>All Groups (${gs.length})</option>
+        ${gs.map(g => `<option value="${g.id}" ${selG===g.id?'selected':''}>${esc(g.name)} (${esc(g.project||'Project')})</option>`).join('')}
+      </select>
+      <button class="btn sm pri" style="margin-left:8px" onclick="Export.analyticsReport('${selG}')">${I.chart(14)} Export Report</button>
+      <div class="live" style="margin-left:8px"><i></i>Live</div>
+    </div>
 
     <div class="kpis" style="margin-bottom:16px">
       ${Page.kpi('Overall progress',pctOf(all)+'%',`${done}/${all.length} complete`)}
@@ -3496,6 +3508,41 @@ const Notify={
    CALENDAR
    ============================================================ */
 const Export = {
+  analyticsReport(selG) {
+    const gs = myGroups();
+    if (!gs.length) return toast(I.alert(15), 'No groups to export analytics');
+
+    const activeGs = (!selG || selG === 'all') ? gs : gs.filter(g => g.id === selG);
+    const headers = ['Group Name', 'Project', 'Total Tasks', 'Completed Tasks', 'Progress %', 'Blocked Tasks', 'Overdue Tasks'];
+    const rows = activeGs.map(g => {
+      const ts = tasksOf(g.id);
+      const done = ts.filter(t => t.status === 'done').length;
+      const blocked = ts.filter(t => t.status === 'blocked').length;
+      const overdue = ts.filter(t => t.status !== 'done' && t.due < now()).length;
+      return [
+        `"${(g.name || '').replace(/"/g, '""')}"`,
+        `"${(g.project || '').replace(/"/g, '""')}"`,
+        `"${ts.length}"`,
+        `"${done}"`,
+        `"${pctOf(ts)}%"`,
+        `"${blocked}"`,
+        `"${overdue}"`
+      ];
+    });
+
+    const csvContent = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', `Faculty_Analytics_Report_${new Date().toISOString().slice(0, 10)}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    FX.tap('done');
+    toast(I.check(15), 'Faculty Analytics Report exported successfully!');
+  },
   printReport(gid) {
     const targetGid = gid || (App.me && App.me.groupId);
     const g = group(targetGid) || (myGroups()[0] || null);
