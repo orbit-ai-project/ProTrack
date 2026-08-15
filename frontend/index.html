@@ -969,9 +969,12 @@ function seed(){
   return {users:U,groups:G,tasks:T,activity:A,remarks:[],invites:[]};
 }
 
-const API_URL = 'http://localhost:4000';
+const API_URL = (window.location.origin && window.location.origin.includes(':4000'))
+  ? window.location.origin
+  : 'http://localhost:4000';
+
 const API = {
-  active: false,
+  active: true,
   async check() {
     try {
       const res = await fetch(API_URL + '/api/sync');
@@ -979,7 +982,6 @@ const API = {
         API.active = true;
         const data = await res.json();
         if (data && data.users) {
-          // Preserve local invites if server doesn't have them yet
           data.invites = data.invites || DB.s?.invites || [];
           DB.s = data;
           localStorage.setItem(K_STATE, JSON.stringify(DB.s));
@@ -989,13 +991,13 @@ const API = {
     } catch(e) {}
   },
   async push() {
-    if (!API.active) return;
     try {
-      await fetch(API_URL + '/api/sync', {
+      const res = await fetch(API_URL + '/api/sync', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(DB.s)
       });
+      if (res.ok) API.active = true;
     } catch (e) {}
   }
 };
