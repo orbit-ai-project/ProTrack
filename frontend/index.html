@@ -1381,9 +1381,6 @@ const Auth={
           <div class="field"><label for="r_pass2">Confirm</label><input class="inp" id="r_pass2" type="password" placeholder="Repeat password"/></div>
         </div>
         <div class="field"><label for="r_group">Group name</label><input class="inp" id="r_group" placeholder="e.g. Group 04"/></div>
-        <div class="field"><label for="r_subject">Project subject (course)</label>
-          <select class="inp" id="r_subject">${SEM3.filter(s=>s.code!=='—').map(s=>`<option value="${s.code}">${s.code} — ${esc(s.name)}</option>`).join('')}</select>
-          <span class="hint">${esc(PROGRAM)} · Semester 3. You can change this later.</span></div>
         <div class="field"><label for="r_project">Project title</label><input class="inp" id="r_project" placeholder="e.g. Library Management System"/></div>
         <div id="r_err"></div>
         <button class="btn pri blk" style="height:36px" onclick="Auth.registerLead()">Create team and continue</button>
@@ -1455,7 +1452,7 @@ const Auth={
   registerLead(){
     const g=id=>document.getElementById(id).value.trim();
     const name=g('r_name'), email=g('r_email'), pw=document.getElementById('r_pass').value,
-          pw2=document.getElementById('r_pass2').value, gname=g('r_group'), subj=g('r_subject'), proj=g('r_project');
+          pw2=document.getElementById('r_pass2').value, gname=g('r_group'), proj=g('r_project'), subj='23AID205';
     if(!name) return Auth.showErr('r_err','Enter your full name.');
     if(!emailOk(email)) return Auth.showErr('r_err','Enter a valid email address.');
     if(userByEmail(email)) return Auth.showErr('r_err','An account with that email already exists.');
