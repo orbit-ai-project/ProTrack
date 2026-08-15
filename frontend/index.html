@@ -1036,7 +1036,7 @@ function seed(){
   return {users:U,groups:G,tasks:T,activity:A,remarks:[],invites:[]};
 }
 
-const API_URL = (typeof window !== 'undefined' && window.location && window.location.origin && window.location.origin.includes(':4000'))
+const API_URL = (window.location.origin && window.location.origin.includes(':4000'))
   ? window.location.origin
   : 'http://localhost:4000';
 
@@ -1803,12 +1803,14 @@ const Page={
   },
 
   renderCompactWidget(){
-    const td = new Date();
-    const y = td.getFullYear(), m = td.getMonth();
+    if(Cal.y==null) Cal.init();
+    const y=Cal.y, m=Cal.m;
     const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
     const curMonth = monthNames[m];
     const curYear = y;
-    const isCurMonth = true;
+
+    const td = new Date();
+    const isCurMonth = td.getFullYear()===y && td.getMonth()===m;
     const curDay = td.getDate();
 
     const firstDay = new Date(y, m, 1).getDay();
@@ -2140,18 +2142,15 @@ const Page={
       <div style="margin-top:13px;padding-top:11px;border-top:1px solid var(--line-2);display:grid;gap:7px">
         ${ms.map(m=>{
           const mt=tasksFor(m.id);
-          const me=m.evaluation;
           return `<div style="display:flex;align-items:center;gap:8px">
             <div style="position:relative">${av(m,'sm')}${dot(on[m.id])}</div>
             <div style="flex:1;min-width:0"><div style="font-size:12px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(m.name)}</div></div>
             <div style="font-size:11.5px;color:var(--muted);width:58px">${esc(m.role)}</div>
-            ${me?`<span class="tag" style="background:var(--green-s);color:var(--green);font-weight:700;font-size:10px;padding:1px 4px">${me.grade}</span>`:''}
             <div style="width:52px">${bar(pctOf(mt),'accent')}</div>
             <div style="font-size:11.5px;color:var(--ink-2);width:26px;text-align:right;font-weight:500">${pctOf(mt)}%</div>
           </div>`;
         }).join('')}
       </div>
-      ${App.isFaculty ? `<button class="btn sm pri" style="margin-top:10px; width:100%" onclick="event.stopPropagation(); Modal.gradeGroupMembers('${g.id}')">${I.award(13)} 🎓 Grade 4 Team Members</button>` : ''}
     </div>`;
   },
 
@@ -2170,21 +2169,20 @@ const Page={
       ${gs.map(g=>{
         const ms=membersOf(g.id);
         return `<div class="card" style="margin-bottom:14px">
-          <div class="ch"><h3>${esc(g.name)} — ${esc(g.project)}</h3>
+          <div class="ch"><h3>${esc(g.name)}</h3>
+            <span style="color:var(--muted);font-size:12.5px">${esc(g.project)}</span>
             <div class="sp"></div>
-            ${App.isFaculty ? `<button class="btn sm pri" onclick="Modal.gradeGroupMembers('${g.id}')">${I.award(13)} Grade All Members</button>` : ''}
-            <button class="btn sm" onclick="Export.officialGradeSheet('${g.id}')">🖨️ Print Marksheet</button>
-            <button class="btn sm gho" onclick="App.openG('${g.id}')">Open Group</button></div>
-          <table><thead><tr><th style="width:25%">Member</th><th>Role</th><th>Email</th><th>Individual Rubric Grade</th><th style="width:140px">Task Progress</th></tr></thead>
+            <span style="font-size:12px;color:var(--muted)">${pctOf(tasksOf(g.id))}% complete</span>
+            <button class="btn sm" onclick="App.openG('${g.id}')">Open</button></div>
+          <table><thead><tr><th style="width:30%">Member</th><th>Role</th><th>Email</th><th>Tasks</th><th style="width:150px">Progress</th></tr></thead>
           <tbody>${ms.map(m=>{
-            const mt=tasksFor(m.id);
-            const me=m.evaluation;
+            const mt=tasksFor(m.id), byS=id=>mt.filter(t=>t.status===id).length;
             return `<tr>
               <td><div style="display:flex;align-items:center;gap:8px"><div style="position:relative">${av(m,'sm')}${dot(on[m.id])}</div>
-                <div><div style="font-weight:600">${esc(m.name)}</div>${on[m.id]?'<div style="font-size:11px;color:var(--green)">online</div>':''}</div></div></td>
+                <div><div style="font-weight:500">${esc(m.name)}</div>${on[m.id]?'<div style="font-size:11px;color:var(--green)">online</div>':''}</div></div></td>
               <td>${m.id===g.leadId?tag(m.role,'accent'):`<span style="color:var(--ink-2)">${esc(m.role)}</span>`}</td>
               <td><span class="mono" style="color:var(--muted)">${esc(m.email)}</span></td>
-              <td>${me?`<span class="tag" style="background:var(--green-s);color:var(--green);font-weight:700">Grade: ${esc(me.grade)} (${me.score}/40)</span>`:(App.isFaculty?`<button class="btn sm pri" onclick="Modal.gradeGroupMembers('${g.id}')">${I.award(13)} Grade ${esc((m.name||'Student').split(' ')[0])}</button>`:`<span style="color:var(--faint)">Not graded yet</span>`)}</td>
+              <td><div style="display:flex;gap:4px;flex-wrap:wrap">${STATUSES.filter(s=>byS(s.id)).map(s=>tag(byS(s.id)+' '+s.n,s.c)).join('')||'<span style="color:var(--faint)">None</span>'}</div></td>
               <td><div style="display:flex;align-items:center;gap:8px">${bar(pctOf(mt),'accent')}<b style="font-size:12px;width:30px;text-align:right">${pctOf(mt)}%</b></div></td>
             </tr>`;
           }).join('')}</tbody></table>
@@ -2353,10 +2351,8 @@ const Page={
       <button class="btn ico" onclick="App.go('groups')">${I.chev(15)}</button>
       <div><h1>${esc(g.name)}</h1><p>${esc(g.project)} · ${esc(g.subject||'')} · ${ts.length} tasks</p></div>
       <div class="sp"></div>
-      ${App.isFaculty ? `<button class="btn pri sm" onclick="Modal.gradeGroupMembers('${gid}')">${I.award(14)} 🎓 Grade 4 Team Members</button>` : ''}
-      <button class="btn sm" onclick="Export.officialGradeSheet('${gid}')">🖨️ Print Marksheet</button>
-      <button class="btn gho sm" onclick="Modal.dropGroup('${gid}')">Stop supervising</button>
-      <button class="btn pri sm" onclick="Modal.remark('${gid}')">${I.pin(15)} Add remark</button>
+      <button class="btn" onclick="Modal.dropGroup('${gid}')">Stop supervising</button>
+      <button class="btn pri" onclick="Modal.remark('${gid}')">${I.pin(15)} Add remark</button>
     </div>
 
     <div class="kpis">
@@ -3806,124 +3802,6 @@ const Export = {
     FX.tap('done');
     toast(I.check(15), 'Faculty Analytics Report exported successfully!');
   },
-
-  officialGradeSheet(gid) {
-    const targetGid = gid || (App.me && App.me.groupId);
-    const g = group(targetGid) || (myGroups()[0] || null);
-    if (!g) return toast(I.alert(15), 'No group selected to generate official marksheet');
-
-    const ev = g.evaluation || { q1: 8, q2: 8, q3: 8, q4: 8, score: 32, max: 40, pct: 80, grade: 'A', remarks: 'Good project implementation and code architecture.', evaluatorName: (App.me && App.me.name) || 'Faculty Evaluator', ts: Date.now() };
-    const ms = membersOf(g.id);
-    const win = window.open('', '_blank');
-    if (!win) return toast(I.alert(15), 'Popups blocked. Allow popups to print evaluation marksheet');
-
-    win.document.write(`
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <title>Official Evaluation Marksheet — ${g.name}</title>
-        <style>
-          body { font-family: 'Segoe UI', Arial, sans-serif; padding: 40px; color: #1c2a2e; max-width: 800px; margin: 0 auto; line-height: 1.5; }
-          .header { text-align: center; border-bottom: 3px double #0d5c75; padding-bottom: 16px; margin-bottom: 24px; }
-          .logo-text { font-size: 20px; font-weight: 800; color: #0d5c75; text-transform: uppercase; letter-spacing: 1px; }
-          .sub-logo { font-size: 13px; font-weight: 600; color: #45565b; margin-top: 3px; }
-          .doc-title { font-size: 15px; font-weight: 700; background: #e0f2f1; color: #0d5c75; display: inline-block; padding: 4px 16px; border-radius: 20px; margin-top: 10px; }
-          .meta-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 13px; }
-          .meta-table td { padding: 8px 10px; border: 1px solid #d0d7de; }
-          .meta-table td.lbl { background: #f6f8f9; font-weight: 700; width: 22%; color: #45565b; }
-          .rubric-table { width: 100%; border-collapse: collapse; margin: 20px 0; font-size: 13px; }
-          .rubric-table th, .rubric-table td { border: 1px solid #c0d0d5; padding: 10px 12px; text-align: left; }
-          .rubric-table th { background: #0d5c75; color: #ffffff; font-weight: 700; }
-          .badge { font-size: 18px; font-weight: 800; color: #2e7d32; background: #e8f5e9; padding: 6px 16px; border-radius: 20px; display: inline-block; border: 1px solid #a5d6a7; }
-          .sig-box { margin-top: 50px; display: flex; justify-content: space-between; align-items: flex-end; }
-          .sig-line { width: 220px; border-top: 1px dashed #1c2a2e; text-align: center; padding-top: 6px; font-size: 12px; font-weight: 600; }
-          @media print { body { padding: 20px; } button { display: none; } }
-        </style>
-      </head>
-      <body>
-        <div style="text-align:right; margin-bottom:12px;">
-          <button onclick="window.print()" style="background:#0d5c75; color:#fff; border:none; padding:8px 18px; border-radius:6px; font-weight:700; cursor:pointer;">🖨️ Print Marksheet / Save PDF</button>
-        </div>
-        <div class="header">
-          <div class="logo-text">Amrita Vishwa Vidyapeetham</div>
-          <div class="sub-logo">Faridabad Campus · B.Tech Artificial Intelligence &amp; Data Science (AIDS)</div>
-          <div class="doc-title">OFFICIAL PROJECT EVALUATION &amp; VIVA MARKSHEET</div>
-        </div>
-
-        <table class="meta-table">
-          <tr>
-            <td class="lbl">Group Name</td>
-            <td><b>${g.name}</b></td>
-            <td class="lbl">Semester</td>
-            <td><b>Semester ${g.semester || 3}</b></td>
-          </tr>
-          <tr>
-            <td class="lbl">Project Title</td>
-            <td colspan="3"><b>${g.project}</b></td>
-          </tr>
-          <tr>
-            <td class="lbl">Course / Subject</td>
-            <td colspan="3"><b>${g.subject || 'B.Tech AIDS Project'}</b></td>
-          </tr>
-        </table>
-
-        <div style="font-weight:700; font-size:14px; margin:20px 0 8px; color:#0d5c75;">Individual Student Rubric Marks &amp; Final Awarded Grades</div>
-        <table class="rubric-table">
-          <thead>
-            <tr>
-              <th>Student Name &amp; Role</th>
-              <th style="text-align:center;">Code &amp; Role (10)</th>
-              <th style="text-align:center;">Task Output (10)</th>
-              <th style="text-align:center;">Reports (10)</th>
-              <th style="text-align:center;">Viva Defense (10)</th>
-              <th style="text-align:center;">Total (40)</th>
-              <th style="text-align:center;">Final Grade</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${ms.map(m => {
-              const me = m.evaluation || { q1:8, q2:8, q3:8, q4:8, score:32, pct:80, grade:'A' };
-              return `
-                <tr>
-                  <td><b>${m.name}</b> (${m.role}) ${m.id===g.leadId?'<span style="color:#0d5c75;font-weight:700">— Lead</span>':''}</td>
-                  <td style="text-align:center;">${me.q1||8}</td>
-                  <td style="text-align:center;">${me.q2||8}</td>
-                  <td style="text-align:center;">${me.q3||8}</td>
-                  <td style="text-align:center;">${me.q4||8}</td>
-                  <td style="text-align:center; font-weight:700; color:#0d5c75;">${me.score||32} / 40 (${me.pct||80}%)</td>
-                  <td style="text-align:center; font-weight:800; color:#2e7d32;">GRADE: ${me.grade||'A'}</td>
-                </tr>
-              `;
-            }).join('')}
-          </tbody>
-        </table>
-
-        <div style="display:flex; justify-content:space-between; align-items:center; margin:20px 0; padding:16px; background:#f6f8f9; border-radius:8px; border:1px solid #d0d7de;">
-          <div>
-            <div style="font-size:12px; font-weight:700; color:#6e7c81; text-transform:uppercase;">Final Awarded Grade</div>
-            <div class="badge" style="margin-top:4px;">GRADE: ${ev.grade || 'A'}</div>
-          </div>
-          <div style="max-width:450px; font-size:12.5px; color:#45565b;">
-            <b>Faculty Evaluator Remarks:</b><br/>
-            <i>"${ev.remarks || 'Project successfully demonstrated code proficiency and thorough documentation.'}"</i>
-          </div>
-        </div>
-
-        <div class="sig-box">
-          <div>
-            <div style="font-size:11px; color:#6e7c81;">Date of Evaluation</div>
-            <div style="font-weight:700; font-size:13px; margin-top:2px;">${new Date(ev.ts || Date.now()).toLocaleDateString('en-US', { day:'numeric', month:'short', year:'numeric' })}</div>
-          </div>
-          <div class="sig-line">
-            <b>${ev.evaluatorName || 'Faculty Evaluator'}</b><br/>
-            Faculty Supervisor Signature
-          </div>
-        </div>
-      </body>
-      </html>
-    `);
-    win.document.close();
-  },
   printReport(gid) {
     const targetGid = gid || (App.me && App.me.groupId);
     const g = group(targetGid) || (myGroups()[0] || null);
@@ -4699,210 +4577,6 @@ const Modal={
     DB.save(); FX.tap('done'); Modal.close(); App.render();
     toast(I.check(15),`${f.name} can now see your group`);
   },
-
-  /* ---- individual member rubric grading ---- */
-  gradeGroupMembers(gid){
-    const g = group(gid); if (!g) return;
-    const ms = membersOf(g.id);
-    if (!ms || !ms.length) return toast(I.alert(15), 'No members in this group to grade');
-
-    if (!Modal._activeGradeMemberId || !ms.some(m => m.id === Modal._activeGradeMemberId)) {
-      Modal._activeGradeMemberId = ms[0].id;
-    }
-    const activeM = user(Modal._activeGradeMemberId) || ms[0];
-
-    Modal.open(`
-      <div class="mh">
-        ${I.award(18)} <h3>Individual Member Rubric Evaluation — ${esc(g.name)}</h3>
-        <button class="btn ico sm gho" onclick="Modal.close()">${I.x(15)}</button>
-      </div>
-      <div class="mb">
-        <div class="banner info" style="margin-bottom:12px">
-          ${I.cap(16)}
-          <div><b>Project:</b> ${esc(g.project)} · Grade each of the 4 team members individually based on rubrics (max 10 marks per criterion).</div>
-        </div>
-
-        <!-- Member Tab Switcher -->
-        <div style="display:flex; gap:6px; margin-bottom:14px; border-bottom:1px solid var(--line); padding-bottom:8px; overflow-x:auto;">
-          ${ms.map((m) => `
-            <button class="btn sm ${m.id === Modal._activeGradeMemberId ? 'pri' : 'gho'}" id="tab_m_${m.id}" onclick="Modal.switchGradeMemberTab('${m.id}', '${gid}')">
-              ${av(m, 'sm')}
-              <span>${esc((m.name||'Student').split(' ')[0])} (${esc(m.role)})</span>
-              ${m.evaluation ? `<span class="tag" style="background:var(--green-s);color:var(--green);font-size:10px;padding:1px 5px">${m.evaluation.grade}</span>` : ''}
-            </button>
-          `).join('')}
-        </div>
-
-        <div id="member_grade_form">
-          ${Modal._renderMemberGradeForm(activeM, gid)}
-        </div>
-      </div>
-      <div class="mf">
-        <button class="btn" onclick="Export.officialGradeSheet('${gid}')">🖨️ Print Full Marksheet PDF</button>
-        <div class="sp"></div>
-        <button class="btn" onclick="Modal.close()">Close</button>
-      </div>
-    `);
-  },
-
-  switchGradeMemberTab(uid, gid){
-    Modal._activeGradeMemberId = uid;
-    const ms = membersOf(gid);
-    ms.forEach(m => {
-      const btn = document.getElementById(`tab_m_${m.id}`);
-      if (btn) btn.className = `btn sm ${m.id === uid ? 'pri' : 'gho'}`;
-    });
-    const targetM = user(uid);
-    const formEl = document.getElementById('member_grade_form');
-    if (formEl && targetM) formEl.innerHTML = Modal._renderMemberGradeForm(targetM, gid);
-  },
-
-  _renderMemberGradeForm(m, gid){
-    if (!m) return '<div class="empty">No student member selected</div>';
-    const ev = m.evaluation || { q1: 8, q2: 8, q3: 8, q4: 8, remarks: '' };
-    const firstName = (m.name || 'Student').split(' ')[0];
-    return `
-      <div style="border:1px solid var(--line); border-radius:var(--r2); padding:14px; background:var(--surface)">
-        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; border-bottom:1px solid var(--line-2); padding-bottom:10px">
-          <div style="display:flex; align-items:center; gap:10px">
-            ${av(m, 'lg')}
-            <div>
-              <div style="font-weight:700; font-size:14px; color:var(--ink)">${esc(m.name || 'Member')}</div>
-              <div style="font-size:12px; color:var(--accent); font-weight:600">${esc(m.role || 'Role')} · ${esc(m.email || '')}</div>
-            </div>
-          </div>
-          <div id="m_eval_badge" class="tag" style="background:var(--green-s); color:var(--green); font-size:14px; font-weight:800; padding:5px 12px">
-            ${m.evaluation ? `Grade: ${m.evaluation.grade} (${m.evaluation.score}/40)` : 'Not Graded Yet'}
-          </div>
-        </div>
-
-        <div style="display:grid; gap:10px">
-          <div class="field"><label>1. Role Execution &amp; Code Quality (0 to 10)</label>
-            <input type="number" class="inp" id="mem_q1" min="0" max="10" value="${ev.q1 || 8}" onchange="Modal.calcMemberGrade()"/></div>
-          <div class="field"><label>2. Technical Task Output &amp; Completion (0 to 10)</label>
-            <input type="number" class="inp" id="mem_q2" min="0" max="10" value="${ev.q2 || 8}" onchange="Modal.calcMemberGrade()"/></div>
-          <div class="field"><label>3. Documentation &amp; Individual Lab Reports (0 to 10)</label>
-            <input type="number" class="inp" id="mem_q3" min="0" max="10" value="${ev.q3 || 8}" onchange="Modal.calcMemberGrade()"/></div>
-          <div class="field"><label>4. Individual Viva &amp; Q&amp;A Defense (0 to 10)</label>
-            <input type="number" class="inp" id="mem_q4" min="0" max="10" value="${ev.q4 || 8}" onchange="Modal.calcMemberGrade()"/></div>
-
-          <div style="display:flex; align-items:center; justify-content:space-between; padding:10px 12px; border:1px solid var(--line); border-radius:var(--r2); background:var(--surface-2)">
-            <div>
-              <div style="font-weight:700; font-size:13px">Total Marks: <span id="mem_tot" style="color:var(--accent); font-size:16px">32</span> / 40</div>
-              <div style="font-size:11.5px; color:var(--muted)">Percentage: <b id="mem_pct">80%</b></div>
-            </div>
-            <div id="mem_grade" class="tag" style="background:var(--green-s); color:var(--green); font-size:15px; font-weight:800; padding:4px 12px">Grade: A</div>
-          </div>
-
-          <div class="field"><label>Individual Faculty Remarks &amp; Feedback for ${esc(firstName)}</label>
-            <textarea class="inp" id="mem_remarks" style="height:56px" placeholder="Write specific evaluation comments for ${esc(firstName)}...">${esc(ev.remarks || '')}</textarea></div>
-
-          <button class="btn pri" style="margin-top:4px" onclick="Modal.saveMemberGrade('${m.id}', '${gid}')">${I.check(14)} Save &amp; Publish Grade for ${esc(firstName)}</button>
-        </div>
-      </div>
-    `;
-  },
-
-  calcMemberGrade(){
-    const getV = id => Math.min(10, Math.max(0, +document.getElementById(id).value || 0));
-    const q1 = getV('mem_q1'), q2 = getV('mem_q2'), q3 = getV('mem_q3'), q4 = getV('mem_q4');
-    const tot = q1 + q2 + q3 + q4, pct = Math.round((tot / 40) * 100);
-    const gr = pct >= 90 ? 'A+' : pct >= 80 ? 'A' : pct >= 70 ? 'B+' : pct >= 60 ? 'B' : 'C';
-    const col = pct >= 80 ? 'green' : pct >= 60 ? 'accent' : 'amber';
-    
-    const totEl = document.getElementById('mem_tot'), pctEl = document.getElementById('mem_pct'), grEl = document.getElementById('mem_grade');
-    if (totEl) totEl.textContent = tot;
-    if (pctEl) pctEl.textContent = pct + '%';
-    if (grEl) { grEl.textContent = 'Grade: ' + gr; grEl.style.background = `var(--${col}-s)`; grEl.style.color = `var(--${col})`; }
-  },
-
-  saveMemberGrade(uid, gid){
-    const m = user(uid); if (!m) return;
-    const getV = id => Math.min(10, Math.max(0, +document.getElementById(id).value || 0));
-    const q1 = getV('mem_q1'), q2 = getV('mem_q2'), q3 = getV('mem_q3'), q4 = getV('mem_q4');
-    const tot = q1 + q2 + q3 + q4, pct = Math.round((tot / 40) * 100);
-    const grade = pct >= 90 ? 'A+' : pct >= 80 ? 'A' : pct >= 70 ? 'B+' : pct >= 60 ? 'B' : 'C';
-    const remarks = (document.getElementById('mem_remarks') || {}).value || '';
-
-    m.evaluation = { q1, q2, q3, q4, score: tot, max: 40, pct, grade, remarks, evaluatorName: App.me ? App.me.name : 'Faculty', ts: now() };
-    log(gid, `graded member <b>${esc(m.name)}</b> (${esc(m.role)}): <b>Grade ${grade} (${tot}/40)</b>`);
-    DB.save(); API.push(); FX.tap('done');
-    toast(I.check(15), `Saved Grade ${grade} for ${m.name}`);
-    App.render();
-    Modal.switchGradeMemberTab(uid, gid);
-  },
-
-  cmdPalette(){
-    Modal.open(`
-      <div class="mh">
-        ${I.search(18)} <h3>Quick Command Palette &amp; Search</h3>
-        <span class="mono" style="font-size:11px; background:var(--surface-2); padding:2px 8px; border-radius:4px; color:var(--muted)">Cmd + K / Ctrl + K</span>
-        <div class="sp"></div>
-        <button class="btn ico sm gho" onclick="Modal.close()">${I.x(15)}</button>
-      </div>
-      <div class="mb">
-        <input class="inp" id="cmd_in" style="font-size:15px; padding:12px; margin-bottom:12px;" placeholder="Search tasks, subjects, team members, deliverables..." oninput="Modal.renderCmdResults(this.value)"/>
-        <div id="cmd_results" style="display:grid; gap:6px; max-height:360px; overflow-y:auto;">
-          ${Modal._cmdItems('')}
-        </div>
-      </div>
-      <div class="mf">
-        <span style="font-size:11.5px; color:var(--faint)">Type to filter items across all 8 semesters</span>
-        <div class="sp"></div>
-        <button class="btn" onclick="Modal.close()">Close</button>
-      </div>
-    `);
-    setTimeout(()=>{ const el=document.getElementById('cmd_in'); if(el) el.focus(); }, 100);
-  },
-  renderCmdResults(query){
-    const el = document.getElementById('cmd_results');
-    if(el) el.innerHTML = Modal._cmdItems(query);
-  },
-  _cmdItems(q){
-    const txt = (q||'').toLowerCase().trim();
-    const gs = myGroups(), ids = gs.map(g=>g.id);
-    const tasks = DB.s.tasks.filter(t=>ids.includes(t.groupId));
-    let items = [];
-
-    // Subjects
-    SEM3.forEach(s => {
-      if(!txt || s.code.toLowerCase().includes(txt) || s.name.toLowerCase().includes(txt)){
-        items.push({ type:'Subject', label: `${s.code} — ${s.name}`, action: () => { Modal.close(); App.openSubject(s.code); } });
-      }
-    });
-
-    // Tasks
-    tasks.forEach(t => {
-      if(!txt || t.title.toLowerCase().includes(txt) || (t.desc||'').toLowerCase().includes(txt)){
-        items.push({ type:'Task', label: t.title, sub: `Due ${dstr(t.due)} · ${t.status}`, action: () => { Modal.close(); Modal.task(t.id); } });
-      }
-    });
-
-    // Members
-    gs.flatMap(g=>membersOf(g.id)).forEach(m => {
-      if(!txt || m.name.toLowerCase().includes(txt) || m.role.toLowerCase().includes(txt)){
-        items.push({ type:'Member', label: m.name, sub: `${m.role} · ${m.email}`, action: () => { Modal.close(); App.go('team'); } });
-      }
-    });
-
-    Modal._lastCmdItems = items;
-    if(!items.length) return `<div class="empty" style="padding:20px">${I.search(20)}<p>No matching items found for "${esc(q)}"</p></div>`;
-
-    return items.slice(0, 10).map((item, i) => `
-      <div onclick="Modal._cmdExec(${i})" style="display:flex; align-items:center; justify-content:space-between; padding:10px 12px; border:1px solid var(--line); border-radius:var(--r2); cursor:pointer; background:var(--surface);" onmouseover="this.style.background='var(--surface-2)'" onmouseout="this.style.background='var(--surface)'">
-        <div>
-          <div style="font-weight:600; font-size:13px; color:var(--ink)">${esc(item.label)}</div>
-          ${item.sub ? `<div style="font-size:11.5px; color:var(--muted); margin-top:2px">${esc(item.sub)}</div>` : ''}
-        </div>
-        <span class="tag" style="background:var(--accent-soft); color:var(--accent); font-weight:700">${item.type}</span>
-      </div>
-    `).join('');
-  },
-  _cmdExec(idx){
-    if(Modal._lastCmdItems && Modal._lastCmdItems[idx]) {
-      Modal._lastCmdItems[idx].action();
-    }
-  },
   removeTeacher(id){
     const f=user(id), g=group(App.me.groupId);
     Modal.open(`<div class="mh"><h3>Remove ${esc(f.name)} as guide?</h3></div>
@@ -5463,7 +5137,6 @@ const Modal={
 };
 
 document.addEventListener('keydown',e=>{ if(e.key==='Escape'){ Modal.close(); const p=document.getElementById('notifPanel'); if(p) p.remove(); } });
-document.addEventListener('keydown',e=>{ if((e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==='k'){ e.preventDefault(); Modal.cmdPalette(); } });
 document.addEventListener('click',e=>{ const p=document.getElementById('notifPanel'); if(p&&!e.target.closest('.bellwrap')) p.remove(); });
 App.boot();
 </script>
