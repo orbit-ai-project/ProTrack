@@ -1439,6 +1439,7 @@ const Auth={
   },
 
   leadHTML(){
+    const defaultSem = 3;
     return `${Auth.head()}
       <h1>Create your team</h1>
       <p class="lede">You will be registered as the Team Lead and can add three members afterwards.</p>
@@ -1449,7 +1450,15 @@ const Auth={
           <div class="field"><label for="r_pass">Password</label><input class="inp" id="r_pass" type="password" placeholder="Min. 6 characters"/></div>
           <div class="field"><label for="r_pass2">Confirm</label><input class="inp" id="r_pass2" type="password" placeholder="Repeat password"/></div>
         </div>
-        <div class="field"><label for="r_group">Group name</label><input class="inp" id="r_group" placeholder="e.g. Group 04"/></div>
+        <div class="two">
+          <div class="field">
+            <label for="r_sem">Semester</label>
+            <select class="inp" id="r_sem">
+              ${[1,2,3,4,5,6,7,8].map(s=>`<option value="${s}" ${s===defaultSem?'selected':''}>Semester ${s}</option>`).join('')}
+            </select>
+          </div>
+          <div class="field"><label for="r_group">Group name</label><input class="inp" id="r_group" placeholder="e.g. Group 04"/></div>
+        </div>
         <div class="field"><label for="r_project">Project title</label><input class="inp" id="r_project" placeholder="e.g. Library Management System"/></div>
         <div id="r_err"></div>
         <button class="btn pri blk" style="height:36px" onclick="Auth.registerLead()">Create team and continue</button>
@@ -1541,7 +1550,7 @@ const Auth={
   registerLead(){
     const g=id=>document.getElementById(id).value.trim();
     const name=g('r_name'), email=g('r_email'), pw=document.getElementById('r_pass').value,
-          pw2=document.getElementById('r_pass2').value, gname=g('r_group'), proj=g('r_project'), subj='23AID205';
+          pw2=document.getElementById('r_pass2').value, sem=g('r_sem')||'3', gname=g('r_group'), proj=g('r_project');
     if(!name) return Auth.showErr('r_err','Enter your full name.');
     if(!emailOk(email)) return Auth.showErr('r_err','Enter a valid email address.');
     if(userByEmail(email)) return Auth.showErr('r_err','An account with that email already exists.');
@@ -1551,13 +1560,15 @@ const Auth={
     if(!proj) return Auth.showErr('r_err','Enter your project title.');
 
     const gid='g-'+uid(), uidv='u-'+uid();
-    const c=SEM3.find(s=>s.code===subj);
-    DB.s.users.push({id:uidv,name,email,pass:hash(pw),role:'Team Lead',groupId:gid,color:AVC[DB.s.users.length%AVC.length],createdAt:now()});
-    DB.s.groups.push({id:gid,name:gname,project:proj,subject:c?c.code+' · '+c.name:'—',
+    const semInt=parseInt(sem,10);
+    const semCourses=CURRICULUM[semInt]||CURRICULUM[3];
+    const c=semCourses[0];
+    DB.s.users.push({id:uidv,name,email,pass:hash(pw),role:'Team Lead',groupId:gid,semester:semInt,color:AVC[DB.s.users.length%AVC.length],createdAt:now()});
+    DB.s.groups.push({id:gid,name:gname,project:proj,semester:semInt,subject:c?c.code+' · '+c.name:'—',
       courseCode:c?c.code:null,subjects:c?[c.code]:[],topics:{},leadId:uidv,createdAt:now()});
     DB.save();
     App.signIn(uidv);
-    setTimeout(()=>toast(I.check(15),'Team created. Add your members next.'),300);
+    setTimeout(()=>toast(I.check(15),`Team created for Semester ${semInt}. Add your members next.`),300);
     App.tab='team'; App.render();
   },
 
