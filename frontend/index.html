@@ -1803,14 +1803,12 @@ const Page={
   },
 
   renderCompactWidget(){
-    if(Cal.y==null) Cal.init();
-    const y=Cal.y, m=Cal.m;
+    const td = new Date();
+    const y = td.getFullYear(), m = td.getMonth();
     const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
     const curMonth = monthNames[m];
     const curYear = y;
-
-    const td = new Date();
-    const isCurMonth = td.getFullYear()===y && td.getMonth()===m;
+    const isCurMonth = true;
     const curDay = td.getDate();
 
     const firstDay = new Date(y, m, 1).getDay();
