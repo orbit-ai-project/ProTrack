@@ -1446,17 +1446,30 @@ const Auth={
   },
 
   facultyHTML(){
+    const defaultSem = 3;
+    const initialSubjects = CURRICULUM[defaultSem] || [];
     return `${Auth.head()}
       <h1>Faculty registration</h1>
-      <p class="lede">Select your teaching subject and supervise student groups by Group Number.</p>
+      <p class="lede">Select your semester and teaching subject to supervise student groups.</p>
       <div class="form">
         <div class="field"><label for="f_name">Full name</label><input class="inp" id="f_name" placeholder="e.g. Dr. Anjali Sharma"/></div>
         <div class="field"><label for="f_email">Email</label><input class="inp" id="f_email" type="email" placeholder="you@college.edu"/></div>
-        <div class="field"><label for="f_subj">Teaching Subject (Sem 3)</label>
-          <select class="inp" id="f_subj">
-            ${SEM3.map(s=>`<option value="${s.code}">${s.code} — ${esc(s.name)}</option>`).join('')}
-          </select>
+        
+        <div class="two">
+          <div class="field">
+            <label for="f_sem">Semester</label>
+            <select class="inp" id="f_sem" onchange="Auth.onFacultySemChange(this.value)">
+              ${[1,2,3,4,5,6,7,8].map(s=>`<option value="${s}" ${s===defaultSem?'selected':''}>Semester ${s}</option>`).join('')}
+            </select>
+          </div>
+          <div class="field">
+            <label for="f_subj">Teaching Subject</label>
+            <select class="inp" id="f_subj">
+              ${initialSubjects.map(s=>`<option value="${s.code}">${s.code} — ${esc(s.name)}</option>`).join('')}
+            </select>
+          </div>
         </div>
+
         <div class="two">
           <div class="field"><label for="f_pass">Password</label><input class="inp" id="f_pass" type="password" placeholder="Min. 6 characters"/></div>
           <div class="field"><label for="f_pass2">Confirm</label><input class="inp" id="f_pass2" type="password" placeholder="Repeat password"/></div>
@@ -1465,6 +1478,13 @@ const Auth={
         <button class="btn pri blk" style="height:36px" onclick="Auth.registerFaculty()">Create account</button>
       </div>
       <div class="switcher"><button onclick="Auth.go('choose')">Back</button></div>`;
+  },
+  onFacultySemChange(sem){
+    const list = CURRICULUM[sem] || [];
+    const sel = document.getElementById('f_subj');
+    if (sel) {
+      sel.innerHTML = list.map(s => `<option value="${s.code}">${s.code} — ${esc(s.name)}</option>`).join('');
+    }
   },
 
   credsHTML(){
@@ -1533,6 +1553,7 @@ const Auth={
     const g=id=>document.getElementById(id);
     const name=(g('f_name')?.value||'').trim();
     const email=(g('f_email')?.value||'').trim();
+    const sem=g('f_sem')?.value||'3';
     const subjectEl=g('f_subj');
     const subjectCode=subjectEl?subjectEl.value:'23AID205';
     const pw=g('f_pass')?.value||'';
@@ -1544,9 +1565,9 @@ const Auth={
     if(pw!==pw2) return Auth.showErr('f_err','The two passwords do not match.');
     if(!subjectCode) return Auth.showErr('f_err','Please select your teaching subject.');
     const uidv='u-'+uid();
-    DB.s.users.push({id:uidv,name,email,pass:hash(pw),role:'Faculty',subjectCode,groupId:null,color:AVC[DB.s.users.length%AVC.length],createdAt:now()});
+    DB.s.users.push({id:uidv,name,email,pass:hash(pw),role:'Faculty',subjectCode,semester:parseInt(sem,10),groupId:null,color:AVC[DB.s.users.length%AVC.length],createdAt:now()});
     DB.save(); App.signIn(uidv);
-    setTimeout(()=>toast(I.check(15),`Faculty account created · Subject: ${subjectCode}`),300);
+    setTimeout(()=>toast(I.check(15),`Faculty account created · Semester ${sem} · Subject: ${subjectCode}`),300);
   }
 };
 
