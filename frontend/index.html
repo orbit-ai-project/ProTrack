@@ -2105,10 +2105,14 @@ const Page={
     const ts=tasksOf(g.id), p=pctOf(ts), ms=membersOf(g.id);
     const blocked=ts.filter(t=>t.status==='blocked').length;
     const overdue=ts.filter(t=>t.status!=='done'&&t.due<now()).length;
+    const ev=g.evaluation;
     return `<div class="gcard" onclick="App.openG('${g.id}')">
       <div style="display:flex;gap:12px;align-items:flex-start">
         <div style="flex:1;min-width:0">
-          <div style="font-weight:600;font-size:14px">${esc(g.name)}</div>
+          <div style="display:flex;align-items:center;gap:8px">
+            <div style="font-weight:600;font-size:14px">${esc(g.name)}</div>
+            ${ev?`<span class="tag" style="background:var(--green-s);color:var(--green);font-weight:700">Grade: ${esc(ev.grade)} (${ev.score}/40)</span>`:''}
+          </div>
           <div style="color:var(--muted);font-size:12.5px;margin-top:1px">${esc(g.project)}</div>
           <div style="display:flex;gap:5px;margin-top:9px;flex-wrap:wrap">
             ${tag(`${ts.filter(t=>t.status==='done').length}/${ts.length} done`,'green')}
@@ -3163,7 +3167,13 @@ const Board={
     const pc=t.status==='done'?100:t.progress, can=Board.canEdit(t);
     return `<div class="tc ${t.status==='done'?'is-done':''} ${t.id===Board.flash?'flash':''} ${can?'drag':''}" ${can?'draggable="true"':''} data-id="${t.id}" onclick="Modal.task('${t.id}')">
       <div class="t">${esc(t.title)}</div>
-      <div style="display:flex;gap:5px;flex-wrap:wrap">${tag(p.n,p.c)}${m?`<span class="tag" style="background:var(--gray-s);color:var(--muted)">${esc(m.role)}</span>`:''}${t.topic?`<span class="tag" style="background:var(--accent-soft);color:var(--accent)">${esc(t.topic)}</span>`:''}</div>
+      <div style="display:flex;gap:5px;flex-wrap:wrap">
+        ${tag(p.n,p.c)}
+        ${m?`<span class="tag" style="background:var(--gray-s);color:var(--muted)">${esc(m.role)}</span>`:''}
+        ${t.topic?`<span class="tag" style="background:var(--accent-soft);color:var(--accent)">${esc(t.topic)}</span>`:''}
+        ${t.githubUrl?`<span class="tag" style="background:#24292e;color:#fff;font-family:monospace" title="${esc(t.githubUrl)}">GitHub</span>`:''}
+        ${t.attachmentUrl?`<span class="tag" style="background:var(--blue-s);color:var(--blue)" title="${esc(t.attachmentUrl)}">Doc</span>`:''}
+      </div>
       <div style="margin-top:9px;display:flex;align-items:center;gap:7px">
         <div style="flex:1">${bar(pc,s.c==='gray'?'accent':s.c)}</div>
         <span style="font-size:11px;color:var(--muted);font-weight:500">${pc}%</span></div>
@@ -4591,6 +4601,12 @@ const Modal={
         <div><div class="sec" style="margin-bottom:5px">Description</div>
           <div style="font-size:12.5px;line-height:1.6;color:var(--ink-2)">${esc(t.desc)||'<span style="color:var(--faint)">No description provided.</span>'}</div></div>
 
+        ${t.githubUrl || t.attachmentUrl ? `
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin:10px 0;">
+          ${t.githubUrl ? `<a href="${esc(t.githubUrl)}" target="_blank" rel="noopener" class="btn sm" style="background:#24292e;color:#fff;text-decoration:none">${I.code(14)} View GitHub PR / Code</a>` : ''}
+          ${t.attachmentUrl ? `<a href="${esc(t.attachmentUrl)}" target="_blank" rel="noopener" class="btn sm gho" style="text-decoration:none">${I.paperclip(14)} View Attachment Document</a>` : ''}
+        </div>` : ''}
+
         ${can?`
         <div class="field"><label>Status</label>
           <div class="seg">${STATUSES.map(x=>`<button class="${t.status===x.id?'on':''}" onclick="Modal.setStatus('${t.id}','${x.id}')">${x.n}</button>`).join('')}</div></div>
@@ -4676,6 +4692,10 @@ const Modal={
           <div class="field"><label>Priority</label><select class="inp" id="f_prio">${PRIOS.map(p=>`<option value="${p.id}" ${(t?t.prio:'med')===p.id?'selected':''}>${p.n}</option>`).join('')}</select></div>
           <div class="field"><label>Due date</label><input type="date" class="inp" id="f_due" value="${inputDate(due)}"/></div>
         </div>
+        <div class="field"><label>GitHub PR / Submission Link <span style="color:var(--faint);font-weight:400">(optional)</span></label>
+          <input class="inp" id="f_gh" value="${t?esc(t.githubUrl||''):''}" placeholder="https://github.com/org/repo/pull/1"/></div>
+        <div class="field"><label>Document / Report Link <span style="color:var(--faint);font-weight:400">(optional)</span></label>
+          <input class="inp" id="f_att" value="${t?esc(t.attachmentUrl||''):''}" placeholder="https://drive.google.com/... or PDF URL"/></div>
         <div class="field"><label>Status</label><select class="inp" id="f_status">${STATUSES.map(s=>`<option value="${s.id}" ${(t?t.status:status)===s.id?'selected':''}>${s.n}</option>`).join('')}</select></div>
         <div id="f_err"></div>
       </div>
@@ -4693,15 +4713,17 @@ const Modal={
     const topic=(document.getElementById('f_topic')||{}).value||null;
     const dv=document.getElementById('f_due').value;
     const due=dv?new Date(dv+'T12:00:00').getTime():now();
+    const githubUrl=(document.getElementById('f_gh')||{}).value.trim();
+    const attachmentUrl=(document.getElementById('f_att')||{}).value.trim();
     const m=user(assigneeId);
     if(id){
       const t=DB.s.tasks.find(x=>x.id===id), re=t.assigneeId!==assigneeId;
-      Object.assign(t,{title,desc,assigneeId,prio:prioV,status,due,courseCode,topic,updatedAt:now()});
+      Object.assign(t,{title,desc,assigneeId,prio:prioV,status,due,courseCode,topic,githubUrl,attachmentUrl,updatedAt:now()});
       if(status==='done') t.progress=100;
       log(t.groupId, re?`reassigned <b>${esc(title)}</b> to <b>${esc(m.name)}</b> (${m.role})`:`updated <b>${esc(title)}</b>`);
       toast(I.check(15),'Task updated');
     }else{
-      DB.s.tasks.push({id:uid(),groupId:App.me.groupId,assigneeId,title,desc,status,prio:prioV,due,courseCode,topic,
+      DB.s.tasks.push({id:uid(),groupId:App.me.groupId,assigneeId,title,desc,status,prio:prioV,due,courseCode,topic,githubUrl,attachmentUrl,
         progress:status==='done'?100:0,createdAt:now(),updatedAt:now(),comments:[]});
       log(App.me.groupId,`assigned <b>${esc(title)}</b> to <b>${esc(m.name)}</b> (${m.role})`);
       toast(I.check(15),`Assigned to ${m.name.split(' ')[0]}`);
