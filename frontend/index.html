@@ -1646,11 +1646,13 @@ const App={
   navItems(){
     if(App.isFaculty){
       const gs=myGroups();
+      const facDelivCount = gs.reduce((a,g)=>a+(g.deliverables||[]).length,0);
       return [
         ['dashboard','Dashboard',I.home],
         ['assistant','AI Assistant',I.spark],
         ['analytics','Analytics',I.chart],
         ['calendar','Calendar',I.cal],
+        ['deliverables','Deliverables',I.folder,facDelivCount||null],
         ['groups','Groups',I.folder,gs.length],
         ['people','People',I.users,gs.reduce((a,g)=>a+membersOf(g.id).length,0)],
         ['activity','Activity',I.activity],
@@ -1659,10 +1661,13 @@ const App={
     }
     const my=tasksFor(App.me.id).filter(t=>t.status!=='done').length;
     const pendingReqs = (DB.s.invites||[]).filter(i=> i.groupId===App.me.groupId && i.status==='pending').length;
+    const myG = group(App.me.groupId);
+    const delivCount = myG ? (myG.deliverables||[]).length : 0;
     return [
       ['dashboard','Dashboard',I.home],
       ['assistant','AI Assistant',I.spark],
       ['subjects','Subjects',I.cap],
+      ['deliverables','Deliverables',I.folder,delivCount||null],
       ['calendar','Calendar',I.cal],
       ['board','Task Board',I.board],
       ['mytasks','My Tasks',I.list,my],
@@ -1687,7 +1692,7 @@ const App={
        <div style="flex:1;min-width:0"><div class="nm">${esc(App.me.name)}</div><div class="rl">${esc(App.me.role)}</div></div>
        ${I.chev(14)}`;
 
-    const titles={dashboard:'Dashboard',assistant:'AI Assistant',analytics:'Analytics',subjects:'Subjects',calendar:'Calendar',groups:'Groups',people:'People',activity:'Activity',
+    const titles={dashboard:'Dashboard',assistant:'AI Assistant',analytics:'Analytics',subjects:'Subjects',calendar:'Calendar',deliverables:'Deliverables',groups:'Groups',people:'People',activity:'Activity',
       board:'Task Board',mytasks:'My Tasks',team:'My Team',groupactivity:'Activity',group:'Group',settings:'Settings'};
     const g=App.openGroup?group(App.openGroup):null;
     const subC=App.openSubjectCode?SEM3.find(s=>s.code===App.openSubjectCode):null;
@@ -1707,6 +1712,7 @@ const App={
       App.tab==='analytics' ? Page.analytics() :
       App.tab==='subjects'  ? Page.subjectsHub() :
       App.tab==='subject'   ? Page.subjectDetail(App.openSubjectCode) :
+      App.tab==='deliverables' ? Page.deliverablesHub() :
       App.tab==='calendar'  ? Page.calendar() :
       App.tab==='groups'    ? Page.groups() :
       App.tab==='people'    ? Page.people() :
@@ -2247,6 +2253,86 @@ const Page={
                 Team Leads can directly upload PPT presentation slides, PDF project reports/research papers, ZIP code files, or share web links for faculty inspection.
               </p>
               ${isLead ? `<button class="btn pri sm" onclick="Modal.addDeliverable('${g.id}')">${I.plus(14)} Upload First File</button>` : ''}
+            </div>
+          `}
+        </div>
+      </div>
+    `;
+  },
+
+  deliverablesHub(){
+    const gs = myGroups();
+    let allDeliverables = [];
+    gs.forEach(g => {
+      (g.deliverables || []).forEach((d, idx) => {
+        allDeliverables.push({ ...d, groupName: g.name, groupProject: g.project, groupId: g.id, deliverableIdx: idx });
+      });
+    });
+
+    const isLead = App.isLead;
+    const myG = group(App.me ? App.me.groupId : null);
+
+    return `
+      <div class="ph">
+        <div>
+          <h1>Deliverables</h1>
+          <p>Central repository for Project PPTs, Reports, Research Papers &amp; Source Code</p>
+        </div>
+        <div class="sp"></div>
+        ${isLead && myG ? `<button class="btn pri" onclick="Modal.addDeliverable('${myG.id}')">${I.plus(15)} Upload Deliverable</button>` : ''}
+      </div>
+
+      <div class="kpis" style="margin-bottom:16px">
+        ${Page.kpi('Total Deliverables', allDeliverables.length, 'submitted files & links')}
+        ${Page.kpi('PPT Presentations', allDeliverables.filter(d=>d.type==='ppt').length, 'slides & Canva decks', 'amber')}
+        ${Page.kpi('PDF Reports / Papers', allDeliverables.filter(d=>d.type==='report').length, 'project documentation', 'blue')}
+        ${Page.kpi('Source Code Repos', allDeliverables.filter(d=>d.type==='code').length, 'ZIP archives & GitHub links', 'gray')}
+      </div>
+
+      <div class="card">
+        <div class="ch">
+          ${I.folder(16)} <h3>Submitted Project Artifacts (${allDeliverables.length})</h3>
+          <div class="sp"></div>
+          ${isLead && myG ? `<button class="btn sm pri" onclick="Modal.addDeliverable('${myG.id}')">${I.plus(13)} Add New File</button>` : ''}
+        </div>
+        <div class="cb">
+          ${allDeliverables.length ? `
+            <div style="display:grid; grid-template-columns:repeat(auto-fill,minmax(300px,1fr)); gap:14px">
+              ${allDeliverables.map(item => {
+                const icon = item.type==='ppt' ? I.chart(16) : item.type==='report' ? I.file(16) : item.type==='code' ? I.code(16) : I.paperclip(16);
+                const badgeColor = item.type==='ppt' ? 'amber' : item.type==='report' ? 'blue' : item.type==='code' ? 'gray' : 'green';
+                const typeLabel = item.type==='ppt' ? 'PPT Presentation' : item.type==='report' ? 'PDF / Report' : item.type==='code' ? 'Source Code' : 'Other Artifact';
+                const canDel = App.isLead && App.me && App.me.groupId === item.groupId;
+                return `
+                  <div style="border:1px solid var(--line); border-radius:var(--r2); padding:14px; background:var(--surface); display:flex; flex-direction:column; justify-content:space-between; gap:12px;">
+                    <div>
+                      <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; flex-wrap:wrap; gap:6px;">
+                        <span class="tag" style="background:var(--${badgeColor}-s); color:var(--${badgeColor}); font-weight:700;">${typeLabel}</span>
+                        <span class="tag" style="background:var(--gray-s); color:var(--muted); font-weight:600;">${esc(item.groupName)}</span>
+                      </div>
+                      <div style="font-weight:700; font-size:14px; color:var(--ink); line-height:1.3">${esc(item.title)}</div>
+                      <div style="font-size:12px; color:var(--accent); font-weight:500; margin-top:2px">${esc(item.groupProject)}</div>
+                      <div style="font-size:11.5px; color:var(--muted); margin-top:6px">${esc(item.desc || 'No description provided.')}</div>
+                    </div>
+                    <div style="display:flex; align-items:center; justify-content:space-between; border-top:1px solid var(--line-2); padding-top:10px;">
+                      <span style="font-size:11px; color:var(--faint)">By ${esc(item.submittedBy || 'Team')} · ${ago(item.ts)}</span>
+                      <div style="display:flex; gap:6px;">
+                        <a href="${esc(item.url)}" ${item.isFileUpload ? `download="${esc(item.title)}"` : ''} target="_blank" rel="noopener" class="btn sm pri" style="text-decoration:none">${icon} ${item.isFileUpload ? 'Download' : 'Open'}</a>
+                        ${canDel ? `<button class="btn sm dan ico" title="Delete" onclick="Modal.delDeliverable('${item.groupId}', ${item.deliverableIdx})">${I.trash(13)}</button>` : ''}
+                      </div>
+                    </div>
+                  </div>
+                `;
+              }).join('')}
+            </div>
+          ` : `
+            <div class="empty" style="padding:32px 14px">
+              ${I.folder(32)}
+              <div class="h">No project deliverables submitted yet</div>
+              <p style="font-size:13px; color:var(--muted); max-width:440px; margin:6px auto 16px">
+                Upload your project presentation slides, final PDF reports, research papers, and source code repositories for faculty review.
+              </p>
+              ${isLead && myG ? `<button class="btn pri" onclick="Modal.addDeliverable('${myG.id}')">${I.plus(15)} Upload First Deliverable</button>` : ''}
             </div>
           `}
         </div>
@@ -4628,16 +4714,33 @@ const Modal={
         <button class="btn ico sm gho" onclick="Modal.close()">${I.x(15)}</button>
       </div>
       <div class="mb">
-        <div class="field" style="background:var(--surface-2);padding:10px;border:1px solid var(--accent-line);border-radius:var(--r2)">
-          <label style="font-weight:700;color:var(--accent);display:flex;align-items:center;gap:6px">${I.folder(15)} Direct File Upload from Computer / Folder</label>
-          <input type="file" class="inp" id="deliv_file_input" style="padding:6px;cursor:pointer" accept=".pdf,.ppt,.pptx,.doc,.docx,.zip,.rar,.py,.ipynb,.txt,image/*" onchange="Modal.onFileSelected(this)"/>
-          <span class="hint" id="file_size_hint" style="color:var(--muted)">Upload PDF reports, PPT slides, ZIP code archives, or documents directly.</span>
+        <!-- Custom Drag & Dropzone -->
+        <div id="dropzone_box" onclick="document.getElementById('deliv_file_input').click()"
+             ondragover="event.preventDefault(); this.style.borderColor='var(--accent)'; this.style.background='var(--accent-soft)';"
+             ondragleave="this.style.borderColor='var(--accent-line)'; this.style.background='var(--surface-2)';"
+             ondrop="event.preventDefault(); this.style.borderColor='var(--accent-line)'; this.style.background='var(--surface-2)'; Modal.onFileDropped(event);"
+             style="border:2px dashed var(--accent-line); border-radius:var(--r2); background:var(--surface-2); padding:22px 16px; text-align:center; cursor:pointer; transition:all 0.15s ease;">
+          
+          <input type="file" id="deliv_file_input" style="display:none" accept=".pdf,.ppt,.pptx,.doc,.docx,.zip,.rar,.py,.ipynb,.txt,image/*" onchange="Modal.onFileSelected(this)"/>
+          
+          <div id="dropzone_content">
+            <div style="width:48px; height:48px; border-radius:50%; background:var(--accent-soft); color:var(--accent); display:flex; align-items:center; justify-content:center; margin:0 auto 10px;">
+              ${I.folder(22)}
+            </div>
+            <div style="font-weight:700; font-size:13.5px; color:var(--ink)">Click to upload or drag &amp; drop files here</div>
+            <div style="font-size:11.5px; color:var(--muted); margin-top:3px">PDF Reports, PPT Presentations, ZIP Code Archives, DOCX &amp; Images</div>
+            <button type="button" class="btn sm pri" style="margin-top:10px; pointer-events:none">${I.plus(13)} Browse Computer / Folder</button>
+          </div>
         </div>
 
-        <div style="text-align:center;font-size:11px;color:var(--faint);font-weight:700;margin:6px 0">— OR PASTE ONLINE URL —</div>
+        <div style="text-align:center; font-size:11px; color:var(--faint); font-weight:700; margin:14px 0 10px; display:flex; align-items:center; gap:8px;">
+          <div style="flex:1; height:1px; background:var(--line)"></div>
+          <span>OR PASTE ONLINE LINK</span>
+          <div style="flex:1; height:1px; background:var(--line)"></div>
+        </div>
 
         <div class="field">
-          <label>External File / Link URL <span style="color:var(--faint);font-weight:400">(Google Drive, GitHub PR, Canva)</span></label>
+          <label>External Link URL <span style="color:var(--faint); font-weight:400">(Google Drive, GitHub PR, Canva)</span></label>
           <input class="inp" id="deliv_url" placeholder="https://drive.google.com/... or https://github.com/..."/>
         </div>
 
@@ -4675,38 +4778,77 @@ const Modal={
     `);
   },
 
+  onFileDropped(e){
+    const dt = e.dataTransfer;
+    const files = dt && dt.files;
+    if(files && files.length){
+      document.getElementById('deliv_file_input').files = files;
+      Modal.onFileSelected(document.getElementById('deliv_file_input'));
+    }
+  },
+
   onFileSelected(input){
     const file = input.files && input.files[0];
     if(!file) return;
     const titleIn = document.getElementById('deliv_title');
     const typeIn = document.getElementById('deliv_type');
-    const hint = document.getElementById('file_size_hint');
+    const dropContent = document.getElementById('dropzone_content');
 
     if(titleIn && !titleIn.value.trim()){
       titleIn.value = file.name;
     }
 
     const nameLower = file.name.toLowerCase();
-    if(nameLower.endsWith('.pdf') || nameLower.endsWith('.doc') || nameLower.endsWith('.docx')) {
-      if(typeIn) typeIn.value = 'report';
-    } else if(nameLower.endsWith('.ppt') || nameLower.endsWith('.pptx')) {
-      if(typeIn) typeIn.value = 'ppt';
-    } else if(nameLower.endsWith('.zip') || nameLower.endsWith('.rar') || nameLower.endsWith('.py') || nameLower.endsWith('.ipynb')) {
-      if(typeIn) typeIn.value = 'code';
-    }
+    let ext = 'FILE';
+    if(nameLower.endsWith('.pdf')) { ext = 'PDF'; if(typeIn) typeIn.value = 'report'; }
+    else if(nameLower.endsWith('.doc') || nameLower.endsWith('.docx')) { ext = 'DOC'; if(typeIn) typeIn.value = 'report'; }
+    else if(nameLower.endsWith('.ppt') || nameLower.endsWith('.pptx')) { ext = 'PPT'; if(typeIn) typeIn.value = 'ppt'; }
+    else if(nameLower.endsWith('.zip') || nameLower.endsWith('.rar')) { ext = 'ZIP'; if(typeIn) typeIn.value = 'code'; }
+    else if(nameLower.endsWith('.py') || nameLower.endsWith('.ipynb')) { ext = 'CODE'; if(typeIn) typeIn.value = 'code'; }
 
     const sz = file.size >= 1048576 ? (file.size / 1048576).toFixed(2) + ' MB' : (file.size / 1024).toFixed(1) + ' KB';
-    if(hint) hint.innerHTML = `<b style="color:var(--green)">Selected file: ${esc(file.name)} (${sz})</b>`;
+
+    if(dropContent){
+      dropContent.innerHTML = `
+        <div style="display:flex; align-items:center; gap:12px; text-align:left; background:var(--surface); padding:12px 14px; border-radius:var(--r2); border:1px solid var(--accent-line);">
+          <div style="width:40px; height:40px; border-radius:var(--r); background:var(--accent-soft); color:var(--accent); font-weight:800; font-size:12px; display:flex; align-items:center; justify-content:center; flex:none;">
+            ${ext}
+          </div>
+          <div style="flex:1; min-width:0">
+            <div style="font-weight:700; font-size:13.5px; color:var(--ink); overflow:hidden; text-overflow:ellipsis; white-space:nowrap">${esc(file.name)}</div>
+            <div style="font-size:11.5px; color:var(--green); font-weight:600; margin-top:2px">Size: ${sz} · File selected &amp; ready</div>
+          </div>
+          <button type="button" class="btn sm gho ico" title="Change file" onclick="event.stopPropagation(); Modal.clearUploadedFile();">${I.x(14)}</button>
+        </div>
+      `;
+    }
 
     const reader = new FileReader();
-    reader.onload = (e) => {
+    reader.onload = (ev) => {
       Modal._uploadedFileData = {
         name: file.name,
         sizeStr: sz,
-        dataUrl: e.target.result
+        dataUrl: ev.target.result
       };
     };
     reader.readAsDataURL(file);
+  },
+
+  clearUploadedFile(){
+    Modal._uploadedFileData = null;
+    const input = document.getElementById('deliv_file_input');
+    if(input) input.value = '';
+    const dropContent = document.getElementById('dropzone_content');
+    if(dropContent){
+      dropContent.innerHTML = `
+        <div style="width:48px; height:48px; border-radius:50%; background:var(--accent-soft); color:var(--accent); display:flex; align-items:center; justify-content:center; margin:0 auto 10px;">
+          ${I.folder(22)}
+        </div>
+        <div style="font-weight:700; font-size:13.5px; color:var(--ink)">Click to upload or drag &amp; drop files here</div>
+        <div style="font-size:11.5px; color:var(--muted); margin-top:3px">PDF Reports, PPT Presentations, ZIP Code Archives, DOCX &amp; Images</div>
+        <button type="button" class="btn sm pri" style="margin-top:10px; pointer-events:none">${I.plus(13)} Browse Computer / Folder</button>
+      `;
+    }
   },
 
   doSaveDeliverable(gid){
