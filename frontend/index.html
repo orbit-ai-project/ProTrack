@@ -2165,24 +2165,31 @@ const Page={
   people(){
     const on=online(), gs=myGroups();
     if(!gs.length) return Page.notAssigned();
-    return `<div class="ph"><div><h1>People</h1><p>Students in the groups you supervise</p></div></div>
+    return `<div class="ph">
+        <div><h1>People</h1><p>Students in the groups you supervise</p></div>
+        <div class="sp"></div>
+        ${App.isFaculty ? `<button class="btn sm pri" onclick="Export.remarksCSV('all')">${I.chart(14)} Export All Remarks CSV</button>` : ''}
+      </div>
       ${gs.map(g=>{
         const ms=membersOf(g.id);
         return `<div class="card" style="margin-bottom:14px">
-          <div class="ch"><h3>${esc(g.name)}</h3>
-            <span style="color:var(--muted);font-size:12.5px">${esc(g.project)}</span>
+          <div class="ch"><h3>${esc(g.name)} — ${esc(g.project)}</h3>
             <div class="sp"></div>
-            <span style="font-size:12px;color:var(--muted)">${pctOf(tasksOf(g.id))}% complete</span>
-            <button class="btn sm" onclick="App.openG('${g.id}')">Open</button></div>
-          <table><thead><tr><th style="width:30%">Member</th><th>Role</th><th>Email</th><th>Tasks</th><th style="width:150px">Progress</th></tr></thead>
+            ${App.isFaculty ? `<button class="btn sm pri" onclick="Export.remarksCSV('${g.id}')">${I.chart(13)} Export CSV</button>` : ''}
+            <button class="btn sm gho" onclick="App.openG('${g.id}')">Open Group</button></div>
+          <table><thead><tr><th style="width:25%">Member</th><th>Role</th><th>Email</th><th>Individual Faculty Remark</th><th style="width:140px">Task Progress</th></tr></thead>
           <tbody>${ms.map(m=>{
-            const mt=tasksFor(m.id), byS=id=>mt.filter(t=>t.status===id).length;
+            const mt=tasksFor(m.id);
+            const mRemarks=DB.s.remarks.filter(r=>r.groupId===g.id && r.memberId===m.id);
+            const latestR=mRemarks[0];
             return `<tr>
               <td><div style="display:flex;align-items:center;gap:8px"><div style="position:relative">${av(m,'sm')}${dot(on[m.id])}</div>
-                <div><div style="font-weight:500">${esc(m.name)}</div>${on[m.id]?'<div style="font-size:11px;color:var(--green)">online</div>':''}</div></div></td>
+                <div><div style="font-weight:600">${esc(m.name)}</div>${on[m.id]?'<div style="font-size:11px;color:var(--green)">online</div>':''}</div></div></td>
               <td>${m.id===g.leadId?tag(m.role,'accent'):`<span style="color:var(--ink-2)">${esc(m.role)}</span>`}</td>
               <td><span class="mono" style="color:var(--muted)">${esc(m.email)}</span></td>
-              <td><div style="display:flex;gap:4px;flex-wrap:wrap">${STATUSES.filter(s=>byS(s.id)).map(s=>tag(byS(s.id)+' '+s.n,s.c)).join('')||'<span style="color:var(--faint)">None</span>'}</div></td>
+              <td>
+                ${latestR ? `<div style="font-size:12px;color:var(--ink);font-weight:500">${esc(latestR.text)} ${latestR.grade ? `<span class="tag" style="background:var(--green-s);color:var(--green);font-weight:700">${esc(latestR.grade)}</span>` : ''}</div>` : (App.isFaculty ? `<button class="btn sm pri" onclick="Modal.remark('${g.id}', '${m.id}')">${I.pin(13)} Add Member Remark</button>` : `<span style="color:var(--faint)">No remark yet</span>`)}
+              </td>
               <td><div style="display:flex;align-items:center;gap:8px">${bar(pctOf(mt),'accent')}<b style="font-size:12px;width:30px;text-align:right">${pctOf(mt)}%</b></div></td>
             </tr>`;
           }).join('')}</tbody></table>
@@ -2351,8 +2358,9 @@ const Page={
       <button class="btn ico" onclick="App.go('groups')">${I.chev(15)}</button>
       <div><h1>${esc(g.name)}</h1><p>${esc(g.project)} · ${esc(g.subject||'')} · ${ts.length} tasks</p></div>
       <div class="sp"></div>
-      <button class="btn" onclick="Modal.dropGroup('${gid}')">Stop supervising</button>
-      <button class="btn pri" onclick="Modal.remark('${gid}')">${I.pin(15)} Add remark</button>
+      <button class="btn sm" onclick="Export.remarksCSV('${gid}')">${I.chart(14)} Export Remarks CSV</button>
+      <button class="btn gho sm" onclick="Modal.dropGroup('${gid}')">Stop supervising</button>
+      ${App.isFaculty ? `<button class="btn pri sm" onclick="Modal.remark('${gid}')">${I.pin(15)} Add Member Remark</button>` : ''}
     </div>
 
     <div class="kpis">
@@ -2361,16 +2369,26 @@ const Page={
     </div>
 
     <div class="card" style="margin-bottom:16px">
-      <div class="ch"><h3>Members</h3><div class="sp"></div>
+      <div class="ch"><h3>Members (Individual Evaluation)</h3><div class="sp"></div>
         <span style="font-size:12px;color:var(--muted)">${ms.filter(m=>on[m.id]).length} of ${ms.length} online</span></div>
-      <div class="cb" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px">
+      <div class="cb" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px">
         ${ms.map(m=>{
           const mt=tasksFor(m.id);
-          return `<div style="display:flex;gap:11px;align-items:center;padding:11px;border:1px solid var(--line);border-radius:var(--r2)">
-            ${ring(pctOf(mt),46,'accent')}
-            <div style="min-width:0"><div style="font-weight:600;font-size:12.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(m.name)}</div>
-            <div style="font-size:11.5px;color:var(--muted)">${esc(m.role)}${m.id===g.leadId?' · lead':''}</div>
-            <div style="font-size:11.5px;color:var(--faint);margin-top:2px">${mt.filter(t=>t.status==='done').length}/${mt.length} tasks done${on[m.id]?' · <span style="color:var(--green)">online</span>':''}</div></div>
+          const mRemarks=DB.s.remarks.filter(r=>r.groupId===gid && r.memberId===m.id);
+          const latestR=mRemarks[0];
+          return `<div style="display:flex;flex-direction:column;gap:9px;padding:12px;border:1px solid var(--line);border-radius:var(--r2);background:var(--surface)">
+            <div style="display:flex;gap:10px;align-items:center">
+              ${ring(pctOf(mt),44,'accent')}
+              <div style="min-width:0;flex:1">
+                <div style="font-weight:600;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(m.name)}</div>
+                <div style="font-size:11.5px;color:var(--accent);font-weight:600">${esc(m.role)}${m.id===g.leadId?' · lead':''}</div>
+              </div>
+            </div>
+            ${latestR ? `<div style="background:var(--surface-2);border:1px solid var(--line-2);padding:7px 9px;border-radius:var(--r1);font-size:11.5px;color:var(--ink-2)">
+              <div style="display:flex;gap:5px;margin-bottom:3px">${latestR.grade ? `<span class="tag" style="background:var(--green-s);color:var(--green);font-weight:700">${esc(latestR.grade)}</span>` : ''}${latestR.score ? `<span class="tag" style="background:var(--accent-soft);color:var(--accent);font-weight:700">${esc(latestR.score)}</span>` : ''}</div>
+              <i>"${esc(latestR.text)}"</i>
+            </div>` : '<div style="font-size:11.5px;color:var(--faint);font-style:italic">No individual remark yet</div>'}
+            ${App.isFaculty ? `<button class="btn sm pri" style="margin-top:2px" onclick="Modal.remark('${gid}', '${m.id}')">${I.pin(13)} Add Remark for ${esc(m.name.split(' ')[0])}</button>` : ''}
           </div>`;
         }).join('')}
       </div>
@@ -2389,11 +2407,19 @@ const Page={
     </div>
 
     ${remarks.length?`<div class="card" style="margin-bottom:16px">
-      <div class="ch"><h3>Faculty remarks &amp; Evaluation</h3></div>
-      <div class="cb">${remarks.map(r=>`<div class="tl">
-        ${r.grade || r.score ? `<div style="display:flex;gap:6px;margin-bottom:4px">${r.grade?`<span class="tag" style="background:var(--accent-soft);color:var(--accent);font-weight:700">Grade: ${esc(r.grade)}</span>`:''}${r.score?`<span class="tag" style="background:var(--green-s);color:var(--green);font-weight:700">Score: ${esc(r.score)}</span>`:''}</div>`:''}
-        <div style="font-size:12.5px;line-height:1.5">${esc(r.text)}</div>
-        <div style="font-size:11px;color:var(--faint);margin-top:3px">${esc(r.by)} · ${ago(r.ts)}</div></div>`).join('')}</div>
+      <div class="ch">
+        <h3>Faculty Remarks &amp; Student Feedback (${remarks.length})</h3>
+        <div class="sp"></div>
+        <button class="btn sm pri" onclick="Export.remarksCSV('${gid}')">${I.chart(13)} Export CSV</button>
+      </div>
+      <div class="cb">${remarks.map(r=>`<div class="tl" style="margin-bottom:10px">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;flex-wrap:wrap">
+          ${r.memberName ? `<span class="tag" style="background:var(--accent-soft);color:var(--accent);font-weight:700">For: ${esc(r.memberName)} (${esc(r.memberRole||'Member')})</span>` : '<span class="tag" style="background:var(--gray-s);color:var(--muted)">Group Remark</span>'}
+          ${r.grade ? `<span class="tag" style="background:var(--green-s);color:var(--green);font-weight:700">${esc(r.grade)}</span>` : ''}
+          ${r.score ? `<span class="tag" style="background:var(--amber-s);color:var(--amber);font-weight:700">Score: ${esc(r.score)}</span>` : ''}
+        </div>
+        <div style="font-size:13px;line-height:1.5;color:var(--ink);font-weight:500">${esc(r.text)}</div>
+        <div style="font-size:11px;color:var(--faint);margin-top:4px">By ${esc(r.by)} · ${ago(r.ts)}</div></div>`).join('')}</div>
     </div>`:''}
 
     ${Page.renderDeliverables(g)}
@@ -3802,6 +3828,66 @@ const Export = {
     FX.tap('done');
     toast(I.check(15), 'Faculty Analytics Report exported successfully!');
   },
+
+  remarksCSV(gid) {
+    const gs = myGroups();
+    if (!gs.length) return toast(I.alert(15), 'No groups found to export remarks');
+
+    const activeGs = (!gid || gid === 'all') ? gs : gs.filter(g => g.id === gid);
+    const headers = ['Group Name', 'Project', 'Student Name', 'Role', 'Student Email', 'Grade', 'Score', 'Faculty Remarks', 'Evaluator', 'Date'];
+    
+    let rows = [];
+    activeGs.forEach(g => {
+      const ms = membersOf(g.id);
+      const groupRemarks = DB.s.remarks.filter(r => r.groupId === g.id);
+      
+      ms.forEach(m => {
+        const mRemarks = groupRemarks.filter(r => r.memberId === m.id || r.memberId === 'all' || !r.memberId);
+        if (mRemarks.length) {
+          mRemarks.forEach(r => {
+            rows.push([
+              `"${(g.name || '').replace(/"/g, '""')}"`,
+              `"${(g.project || '').replace(/"/g, '""')}"`,
+              `"${(m.name || '').replace(/"/g, '""')}"`,
+              `"${(m.role || '').replace(/"/g, '""')}"`,
+              `"${(m.email || '').replace(/"/g, '""')}"`,
+              `"${(r.grade || 'N/A').replace(/"/g, '""')}"`,
+              `"${(r.score || 'N/A').replace(/"/g, '""')}"`,
+              `"${(r.text || '').replace(/"/g, '""')}"`,
+              `"${(r.by || 'Faculty').replace(/"/g, '""')}"`,
+              `"${new Date(r.ts || Date.now()).toLocaleDateString()}"`
+            ]);
+          });
+        } else {
+          rows.push([
+            `"${(g.name || '').replace(/"/g, '""')}"`,
+            `"${(g.project || '').replace(/"/g, '""')}"`,
+            `"${(m.name || '').replace(/"/g, '""')}"`,
+            `"${(m.role || '').replace(/"/g, '""')}"`,
+            `"${(m.email || '').replace(/"/g, '""')}"`,
+            `"Not Graded"`,
+            `"N/A"`,
+            `"No individual remarks posted yet"`,
+            `"—"`,
+            `"—"`
+          ]);
+        }
+      });
+    });
+
+    const csvContent = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', `Group_Member_Faculty_Remarks_${new Date().toISOString().slice(0, 10)}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    FX.tap('done');
+    toast(I.check(15), 'Group Member Remarks exported to CSV successfully!');
+  },
   printReport(gid) {
     const targetGid = gid || (App.me && App.me.groupId);
     const g = group(targetGid) || (myGroups()[0] || null);
@@ -5092,9 +5178,18 @@ const Modal={
     DB.save(); FX.tap('error'); Modal.close(); toast(I.trash(15),'Task deleted'); App.render();
   },
 
-  remark(gid){
-    Modal.open(`<div class="mh"><h3>Review Remark & Evaluation Grade for ${esc(group(gid).name)}</h3><button class="btn ico sm gho" onclick="Modal.close()">${I.x(15)}</button></div>
+  remark(gid, targetMemberId){
+    const g = group(gid); if(!g) return;
+    const ms = membersOf(g.id);
+    Modal.open(`<div class="mh"><h3>Faculty Review Remark &amp; Member Evaluation</h3><button class="btn ico sm gho" onclick="Modal.close()">${I.x(15)}</button></div>
       <div class="mb">
+        <div class="field" style="margin-bottom:10px">
+          <label>Select Team Member to Evaluate</label>
+          <select class="inp" id="rk_member">
+            <option value="all" ${!targetMemberId || targetMemberId==='all' ? 'selected' : ''}>Entire Group (${esc(g.name)})</option>
+            ${ms.map(m => `<option value="${m.id}" ${targetMemberId===m.id ? 'selected' : ''}>${esc(m.name)} — ${esc(m.role)}</option>`).join('')}
+          </select>
+        </div>
         <div class="two" style="margin-bottom:10px">
           <div class="field"><label>Evaluation Grade <span style="color:var(--faint);font-weight:400">(optional)</span></label>
             <select class="inp" id="rk_grade">
@@ -5110,7 +5205,7 @@ const Modal={
             <input class="inp" id="rk_score" placeholder="e.g. 19/20"/>
           </div>
         </div>
-        <div class="field"><label>Review Remark &amp; Feedback</label>
+        <div class="field"><label>Faculty Review Remark &amp; Feedback</label>
           <textarea class="inp" id="rk_txt" placeholder="e.g. Excellent progress on the AI module. Ensure test coverage is complete before final review." style="min-height:90px"></textarea>
         </div>
         <div id="rk_err"></div>
@@ -5122,10 +5217,27 @@ const Modal={
     const txt=document.getElementById('rk_txt').value.trim();
     const grade=document.getElementById('rk_grade').value;
     const score=document.getElementById('rk_score').value.trim();
+    const memId=document.getElementById('rk_member').value;
     if(!txt) return Modal.err('rk_err','Write your remark first.');
-    DB.s.remarks.unshift({id:uid(),groupId:gid,text:txt,grade:grade||null,score:score||null,by:App.me.name,ts:now()});
-    log(gid,'posted a faculty evaluation remark');
-    DB.save(); FX.tap('done'); Modal.close(); toast(I.pin(15),'Faculty evaluation submitted'); App.render();
+
+    const targetM = memId !== 'all' ? user(memId) : null;
+    const memberName = targetM ? targetM.name : 'Entire Group';
+    const memberRole = targetM ? targetM.role : 'Group Level';
+
+    DB.s.remarks.unshift({
+      id: uid(),
+      groupId: gid,
+      memberId: memId,
+      memberName,
+      memberRole,
+      text: txt,
+      grade: grade || null,
+      score: score || null,
+      by: App.me ? App.me.name : 'Faculty',
+      ts: now()
+    });
+    log(gid, `posted a faculty evaluation remark for <b>${esc(memberName)}</b>`);
+    DB.save(); API.push(); FX.tap('done'); Modal.close(); toast(I.pin(15), `Faculty remark posted for ${memberName}`); App.render();
   },
 
   confirmReset(){
