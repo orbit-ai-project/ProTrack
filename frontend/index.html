@@ -851,20 +851,75 @@ const STATUSES=[
 const PRIOS=[{id:'low',n:'Low',c:'gray'},{id:'med',n:'Medium',c:'amber'},{id:'high',n:'High',c:'red'}];
 const AVC=['#5A6BD8','#2E8A6B','#B0651A','#A64A6E','#3C7FBF','#52AB98','#B0573F','#4A7A45'];
 
-/* Amrita Vishwa Vidyapeetham, Faridabad — B.Tech Artificial Intelligence & Data Science, Semester III (2023 curriculum) */
+/* Amrita Vishwa Vidyapeetham, Faridabad — B.Tech Artificial Intelligence & Data Science (AIDS) Full 8-Semester Curriculum */
 const INSTITUTE='Amrita Vishwa Vidyapeetham, Faridabad';
-const PROGRAM='B.Tech AI & Data Science';
-const SEM3=[
-  {code:'23MAT204',name:'Mathematics for Intelligent Systems 3',cr:3,cat:'Sciences'},
-  {code:'23AID201',name:'Modelling, Simulation & Analysis',cr:3,cat:'AI&DS Core'},
-  {code:'23AID202',name:'Introduction to Robotics',cr:3,cat:'AI&DS Core'},
-  {code:'23AID203',name:'Software-Defined Communication Systems',cr:3,cat:'AI&DS Core'},
-  {code:'23AID204',name:'Advanced Data Structures & Algorithm Analysis',cr:3,cat:'AI&DS Core'},
-  {code:'23AID205',name:'Introduction to AI and Machine Learning',cr:3,cat:'AI&DS Core'},
-  {code:'23AID206',name:'Introduction to Computer Networks',cr:3,cat:'AI&DS Core'},
-  {code:'23LSE201',name:'Life Skills for Engineers I',cr:'P/F',cat:'Humanities'},
-  {code:'—',name:'Amrita Value Programme I',cr:1,cat:'Humanities'}
-];
+const PROGRAM='B.Tech AI & Data Science (AIDS)';
+
+const CURRICULUM = {
+  1: [
+    {code:'23MAT101',name:'Single Variable Calculus & Linear Algebra',cr:4,cat:'Sciences'},
+    {code:'23PHY101',name:'Physics for AI & Data Science',cr:4,cat:'Sciences'},
+    {code:'23CSE101',name:'Problem Solving in Python',cr:4,cat:'Core'},
+    {code:'23EEE101',name:'Basics of Electrical & Electronics',cr:3,cat:'Core'},
+    {code:'23ENG101',name:'Communicative English',cr:2,cat:'Humanities'},
+    {code:'23CUL101',name:'Cultural Education I',cr:1,cat:'Humanities'}
+  ],
+  2: [
+    {code:'23MAT102',name:'Multivariable Calculus & Vector Analysis',cr:4,cat:'Sciences'},
+    {code:'23CSE102',name:'Object Oriented Programming (C++ & Java)',cr:4,cat:'Core'},
+    {code:'23CSE103',name:'Data Structures & Algorithms',cr:4,cat:'Core'},
+    {code:'23EEE102',name:'Digital Logic & Computer Architecture',cr:3,cat:'Core'},
+    {code:'23ENV101',name:'Environmental Science & Sustainability',cr:2,cat:'Sciences'},
+    {code:'23CUL102',name:'Cultural Education II',cr:1,cat:'Humanities'}
+  ],
+  3: [
+    {code:'23MAT204',name:'Mathematics for Intelligent Systems 3',cr:3,cat:'Sciences'},
+    {code:'23AID201',name:'Modelling, Simulation & Analysis',cr:3,cat:'AI&DS Core'},
+    {code:'23AID202',name:'Introduction to Robotics',cr:3,cat:'AI&DS Core'},
+    {code:'23AID203',name:'Software-Defined Communication Systems',cr:3,cat:'AI&DS Core'},
+    {code:'23AID204',name:'Advanced Data Structures & Algorithm Analysis',cr:3,cat:'AI&DS Core'},
+    {code:'23AID205',name:'Introduction to AI and Machine Learning',cr:3,cat:'AI&DS Core'},
+    {code:'23AID206',name:'Introduction to Computer Networks',cr:3,cat:'AI&DS Core'},
+    {code:'23LSE201',name:'Life Skills for Engineers I',cr:'P/F',cat:'Humanities'}
+  ],
+  4: [
+    {code:'23AID211',name:'Machine Learning Algorithms & Applications',cr:4,cat:'AI&DS Core'},
+    {code:'23AID212',name:'Deep Learning & Neural Networks',cr:4,cat:'AI&DS Core'},
+    {code:'23AID213',name:'Operating Systems & System Programming',cr:3,cat:'Core'},
+    {code:'23AID214',name:'Computer Networks & Cloud Infrastructure',cr:3,cat:'Core'},
+    {code:'23AID215',name:'Data Warehousing & Big Data Analytics',cr:3,cat:'AI&DS Core'},
+    {code:'23AID216',name:'Mini Project I (AI & Data Science)',cr:2,cat:'Projects'}
+  ],
+  5: [
+    {code:'23AID301',name:'Natural Language Processing & Text Mining',cr:4,cat:'AI&DS Core'},
+    {code:'23AID302',name:'Computer Vision & Pattern Recognition',cr:4,cat:'AI&DS Core'},
+    {code:'23AID303',name:'Reinforcement Learning & Autonomous Agents',cr:3,cat:'AI&DS Core'},
+    {code:'23AID304',name:'Software Engineering & MLOps Practices',cr:3,cat:'Core'},
+    {code:'23AID305',name:'Professional Elective I (Generative AI)',cr:3,cat:'Electives'},
+    {code:'23AID306',name:'Mini Project II (Machine Learning)',cr:2,cat:'Projects'}
+  ],
+  6: [
+    {code:'23AID311',name:'AI Ethics, Governance & Explainable AI (XAI)',cr:3,cat:'AI&DS Core'},
+    {code:'23AID312',name:'Big Data Engineering & Stream Processing',cr:4,cat:'AI&DS Core'},
+    {code:'23AID313',name:'High Performance Computing for AI',cr:3,cat:'Core'},
+    {code:'23AID314',name:'Professional Elective II (IoT & Edge AI)',cr:3,cat:'Electives'},
+    {code:'23AID315',name:'Open Elective I (Management & Tech)',cr:3,cat:'Electives'},
+    {code:'23AID316',name:'Capstone Project Phase I',cr:3,cat:'Projects'}
+  ],
+  7: [
+    {code:'23AID401',name:'AI System Deployment & Cloud Native Architectures',cr:4,cat:'AI&DS Core'},
+    {code:'23AID402',name:'Professional Elective III (Robotics & Speech)',cr:3,cat:'Electives'},
+    {code:'23AID403',name:'Professional Elective IV (Quantum Computing & AI)',cr:3,cat:'Electives'},
+    {code:'23AID404',name:'Industrial Internship & Field Study',cr:3,cat:'Projects'},
+    {code:'23AID405',name:'Capstone Major Project Phase II',cr:6,cat:'Projects'}
+  ],
+  8: [
+    {code:'23AID411',name:'Capstone Major Project Phase III & Thesis',cr:12,cat:'Projects'},
+    {code:'23AID412',name:'Comprehensive Viva Voce & Publication',cr:2,cat:'Projects'}
+  ]
+};
+
+const SEM3 = Object.values(CURRICULUM).flat();
 
 const uid=()=>Math.random().toString(36).slice(2,10);
 const now=()=>Date.now();
@@ -2520,48 +2575,54 @@ const Page={
   },
 
   /* ---------- SUBJECTS hub ---------- */
-  subjectsHub(){
-    const g=group(App.me.groupId); if(!g) return Page.noGroup();
-    const ts=tasksOf(g.id), lead=App.isLead, sel=groupSubjects(g);
-    const card=code=>{
-      const s=SEM3.find(x=>x.code===code)||{code,name:code,cat:'',cr:''};
-      const st=ts.filter(t=>t.courseCode===code), mine=st.filter(t=>t.assigneeId===App.me.id);
-      const done=st.filter(t=>t.status==='done').length, tops=groupTopics(g,code), p=pctOf(st);
-      return `<div class="gcard" onclick="App.openSubject('${code}')">
-        <div style="display:flex;gap:12px;align-items:flex-start">
-          <div style="flex:1;min-width:0">
-            <span class="mono" style="background:var(--accent-soft);color:var(--accent);border:1px solid var(--accent-line);border-radius:5px;padding:2px 6px;font-size:10.5px;font-weight:600">${esc(code)}</span>
-            <div style="font-weight:600;font-size:13.5px;margin-top:7px;line-height:1.3">${esc(s.name)}</div>
-            <div style="color:var(--muted);font-size:12px;margin-top:2px">${esc(s.cat)}${s.cr?' · '+(s.cr==='P/F'?'Pass/Fail':s.cr+' cr'):''} · ${tops.length} topic${tops.length===1?'':'s'}</div>
-          </div>
-          ${ring(p,52,p>=70?'green':p>=35?'accent':'amber')}
+  subjectsHub(activeSem = App.selectedSem || 3){
+    App.selectedSem = activeSem;
+    const courses = CURRICULUM[activeSem] || CURRICULUM[3];
+    const total = courses.reduce((a,s)=>a+(typeof s.cr==='number'?s.cr:0),0);
+    const g = App.me ? group(App.me.groupId) : null; const lead = App.isLead;
+
+    return `
+      <div class="ph">
+        <div>
+          <h1>Amrita AIDS Curriculum Subjects</h1>
+          <p>${esc(PROGRAM)} · ${esc(INSTITUTE)}</p>
         </div>
-        <div style="margin-top:12px;padding-top:11px;border-top:1px solid var(--line-2);display:flex;gap:5px;flex-wrap:wrap;align-items:center">
-          ${st.length?tag(st.length+' task'+(st.length===1?'':'s'),'gray'):''}
-          ${done?tag(done+' done','green'):''}
-          ${mine.length?tag(mine.length+' for you','accent'):''}
-          ${!st.length?`<span style="font-size:11.5px;color:var(--faint)">No tasks yet</span>`:''}
-          <span class="sp" style="flex:1"></span>${I.chev(15)}
-        </div>
-      </div>`;
-    };
-    const unsel=SEM3.filter(s=>s.code!=='—'&&!sel.includes(s.code));
-    return `<div class="ph"><div><h1>Subjects</h1>
-        <p>${esc(g.name)} · ${esc(PROGRAM)} · Semester 3 — the subjects your team is working on</p></div>
         <div class="sp"></div>
-        ${lead?`<button class="btn pri" onclick="Modal.selectSubjects('${g.id}')">${I.edit(15)} Select subjects</button>`:''}</div>
-      ${sel.length?`<div class="grid3">${sel.map(card).join('')}</div>`
-        :`<div class="card"><div class="empty">${I.cap(24)}<div class="h">No subjects selected yet</div>
-          <p>${lead?'Select the subjects your team is doing projects for to get started.':'Your team lead has not selected any subjects yet.'}</p>
-          ${lead?`<button class="btn pri" style="margin-top:10px" onclick="Modal.selectSubjects('${g.id}')">${I.plus(14)} Select subjects</button>`:''}</div></div>`}
-      ${lead&&unsel.length?`<div class="sec" style="margin:20px 0 9px">Add more subjects</div>
-        <div class="grid3">${unsel.map(s=>`<div class="gcard" style="border-style:dashed" onclick="Modal.addSubject('${g.id}','${s.code}')">
-          <div style="display:flex;align-items:center;gap:10px">
-            <div class="av sm" style="background:var(--gray-s);color:var(--faint);border-radius:7px">${I.plus(14)}</div>
-            <div style="flex:1;min-width:0"><div style="font-weight:600;font-size:12.5px">${esc(s.name)}</div>
-              <div style="font-size:11px;color:var(--faint)"><span class="mono">${esc(s.code)}</span> · ${esc(s.cat)}</div></div>
-            <span class="btn sm">Add</span>
-          </div></div>`).join('')}</div>`:''}`;
+        <span class="tag accent">Semester ${activeSem} · ${courses.length} Courses · ${total} Credits</span>
+      </div>
+
+      <div class="card" style="margin-bottom:16px; padding:12px 14px;">
+        <div style="font-size:11px; font-weight:700; color:var(--muted); text-transform:uppercase; margin-bottom:8px;">Select Semester (1 to 8)</div>
+        <div class="seg" style="flex-wrap:wrap; height:auto; gap:4px;">
+          ${[1,2,3,4,5,6,7,8].map(sem => `
+            <button class="${activeSem === sem ? 'on' : ''}" style="height:32px; padding:0 14px; border-radius:var(--r1);" onclick="Page.switchSem(${sem})">Semester ${sem}</button>
+          `).join('')}
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="ch">
+          ${I.cap(16)} <h3>Semester ${activeSem} — Course Subjects</h3>
+          <div class="sp"></div>
+          <span style="font-size:12px; color:var(--muted)">Amrita B.Tech AI &amp; DS</span>
+        </div>
+        <div class="cb" style="display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); gap:12px">
+          ${courses.map(s => `
+            <div onclick="App.openSubject('${s.code}')" style="cursor:pointer; display:flex; gap:10px; align-items:center; padding:12px; border:1px solid var(--line); border-radius:var(--r2); background:var(--surface); transition:border-color .12s;" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--line)'">
+              <span class="mono" style="background:var(--accent-soft); color:var(--accent); border:1px solid var(--accent-line); border-radius:5px; padding:3px 7px; font-size:11px; font-weight:700; flex:none;">${esc(s.code)}</span>
+              <div style="flex:1; min-width:0">
+                <div style="font-weight:600; font-size:13px; color:var(--ink); line-height:1.3">${esc(s.name)}</div>
+                <div style="font-size:11px; color:var(--muted); margin-top:2px">${esc(s.cat)} · ${s.cr === 'P/F' ? 'Pass/Fail' : s.cr + ' credits'}</div>
+              </div>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    `;
+  },
+  switchSem(sem){
+    App.selectedSem = sem;
+    App.render();
   },
 
   /* ---------- SUBJECT detail: tasks + reports ---------- */
