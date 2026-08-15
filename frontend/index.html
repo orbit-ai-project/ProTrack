@@ -2197,6 +2197,61 @@ const Page={
   },
 
   /* ---------- shared group detail ---------- */
+  renderDeliverables(g){
+    if(!g) return '';
+    const items = g.deliverables || [];
+    const isLead = App.isLead && App.me && App.me.groupId === g.id;
+    return `
+      <div class="card" style="margin-bottom:16px">
+        <div class="ch">
+          ${I.folder(16)} <h3>Project Submissions &amp; Deliverables</h3>
+          <div class="sp"></div>
+          <span style="font-size:12px; color:var(--muted)">PPT Slides, Reports, Papers &amp; Source Code</span>
+          ${isLead ? `<button class="btn sm pri" onclick="Modal.addDeliverable('${g.id}')">${I.plus(13)} Add Deliverable</button>` : ''}
+        </div>
+        <div class="cb">
+          ${items.length ? `
+            <div style="display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:12px">
+              ${items.map((item, idx) => {
+                const icon = item.type==='ppt' ? I.chart(16) : item.type==='report' ? I.file(16) : item.type==='code' ? I.code(16) : I.paperclip(16);
+                const badgeColor = item.type==='ppt' ? 'amber' : item.type==='report' ? 'blue' : item.type==='code' ? 'gray' : 'green';
+                const typeLabel = item.type==='ppt' ? 'PPT Presentation' : item.type==='report' ? 'PDF / Report' : item.type==='code' ? 'Source Code' : 'Other Artifact';
+                return `
+                  <div style="border:1px solid var(--line); border-radius:var(--r2); padding:12px; background:var(--surface); display:flex; flex-direction:column; justify-content:space-between; gap:10px;">
+                    <div>
+                      <div style="display:flex; align-items:center; gap:8px; margin-bottom:6px;">
+                        <span class="tag" style="background:var(--${badgeColor}-s); color:var(--${badgeColor}); font-weight:700;">${typeLabel}</span>
+                        ${item.courseCode ? `<span class="tag mono" style="background:var(--accent-soft); color:var(--accent);">${esc(item.courseCode)}</span>` : ''}
+                      </div>
+                      <div style="font-weight:600; font-size:13.5px; color:var(--ink); line-height:1.3">${esc(item.title)}</div>
+                      <div style="font-size:11.5px; color:var(--muted); margin-top:4px">${esc(item.desc || 'No description.')}</div>
+                    </div>
+                    <div style="display:flex; align-items:center; justify-content:space-between; border-top:1px solid var(--line-2); padding-top:8px;">
+                      <span style="font-size:11px; color:var(--faint)">By ${esc(item.submittedBy || 'Team')}</span>
+                      <div style="display:flex; gap:6px;">
+                        <a href="${esc(item.url)}" target="_blank" rel="noopener" class="btn sm pri" style="text-decoration:none">${icon} Open / View</a>
+                        ${isLead ? `<button class="btn sm dan ico" title="Delete" onclick="Modal.delDeliverable('${g.id}', ${idx})">${I.trash(13)}</button>` : ''}
+                      </div>
+                    </div>
+                  </div>
+                `;
+              }).join('')}
+            </div>
+          ` : `
+            <div class="empty" style="padding:18px 14px">
+              ${I.folder(24)}
+              <div class="h">No project deliverables uploaded yet</div>
+              <p style="font-size:12.5px; color:var(--muted); max-width:420px; margin:4px auto 10px">
+                Team Leads can upload PPT presentation slides, PDF project reports/research papers, and GitHub source code repositories for faculty evaluation.
+              </p>
+              ${isLead ? `<button class="btn pri sm" onclick="Modal.addDeliverable('${g.id}')">${I.plus(14)} Add Deliverable</button>` : ''}
+            </div>
+          `}
+        </div>
+      </div>
+    `;
+  },
+
   groupDetail(gid){
     const g=group(gid); if(!g) return '';
     if(!canSeeGroup(gid)) return `<div class="card"><div class="empty">${I.lock(24)}
@@ -2252,6 +2307,8 @@ const Page={
         <div style="font-size:12.5px;line-height:1.5">${esc(r.text)}</div>
         <div style="font-size:11px;color:var(--faint);margin-top:3px">${esc(r.by)} · ${ago(r.ts)}</div></div>`).join('')}</div>
     </div>`:''}
+
+    ${Page.renderDeliverables(g)}
 
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:9px">
       <div class="sec">Task board — read only</div><div style="flex:1"></div></div>
@@ -2568,6 +2625,8 @@ const Page={
     </div>
 
     ${Page.projectSubjects(g)}
+
+    ${Page.renderDeliverables(g)}
 
     <div class="split">
       <div style="display:grid;gap:16px">
@@ -4554,10 +4613,91 @@ const Modal={
         <div id="topList" style="display:grid;gap:7px">${Modal._topicRows(gid,code)}</div>
         <div style="display:flex;gap:7px">
           <input class="inp" id="topIn" placeholder="e.g. Model training" onkeydown="if(event.key==='Enter')Modal.addTopic('${gid}','${code}')"/>
-          <button class="btn pri" onclick="Modal.addTopic('${gid}','${code}')">${I.plus(14)} Add</button>
-        </div>
-      </div>
       <div class="mf"><div class="sp"></div><button class="btn pri" onclick="Modal.close();App.render()">Done</button></div>`);
+  },
+  /* ---- deliverables ---- */
+  addDeliverable(gid){
+    const g = group(gid); if (!g) return;
+    const gsubs = groupSubjects(g);
+    Modal.open(`
+      <div class="mh">
+        ${I.folder(18)} <h3>Add Project Deliverable / Artifact</h3>
+        <button class="btn ico sm gho" onclick="Modal.close()">${I.x(15)}</button>
+      </div>
+      <div class="mb">
+        <div class="field"><label>Deliverable Title</label>
+          <input class="inp" id="deliv_title" placeholder="e.g. Final Presentation Slides / Research Paper PDF"/></div>
+        
+        <div class="two">
+          <div class="field"><label>Type</label>
+            <select class="inp" id="deliv_type">
+              <option value="ppt">📊 Presentation Slides (PPT / Canva / Drive)</option>
+              <option value="report">📄 PDF Report / Research Paper</option>
+              <option value="code">💻 Source Code (GitHub / GitLab / ZIP Link)</option>
+              <option value="other">📎 Other Project Artifact / Demo Video</option>
+            </select>
+          </div>
+          <div class="field"><label>Subject (Course)</label>
+            <select class="inp" id="deliv_subj">
+              <option value="">General Project Deliverable</option>
+              ${gsubs.map(code => {
+                const c = SEM3.find(s=>s.code===code)||{code,name:code};
+                return `<option value="${code}">${code} — ${esc(c.name)}</option>`;
+              }).join('')}
+            </select>
+          </div>
+        </div>
+
+        <div class="field"><label>File / Link URL</label>
+          <input class="inp" id="deliv_url" placeholder="https://drive.google.com/... or https://github.com/..."/>
+          <span class="hint">Paste URL to Google Drive PDF/PPT, Canva Slides, or GitHub Repository.</span></div>
+
+        <div class="field"><label>Short Description (optional)</label>
+          <input class="inp" id="deliv_desc" placeholder="Brief note for faculty evaluator..."/></div>
+      </div>
+      <div class="mf">
+        <div class="sp"></div>
+        <button class="btn" onclick="Modal.close()">Cancel</button>
+        <button class="btn pri" onclick="Modal.doSaveDeliverable('${g.id}')">${I.check(14)} Save &amp; Share with Faculty</button>
+      </div>
+    `);
+  },
+  doSaveDeliverable(gid){
+    const g = group(gid); if (!g) return;
+    const title = document.getElementById('deliv_title').value.trim();
+    const url = document.getElementById('deliv_url').value.trim();
+    if (!title) return toast(I.alert(15), 'Please enter a deliverable title');
+    if (!url) return toast(I.alert(15), 'Please provide a file or document URL');
+
+    const type = document.getElementById('deliv_type').value;
+    const courseCode = document.getElementById('deliv_subj').value || null;
+    const desc = document.getElementById('deliv_desc').value.trim();
+
+    g.deliverables = g.deliverables || [];
+    g.deliverables.push({
+      id: uid(),
+      title,
+      type,
+      courseCode,
+      url,
+      desc,
+      submittedBy: App.me ? App.me.name : 'Team Lead',
+      ts: now()
+    });
+
+    log(gid, `uploaded project deliverable: <b>${esc(title)}</b> (${type.toUpperCase()})`);
+    DB.save(); API.push(); FX.tap('done');
+    toast(I.check(15), `Uploaded ${title}`);
+    Modal.close(); App.render();
+  },
+  delDeliverable(gid, idx){
+    const g = group(gid); if (!g || !g.deliverables) return;
+    const item = g.deliverables[idx];
+    g.deliverables.splice(idx, 1);
+    log(gid, `removed deliverable <b>${esc(item?item.title:'')}</b>`);
+    DB.save(); API.push(); FX.tap('error');
+    toast(I.trash(15), 'Deliverable removed');
+    App.render();
   },
   _topicRows(gid,code){
     const tops=groupTopics(group(gid),code);
