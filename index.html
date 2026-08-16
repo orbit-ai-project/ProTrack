@@ -1412,14 +1412,18 @@ const Auth={
   screen:'signin', regRole:null, err:{},
 
   render(){
-    document.getElementById('logoMark').innerHTML=I.orbit(15);
-    const box=document.getElementById('authBox');
-    box.innerHTML = Auth.screen==='signin' ? Auth.signinHTML()
-                  : Auth.screen==='choose' ? Auth.chooseHTML()
-                  : Auth.screen==='lead'   ? Auth.leadHTML()
-                  : Auth.facultyHTML();
-    document.getElementById('credList').innerHTML = Auth.credsHTML();
-    const f=box.querySelector('input'); if(f) setTimeout(()=>f.focus(),60);
+    const lm = document.getElementById('logoMark');
+    if (lm) lm.innerHTML = I.orbit(15);
+    const box = document.getElementById('authBox');
+    if (box) {
+      box.innerHTML = Auth.screen==='signin' ? Auth.signinHTML()
+                    : Auth.screen==='choose' ? Auth.chooseHTML()
+                    : Auth.screen==='lead'   ? Auth.leadHTML()
+                    : Auth.facultyHTML();
+      const f = box.querySelector('input'); if(f) setTimeout(() => f.focus(), 60);
+    }
+    const cl = document.getElementById('credList');
+    if (cl) cl.innerHTML = Auth.credsHTML();
   },
 
   head(){ 
