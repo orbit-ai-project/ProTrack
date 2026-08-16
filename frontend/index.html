@@ -3749,6 +3749,16 @@ const Notify={
         if(c.length){ const last=c[c.length-1], cu=user(last.userId);
           out.push({id:'cm-'+t.id+'-'+last.ts,icon:I.msg,c:'blue',ts:last.ts,
             title:`<b>${cu?esc(cu.name):'Someone'}</b> commented on <b>${esc(t.title)}</b>`,sub:ago(last.ts),task:t.id}); }});
+      (DB.s.notifs || []).filter(nt => nt.userId === App.me.id).forEach(nt => out.push({
+        id: nt.id,
+        icon: I.pin,
+        c: 'accent',
+        ts: nt.ts,
+        title: `<b>${esc(nt.title)}</b>`,
+        sub: `${esc(nt.body)} · ${ago(nt.ts)}`,
+        remarkObj: nt.remarkObj || { memberName: App.me.name, memberRole: App.me.role, text: nt.body, by: 'Faculty', ts: nt.ts }
+      }));
+
       DB.s.remarks.filter(r=>r.groupId===gid && (!r.memberId || r.memberId==='all' || r.memberId===App.me.id)).forEach(r=>out.push({
         id:'rm-'+r.id,
         icon:I.pin,
@@ -3756,7 +3766,7 @@ const Notify={
         ts:r.ts,
         title:`Faculty remark from <b>${esc(r.by)}</b>${r.memberName && r.memberId!=='all' ? ` for <b>${esc(r.memberName)}</b>` : ''}`,
         sub:ago(r.ts)+' · tap to view',
-        tab:'dashboard'
+        remarkObj: r
       }));
     }
     return out.sort((a,b)=>b.ts-a.ts).slice(0,30);
@@ -3802,6 +3812,7 @@ const Notify={
     if(!n) return;
     if(n.task) Modal.task(n.task);
     else if(n.group) App.openG(n.group);
+    else if(n.remarkObj) Modal.viewRemarkModal(n.remarkObj);
     else if(n.tab) App.go(n.tab);
   },
 
@@ -5248,7 +5259,7 @@ const Modal={
     const memberName = targetM ? targetM.name : 'Entire Group';
     const memberRole = targetM ? targetM.role : 'Group Level';
 
-    DB.s.remarks.unshift({
+    const remarkData = {
       id: uid(),
       groupId: gid,
       memberId: memId,
@@ -5259,7 +5270,8 @@ const Modal={
       score: score || null,
       by: App.me ? App.me.name : 'Faculty',
       ts: now()
-    });
+    };
+    DB.s.remarks.unshift(remarkData);
 
     // Real-time Notification for Student(s)
     const targetUsers = targetM ? [targetM] : membersOf(gid);
@@ -5271,12 +5283,54 @@ const Modal={
         title: 'New Faculty Remark & Evaluation',
         body: `${App.me ? App.me.name : 'Faculty'} left a remark: "${txt}"${grade ? ` (${grade})` : ''}`,
         ts: now(),
-        read: false
+        read: false,
+        remarkObj: remarkData
       });
     });
 
     log(gid, `posted a faculty evaluation remark for <b>${esc(memberName)}</b>`);
     DB.save(); API.push(); FX.tap('done'); Modal.close(); toast(I.pin(15), `Faculty remark posted for ${memberName}`); App.render();
+  },
+
+  viewRemarkModal(r){
+    if (!r) return;
+    const g = group(r.groupId);
+    Modal.open(`
+      <div class="mh">
+        ${I.pin(18)} <h3>Faculty Remark &amp; Evaluation Feedback</h3>
+        <button class="btn ico sm gho" onclick="Modal.close()">${I.x(15)}</button>
+      </div>
+      <div class="mb">
+        <div style="border:1px solid var(--line); border-radius:var(--r2); padding:16px; background:var(--surface); display:grid; gap:12px;">
+          <div style="display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid var(--line-2); padding-bottom:10px;">
+            <div>
+              <div style="font-weight:700; font-size:15px; color:var(--ink); line-height:1.2">${esc(r.memberName || 'Student Member')}</div>
+              <div style="font-size:12px; color:var(--accent); font-weight:600; margin-top:2px">${esc(r.memberRole || 'Team Member')} · ${esc(g ? g.name : 'Group')}</div>
+            </div>
+            <div style="display:flex; gap:6px;">
+              ${r.grade ? `<span class="tag" style="background:var(--green-s); color:var(--green); font-size:14px; font-weight:800; padding:4px 10px">${esc(r.grade)}</span>` : ''}
+              ${r.score ? `<span class="tag" style="background:var(--accent-soft); color:var(--accent); font-size:14px; font-weight:800; padding:4px 10px">${esc(r.score)}</span>` : ''}
+            </div>
+          </div>
+
+          <div>
+            <div style="font-size:11.5px; font-weight:700; color:var(--muted); text-transform:uppercase; margin-bottom:4px;">Professor Remarks &amp; Feedback</div>
+            <div style="font-size:13.5px; color:var(--ink); line-height:1.6; background:var(--surface-2); padding:12px; border-radius:var(--r1); border:1px solid var(--line-2)">
+              "${esc(r.text)}"
+            </div>
+          </div>
+
+          <div style="font-size:11.5px; color:var(--faint); text-align:right;">
+            Evaluated by <b>${esc(r.by || 'Faculty')}</b> · ${ago(r.ts)}
+          </div>
+        </div>
+      </div>
+      <div class="mf">
+        <button class="btn gho" onclick="Modal.close(); App.go('dashboard');">Go to Dashboard</button>
+        <div class="sp"></div>
+        <button class="btn pri" onclick="Modal.close()">Got it</button>
+      </div>
+    `);
   },
 
   confirmReset(){
