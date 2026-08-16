@@ -2157,9 +2157,26 @@ const Page={
   groups(){
     const on=online(), gs=myGroups();
     if(!gs.length) return Page.notAssigned();
-    return `<div class="ph"><div><h1>Groups</h1><p>Open a group to inspect its board and members</p></div>
-        <div class="sp"></div><button class="btn pri" onclick="Modal.addGroup()">${I.plus(15)} Add group</button></div>
-      <div class="grid3">${gs.map(g=>Page.groupCard(g,on)).join('')}</div>`;
+    const selSem = App.facGroupSemFilter || 'all';
+    const filteredGs = selSem === 'all' ? gs : gs.filter(g => String(g.semester || 3) === String(selSem));
+
+    return `<div class="ph">
+        <div>
+          <h1>Groups</h1>
+          <p>Supervising ${gs.length} group${gs.length===1?'':'s'} · ${filteredGs.length} shown</p>
+        </div>
+        <div class="sp"></div>
+        <select class="inp" style="width:165px;height:32px;font-size:12px;cursor:pointer" onchange="App.facGroupSemFilter=this.value;App.render()">
+          <option value="all" ${selSem==='all'?'selected':''}>All Semesters (1-8)</option>
+          ${[1,2,3,4,5,6,7,8].map(s => `<option value="${s}" ${selSem===String(s)?'selected':''}>Semester ${s}</option>`).join('')}
+        </select>
+        ${App.isFaculty ? `<button class="btn pri sm" style="margin-left:8px" onclick="Modal.sendSupervisionRequest()">${I.mail(14)} Add Group</button>` : ''}
+      </div>
+      ${filteredGs.length ? `
+        <div class="grid3">${filteredGs.map(g=>Page.groupCard(g,on)).join('')}</div>
+      ` : `
+        <div class="card"><div class="empty">${I.folder(24)}<div class="h">No groups in Semester ${esc(selSem)}</div><p>Try switching the semester filter dropdown above.</p></div></div>
+      `}`;
   },
 
   people(){
@@ -3732,8 +3749,15 @@ const Notify={
         if(c.length){ const last=c[c.length-1], cu=user(last.userId);
           out.push({id:'cm-'+t.id+'-'+last.ts,icon:I.msg,c:'blue',ts:last.ts,
             title:`<b>${cu?esc(cu.name):'Someone'}</b> commented on <b>${esc(t.title)}</b>`,sub:ago(last.ts),task:t.id}); }});
-      DB.s.remarks.filter(r=>r.groupId===gid).forEach(r=>out.push({id:'rm-'+r.id,icon:I.pin,c:'accent',ts:r.ts,
-        title:`Faculty remark from <b>${esc(r.by)}</b>`,sub:ago(r.ts)+' · tap to view',tab:'dashboard'}));
+      DB.s.remarks.filter(r=>r.groupId===gid && (!r.memberId || r.memberId==='all' || r.memberId===App.me.id)).forEach(r=>out.push({
+        id:'rm-'+r.id,
+        icon:I.pin,
+        c:'accent',
+        ts:r.ts,
+        title:`Faculty remark from <b>${esc(r.by)}</b>${r.memberName && r.memberId!=='all' ? ` for <b>${esc(r.memberName)}</b>` : ''}`,
+        sub:ago(r.ts)+' · tap to view',
+        tab:'dashboard'
+      }));
     }
     return out.sort((a,b)=>b.ts-a.ts).slice(0,30);
   },
@@ -5236,6 +5260,21 @@ const Modal={
       by: App.me ? App.me.name : 'Faculty',
       ts: now()
     });
+
+    // Real-time Notification for Student(s)
+    const targetUsers = targetM ? [targetM] : membersOf(gid);
+    targetUsers.forEach(u => {
+      DB.s.notifs = DB.s.notifs || [];
+      DB.s.notifs.unshift({
+        id: 'nt-' + uid(),
+        userId: u.id,
+        title: 'New Faculty Remark & Evaluation',
+        body: `${App.me ? App.me.name : 'Faculty'} left a remark: "${txt}"${grade ? ` (${grade})` : ''}`,
+        ts: now(),
+        read: false
+      });
+    });
+
     log(gid, `posted a faculty evaluation remark for <b>${esc(memberName)}</b>`);
     DB.save(); API.push(); FX.tap('done'); Modal.close(); toast(I.pin(15), `Faculty remark posted for ${memberName}`); App.render();
   },
