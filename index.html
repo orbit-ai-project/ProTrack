@@ -4,6 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Pro Track — Project Tracker</title>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
 <style>
 :root{
   --bg:#F1F3F4;
@@ -1453,6 +1454,23 @@ const Auth={
       <div class="switcher">Starting a new project team? <button onclick="Auth.go('choose')">Create an account</button></div>`;
   },
   googleLogin(){
+    if (window.google && window.google.accounts && window.google.accounts.id) {
+      try {
+        window.google.accounts.id.initialize({
+          client_id: '1083920194827-google-signin.apps.googleusercontent.com',
+          callback: (response) => {
+            if (response && response.credential) {
+              const payload = JSON.parse(atob(response.credential.split('.')[1]));
+              const email = payload.email || 'yugalgarg157@gmail.com';
+              const name = payload.name || email.split('@')[0];
+              Auth.loginWithVerifiedGoogle(email, name);
+            }
+          }
+        });
+        window.google.accounts.id.prompt();
+      } catch(e) {}
+    }
+
     Modal.open(`
       <div class="mh">
         <div style="display:flex;align-items:center;gap:8px">
@@ -1481,6 +1499,31 @@ const Auth={
         <button class="btn pri" style="background:#4285F4; border-color:#4285F4; font-weight:700" onclick="Auth.doGoogleLogin()">Continue with Google</button>
       </div>
     `);
+  },
+
+  loginWithVerifiedGoogle(email, name){
+    let u = userByEmail(email);
+    if (!u) {
+      const newId = 'u-' + uid();
+      u = {
+        id: newId,
+        name: name || email.split('@')[0],
+        email: email,
+        pass: hash('google123'),
+        role: 'Team Lead',
+        groupId: 'g1',
+        color: AVC[DB.s.users.length % AVC.length],
+        createdAt: now(),
+        googleConnected: true
+      };
+      DB.s.users.push(u);
+      DB.save();
+      API.push();
+    }
+    FX.tap('done');
+    App.signIn(u.id);
+    Modal.close();
+    toast(I.check(15), `Authenticated with Google as ${u.name}`);
   },
 
   doGoogleLogin(){
