@@ -1566,6 +1566,7 @@ const Auth={
     const em=document.getElementById('si_email').value.trim();
     const pw=document.getElementById('si_pass').value;
     if(!em) return Auth.showErr('si_err','Please enter your email address.');
+    if(!pw) return Auth.showErr('si_err','Please enter your password.');
 
     let u=userByEmail(em);
     if (!u) {
@@ -1577,7 +1578,7 @@ const Auth={
         id: newId,
         name: nameFromEmail,
         email: em.toLowerCase(),
-        pass: hash(pw || '123456'),
+        pass: hash(pw),
         role: role,
         groupId: role === 'Team Lead' ? 'g1' : null,
         color: AVC[DB.s.users.length % AVC.length],
@@ -1586,6 +1587,10 @@ const Auth={
       DB.s.users.push(u);
       DB.save();
       API.push();
+    } else {
+      if (u.pass && hash(pw) !== u.pass) {
+        return Auth.showErr('si_err', 'Incorrect password.');
+      }
     }
     App.signIn(u.id);
   },
