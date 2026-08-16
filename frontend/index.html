@@ -1419,7 +1419,7 @@ const Auth={
     const f=box.querySelector('input'); if(f) setTimeout(()=>f.focus(),60);
   },
 
-  head(){ return `<div class="logo"><div class="m">${I.orbit(15)}</div><span style="font-weight:800;letter-spacing:-0.02em;color:var(--ink);">Pro Track</span></div>`; },
+  head(){ return `<div class="logo" style="display:flex;align-items:center;margin-bottom:14px;"><img src="assets/logo.jpg" style="width:36px;height:36px;border-radius:10px;object-fit:cover;margin-right:10px;box-shadow:0 4px 14px rgba(0,180,216,0.35);border:1px solid rgba(255,255,255,0.2);"><span style="font-weight:800;font-size:19px;letter-spacing:-0.02em;color:var(--ink);">Pro Track</span></div>`; },
 
   signinHTML(){
     return `${Auth.head()}
