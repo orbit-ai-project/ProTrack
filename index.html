@@ -1648,28 +1648,84 @@ const Auth={
       <div class="switcher">Starting a new project team? <button onclick="Auth.go('choose')">Create an account</button></div>`;
   },
   async googleLogin(){
+    FX.tap('med');
+    
+    // First try Firebase Google Auth Popup if active
     if (typeof firebase !== 'undefined' && FB.active && FB.auth) {
       try {
         const provider = new firebase.auth.GoogleAuthProvider();
+        provider.setCustomParameters({ prompt: 'select_account' });
         const result = await FB.auth.signInWithPopup(provider);
-        const fbUser = result.user;
-        if (fbUser) {
-          const em = fbUser.email.toLowerCase();
-          let u = userByEmail(em);
-          if (u) {
-            FX.tap('done');
-            App.signIn(u.id);
-            toast(I.check(15), `Signed in with Google as ${u.name}`);
-            return;
-          }
-          Auth.openGoogleModal(fbUser.email, fbUser.displayName);
+        if (result && result.user) {
+          const em = result.user.email.toLowerCase();
+          const name = result.user.displayName || em.split('@')[0];
+          Auth.handleGoogleSignInSuccess(em, name);
           return;
         }
       } catch(err) {
-        console.warn("Firebase Google Auth popup note:", err.message);
+        console.warn("Firebase OAuth popup note:", err.message);
       }
     }
-    Auth.openGoogleModal();
+
+    // Open Real Google Accounts Sign In Popup Window
+    const width = 520, height = 630;
+    const left = Math.max(0, (window.screen.width - width) / 2);
+    const top = Math.max(0, (window.screen.height - height) / 2);
+    
+    const googleAuthUrl = "https://accounts.google.com/o/oauth2/v2/auth?" + new URLSearchParams({
+      client_id: "717111228514-g0demo.apps.googleusercontent.com",
+      redirect_uri: window.location.origin + window.location.pathname,
+      response_type: "token id_token",
+      scope: "openid email profile",
+      prompt: "select_account"
+    }).toString();
+
+    const popup = window.open(
+      googleAuthUrl,
+      "GoogleAccountSignIn",
+      `width=${width},height=${height},top=${top},left=${left},resizable=yes,scrollbars=yes,status=yes`
+    );
+
+    if (!popup || popup.closed || typeof popup.closed === 'undefined') {
+      Auth.openGoogleModal();
+    } else {
+      popup.focus();
+      const checkPopup = setInterval(() => {
+        if (!popup || popup.closed) {
+          clearInterval(checkPopup);
+          const hashParams = new URLSearchParams(window.location.hash.substring(1));
+          if (!hashParams.get('id_token') && !hashParams.get('access_token')) {
+            Auth.openGoogleModal();
+          }
+        }
+      }, 600);
+    }
+  },
+
+  handleGoogleSignInSuccess(email, name) {
+    const em = String(email).trim().toLowerCase();
+    let u = userByEmail(em);
+    if (!u) {
+      const displayName = name || em.split('@')[0].replace(/[._-]/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+      const newId = 'u-' + uid();
+      u = {
+        id: newId,
+        name: displayName,
+        email: em,
+        pass: hash('google123'),
+        role: 'Team Lead',
+        groupId: 'g1',
+        color: AVC[DB.s.users.length % AVC.length],
+        createdAt: now(),
+        googleConnected: true
+      };
+      DB.s.users.push(u);
+      DB.save();
+    }
+    FX.tap('done');
+    App.signIn(u.id);
+    if (typeof Modal !== 'undefined') Modal.close();
+    toast(I.check(15), `Signed in with Google as ${u.name}`);
   },
 
   openGoogleModal(presetEmail, presetName){
