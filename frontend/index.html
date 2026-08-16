@@ -1455,18 +1455,6 @@ const Auth={
       <div class="switcher">Starting a new project team? <button onclick="Auth.go('choose')">Create an account</button></div>`;
   },
   oauthLogin(provider){
-    // Try launching real OAuth browser popup window
-    let authUrl = 'https://accounts.google.com/o/oauth2/v2/auth?client_id=742849102-protrack.apps.googleusercontent.com&redirect_uri=https://orbit-ai-project.github.io/protrack-project-tracker/&response_type=token&scope=email%20profile';
-    if (provider.includes('Microsoft')) {
-      authUrl = 'https://login.microsoftonline.com/common/oauth2/v2.0/authorize?client_id=protrack-ms-sso&response_type=token&redirect_uri=https://orbit-ai-project.github.io/protrack-project-tracker/&scope=User.Read';
-    } else if (provider.includes('GitHub')) {
-      authUrl = 'https://github.com/login/oauth/authorize?client_id=protrack-gh-oauth&scope=user:email';
-    }
-
-    try {
-      window.open(authUrl, '_blank', 'width=520,height=640,top=100,left=100,resizable=yes,scrollbars=yes');
-    } catch(e) {}
-
     const defaultDomain = provider.includes('Microsoft') ? '@cb.amrita.edu' : '@gmail.com';
     const defaultEmail = (App.me ? App.me.email : 'yugalgarg157') + (App.me && App.me.email.includes('@') ? '' : defaultDomain);
     const providerColor = provider.includes('Microsoft') ? '#00A4EF' : provider.includes('GitHub') ? '#24292E' : '#4285F4';
