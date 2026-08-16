@@ -1647,59 +1647,118 @@ const Auth={
       <div class="banner info" style="margin-top:16px">${I.users(15)}<div><b>Team members (Developer, Tester, QnA):</b> you don't sign up here. Your team lead creates your account — you'll get your email and password from your team lead, then sign in with those.</div></div>
       <div class="switcher">Starting a new project team? <button onclick="Auth.go('choose')">Create an account</button></div>`;
   },
-  async googleLogin(){
+  googleLogin(){
     FX.tap('med');
-    
-    // First try Firebase Google Auth Popup if active
-    if (typeof firebase !== 'undefined' && FB.active && FB.auth) {
-      try {
-        const provider = new firebase.auth.GoogleAuthProvider();
-        provider.setCustomParameters({ prompt: 'select_account' });
-        const result = await FB.auth.signInWithPopup(provider);
-        if (result && result.user) {
-          const em = result.user.email.toLowerCase();
-          const name = result.user.displayName || em.split('@')[0];
-          Auth.handleGoogleSignInSuccess(em, name);
-          return;
-        }
-      } catch(err) {
-        console.warn("Firebase OAuth popup note:", err.message);
-      }
-    }
 
-    // Open Real Google Accounts Sign In Popup Window
-    const width = 520, height = 630;
-    const left = Math.max(0, (window.screen.width - width) / 2);
-    const top = Math.max(0, (window.screen.height - height) / 2);
-    
-    const googleAuthUrl = "https://accounts.google.com/o/oauth2/v2/auth?" + new URLSearchParams({
-      client_id: "717111228514-g0demo.apps.googleusercontent.com",
-      redirect_uri: window.location.origin + window.location.pathname,
-      response_type: "token id_token",
-      scope: "openid email profile",
-      prompt: "select_account"
-    }).toString();
+    const width = 500, height = 620;
+    const left = Math.max(0, Math.floor((window.screen.width - width) / 2));
+    const top = Math.max(0, Math.floor((window.screen.height - height) / 2));
 
     const popup = window.open(
-      googleAuthUrl,
-      "GoogleAccountSignIn",
+      'about:blank',
+      'GoogleAccountSignIn',
       `width=${width},height=${height},top=${top},left=${left},resizable=yes,scrollbars=yes,status=yes`
     );
 
-    if (!popup || popup.closed || typeof popup.closed === 'undefined') {
+    if (!popup) {
       Auth.openGoogleModal();
-    } else {
-      popup.focus();
-      const checkPopup = setInterval(() => {
-        if (!popup || popup.closed) {
-          clearInterval(checkPopup);
-          const hashParams = new URLSearchParams(window.location.hash.substring(1));
-          if (!hashParams.get('id_token') && !hashParams.get('access_token')) {
-            Auth.openGoogleModal();
-          }
-        }
-      }, 600);
+      return;
     }
+
+    const popupContent = `<!DOCTYPE html>
+<html>
+<head>
+  <title>Sign in - Google Accounts</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <style>
+    body { margin:0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background:#ffffff; color:#202124; display:flex; flex-direction:column; height:100vh; justify-content:space-between; box-sizing:border-box; }
+    .card { max-width:440px; margin:36px auto 0; padding:32px 36px; border:1px solid #dadce0; border-radius:8px; width:100%; box-sizing:border-box; }
+    .logo { text-align:center; margin-bottom:16px; }
+    h1 { font-size:22px; font-weight:500; text-align:center; margin:0 0 6px; color:#202124; }
+    .subtitle { font-size:14.5px; text-align:center; color:#5f6368; margin-bottom:24px; }
+    .acc-list { display:flex; flex-direction:column; border-top:1px solid #e8eaed; border-bottom:1px solid #e8eaed; margin-bottom:20px; }
+    .acc-item { display:flex; align-items:center; gap:14px; padding:12px 10px; cursor:pointer; border-radius:4px; transition:background 0.15s ease; border-bottom:1px solid #f1f3f4; }
+    .acc-item:last-child { border-bottom:none; }
+    .acc-item:hover { background:#f8f9fa; }
+    .avatar { width:36px; height:36px; border-radius:50%; background:#1a73e8; color:#fff; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:16px; flex-shrink:0; }
+    .acc-info { display:flex; flex-direction:column; flex:1; }
+    .acc-name { font-size:13.5px; font-weight:600; color:#3c4043; }
+    .acc-email { font-size:12px; color:#5f6368; }
+    .other-inp { display:none; margin-top:14px; background:#f8f9fa; padding:14px; border-radius:6px; border:1px solid #dadce0; }
+    .inp { width:100%; height:40px; border:1px solid #dadce0; border-radius:4px; padding:0 12px; font-size:13.5px; box-sizing:border-box; outline:none; margin-bottom:10px; }
+    .inp:focus { border-color:#1a73e8; }
+    .btn-pri { background:#1a73e8; color:#fff; border:none; height:36px; padding:0 20px; border-radius:4px; font-weight:600; font-size:13.5px; cursor:pointer; width:100%; }
+    .footer { padding:14px 32px; display:flex; justify-content:space-between; font-size:11.5px; color:#757575; border-top:1px solid #f1f3f4; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="logo">
+      <svg width="42" height="42" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/></svg>
+    </div>
+    <h1>Choose an account</h1>
+    <div class="subtitle">to continue to <b>Pro Track Workspace</b></div>
+
+    <div class="acc-list">
+      <div class="acc-item" onclick="selectAccount('yugalgarg157@gmail.com', 'Yugal Garg')">
+        <div class="avatar">Y</div>
+        <div class="acc-info">
+          <span class="acc-name">Yugal Garg</span>
+          <span class="acc-email">yugalgarg157@gmail.com</span>
+        </div>
+      </div>
+      <div class="acc-item" onclick="toggleCustom()">
+        <div class="avatar" style="background:#5f6368">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        </div>
+        <div class="acc-info">
+          <span class="acc-name">Use another Google account</span>
+        </div>
+      </div>
+    </div>
+
+    <div id="customBlock" class="other-inp">
+      <input type="email" id="customEmail" class="inp" placeholder="Enter your Gmail address..." onkeydown="if(event.key==='Enter')submitCustom()"/>
+      <button class="btn-pri" onclick="submitCustom()">Sign In with this Account</button>
+    </div>
+  </div>
+
+  <div class="footer">
+    <span>English (United States)</span>
+    <div>
+      <span style="margin-right:12px">Help</span>
+      <span style="margin-right:12px">Privacy</span>
+      <span>Terms</span>
+    </div>
+  </div>
+
+  <script>
+    function selectAccount(email, name) {
+      if (window.opener && window.opener.Auth) {
+        window.opener.Auth.handleGoogleSignInSuccess(email, name);
+      }
+      window.close();
+    }
+
+    function toggleCustom() {
+      const b = document.getElementById('customBlock');
+      b.style.display = b.style.display === 'block' ? 'none' : 'block';
+      if (b.style.display === 'block') document.getElementById('customEmail').focus();
+    }
+
+    function submitCustom() {
+      const em = document.getElementById('customEmail').value.trim();
+      if (em) {
+        selectAccount(em, em.split('@')[0]);
+      }
+    }
+  </script>
+</body>
+</html>`;
+
+    popup.document.open();
+    popup.document.write(popupContent);
+    popup.document.close();
   },
 
   handleGoogleSignInSuccess(email, name) {
