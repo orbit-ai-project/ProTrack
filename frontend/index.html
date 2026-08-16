@@ -1176,6 +1176,26 @@ function toast(icon,msg){
   setTimeout(()=>{ el.classList.add('out'); setTimeout(()=>el.remove(),200); },2600);
 }
 
+function roleBadge(r){
+  if (!r) return `<span class="tag" style="background:var(--gray-s);color:var(--muted)">Member</span>`;
+  const roleStr = String(r);
+  if (roleStr === 'Team Lead') return `<span class="tag" style="background:var(--accent-soft);color:var(--accent);font-weight:700">Team Lead</span>`;
+  if (roleStr === 'Developer') return `<span class="tag" style="background:var(--blue-s);color:var(--blue);font-weight:600">Developer</span>`;
+  if (roleStr === 'Tester') return `<span class="tag" style="background:var(--amber-s);color:var(--amber);font-weight:600">Tester</span>`;
+  if (roleStr.includes('QnA') || roleStr.includes('Analyst') || roleStr.includes('Q&A')) return `<span class="tag" style="background:var(--green-s);color:var(--green);font-weight:600">${esc(roleStr)}</span>`;
+  return `<span class="tag" style="background:var(--gray-s);color:var(--ink-2);font-weight:500">${esc(roleStr)}</span>`;
+}
+
+function fileBadge(type, title='', isUpload=false){
+  const t = String(type || '').toLowerCase();
+  const name = String(title || '').toLowerCase();
+  if (t === 'ppt' || name.endsWith('.ppt') || name.endsWith('.pptx')) return `<span class="tag" style="background:#FFF0E6;color:#E37400;font-weight:700">📊 PPT Presentation</span>`;
+  if (t === 'report' || name.endsWith('.pdf') || name.endsWith('.doc') || name.endsWith('.docx')) return `<span class="tag" style="background:#FFEEEF;color:#D93025;font-weight:700">📄 PDF Report</span>`;
+  if (t === 'code' || name.endsWith('.zip') || name.endsWith('.tar') || name.endsWith('.rar')) return `<span class="tag" style="background:#F1F3F4;color:#3C4043;font-weight:700">📦 Source Code ZIP</span>`;
+  if (isUpload) return `<span class="tag" style="background:var(--green-s);color:var(--green);font-weight:700">📁 Uploaded File</span>`;
+  return `<span class="tag" style="background:var(--accent-soft);color:var(--accent);font-weight:700">🔗 Web Link</span>`;
+}
+
 const av=(u,cls='')=> u&&u.photo
   ? `<div class="av ${cls}" style="background-image:url('${u.photo}');background-size:cover;background-position:center;color:transparent" title="${esc(u.name)}"></div>`
   : `<div class="av ${cls}" style="background:${(u&&u.color)||'#7A828E'}">${u?initials(u.name):''}</div>`;
@@ -2144,8 +2164,8 @@ const Page={
           const mt=tasksFor(m.id);
           return `<div style="display:flex;align-items:center;gap:8px">
             <div style="position:relative">${av(m,'sm')}${dot(on[m.id])}</div>
-            <div style="flex:1;min-width:0"><div style="font-size:12px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(m.name)}</div></div>
-            <div style="font-size:11.5px;color:var(--muted);width:58px">${esc(m.role)}</div>
+            <div style="flex:1;min-width:0"><div style="font-size:12px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(m.name)}</div></div>
+            <div>${roleBadge(m.role)}</div>
             <div style="width:52px">${bar(pctOf(mt),'accent')}</div>
             <div style="font-size:11.5px;color:var(--ink-2);width:26px;text-align:right;font-weight:500">${pctOf(mt)}%</div>
           </div>`;
@@ -2202,7 +2222,7 @@ const Page={
             return `<tr>
               <td><div style="display:flex;align-items:center;gap:8px"><div style="position:relative">${av(m,'sm')}${dot(on[m.id])}</div>
                 <div><div style="font-weight:600">${esc(m.name)}</div>${on[m.id]?'<div style="font-size:11px;color:var(--green)">online</div>':''}</div></div></td>
-              <td>${m.id===g.leadId?tag(m.role,'accent'):`<span style="color:var(--ink-2)">${esc(m.role)}</span>`}</td>
+              <td>${roleBadge(m.role)}</td>
               <td><span class="mono" style="color:var(--muted)">${esc(m.email)}</span></td>
               <td>
                 ${latestR ? `<div style="font-size:12px;color:var(--ink);font-weight:500">${esc(latestR.text)} ${latestR.grade ? `<span class="tag" style="background:var(--green-s);color:var(--green);font-weight:700">${esc(latestR.grade)}</span>` : ''}</div>` : (App.isFaculty ? `<button class="btn sm pri" onclick="Modal.remark('${g.id}', '${m.id}')">${I.pin(13)} Add Member Remark</button>` : `<span style="color:var(--faint)">No remark yet</span>`)}
@@ -2244,16 +2264,13 @@ const Page={
             <div style="display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:12px">
               ${items.map((item, idx) => {
                 const icon = item.type==='ppt' ? I.chart(16) : item.type==='report' ? I.file(16) : item.type==='code' ? I.code(16) : I.paperclip(16);
-                const badgeColor = item.type==='ppt' ? 'amber' : item.type==='report' ? 'blue' : item.type==='code' ? 'gray' : 'green';
-                const typeLabel = item.type==='ppt' ? 'PPT Presentation' : item.type==='report' ? 'PDF / Report' : item.type==='code' ? 'Source Code' : 'Other Artifact';
                 return `
                   <div style="border:1px solid var(--line); border-radius:var(--r2); padding:12px; background:var(--surface); display:flex; flex-direction:column; justify-content:space-between; gap:10px;">
                     <div>
                       <div style="display:flex; align-items:center; gap:8px; margin-bottom:6px; flex-wrap:wrap">
-                        <span class="tag" style="background:var(--${badgeColor}-s); color:var(--${badgeColor}); font-weight:700;">${typeLabel}</span>
+                        ${fileBadge(item.type, item.title, item.isFileUpload)}
                         ${item.courseCode ? `<span class="tag mono" style="background:var(--accent-soft); color:var(--accent);">${esc(item.courseCode)}</span>` : ''}
                         ${item.sizeStr ? `<span class="tag mono" style="background:var(--gray-s); color:var(--muted);">${esc(item.sizeStr)}</span>` : ''}
-                        ${item.isFileUpload ? `<span class="tag" style="background:var(--green-s); color:var(--green); font-weight:600;">Uploaded File</span>` : ''}
                       </div>
                       <div style="font-weight:600; font-size:13.5px; color:var(--ink); line-height:1.3">${esc(item.title)}</div>
                       <div style="font-size:11.5px; color:var(--muted); margin-top:4px">${esc(item.desc || 'No description.')}</div>
