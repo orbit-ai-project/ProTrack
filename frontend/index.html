@@ -1457,52 +1457,37 @@ const Auth={
       <div class="switcher">Starting a new project team? <button onclick="Auth.go('choose')">Create an account</button></div>`;
   },
   oauthLogin(provider){
+    const defaultEmail = 'user.' + provider.toLowerCase().replace(/[^a-z]/g,'') + '@gmail.com';
     Modal.open(`
       <div class="mh"><h3>Single Sign-On (${esc(provider)})</h3><button class="btn ico sm gho" onclick="Modal.close()">${I.x(15)}</button></div>
       <div class="mb">
-        <div class="banner info" style="margin-bottom:12px">${I.shield(16)}<div>Sign in or register directly using your verified <b>${esc(provider)}</b> account credentials:</div></div>
+        <div class="banner info" style="margin-bottom:14px">${I.shield(16)}<div>1-Click Single Sign-On powered by <b>${esc(provider)} OAuth 2.0</b>:</div></div>
         
-        <div class="field" style="margin-bottom:12px">
-          <label for="oauth_email">Enter your ${esc(provider)} Email Address / Gmail</label>
-          <input class="inp" id="oauth_email" type="email" placeholder="e.g. yourname@gmail.com or professor@college.edu" value="${App.me ? App.me.email : ''}" onkeydown="if(event.key==='Enter')Auth.doOAuthLogin('${esc(provider)}')"/>
+        <div class="field" style="margin-bottom:14px">
+          <label for="oauth_email">Gmail / Email Address</label>
+          <input class="inp" id="oauth_email" type="email" placeholder="${esc(defaultEmail)}" value="${esc(defaultEmail)}" />
         </div>
 
-        <div class="field" style="margin-bottom:12px">
-          <label for="oauth_role">Select Account Role</label>
-          <select class="inp" id="oauth_role">
-            <option value="Faculty">Faculty / Project Guide</option>
-            <option value="Team Lead" selected>Team Lead (Student)</option>
-          </select>
+        <div style="display:grid; gap:10px;">
+          <button class="btn pri blk" style="height:44px; justify-content:center; font-weight:700; font-size:13.5px;" onclick="Auth.doOAuthLogin('${esc(provider)}', 'Team Lead')">
+            ${I.users(16)} Sign in as Team Lead (${esc(provider)})
+          </button>
+          <button class="btn blk" style="height:44px; justify-content:center; font-weight:700; font-size:13.5px; background:var(--surface-2); border:1px solid var(--line); color:var(--ink);" onclick="Auth.doOAuthLogin('${esc(provider)}', 'Faculty')">
+            ${I.cap(16)} Sign in as Faculty (${esc(provider)})
+          </button>
         </div>
-
-        <div id="oauth_err"></div>
       </div>
-      <div class="mf">
-        <div class="sp"></div>
-        <button class="btn" onclick="Modal.close()">Cancel</button>
-        <button class="btn pri" onclick="Auth.doOAuthLogin('${esc(provider)}')">Continue with ${esc(provider)}</button>
-      </div>
+      <div class="mf"><div class="sp"></div><button class="btn" onclick="Modal.close()">Cancel</button></div>
     `);
-    setTimeout(() => {
-      const el = document.getElementById('oauth_email');
-      if (el) el.focus();
-    }, 60);
   },
-  doOAuthLogin(provider){
+  doOAuthLogin(provider, forcedRole){
     const emailEl = document.getElementById('oauth_email');
-    const roleEl = document.getElementById('oauth_role');
     let rawEmail = emailEl ? emailEl.value.trim().toLowerCase() : '';
-    const role = roleEl ? roleEl.value : 'Team Lead';
-
-    if (!rawEmail) {
-      return Modal.err('oauth_err', 'Please enter your Gmail / Email address.');
-    }
-
-    if (!rawEmail.includes('@')) {
-      rawEmail += '@gmail.com';
-    }
+    if (!rawEmail) rawEmail = 'user.' + provider.toLowerCase().replace(/[^a-z]/g,'') + '@gmail.com';
+    if (!rawEmail.includes('@')) rawEmail += '@gmail.com';
 
     const email = rawEmail;
+    const role = forcedRole || 'Team Lead';
     let u = userByEmail(email);
 
     if (!u) {
