@@ -3,8 +3,11 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Pro Track — Project Tracker</title>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
+<!-- Firebase SDKs for Auth & Firestore -->
+<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
 
 <style>
 :root{
@@ -1085,11 +1088,114 @@ if (typeof window !== 'undefined' && 'EventSource' in window) {
   } catch (e) {}
 }
 
+/* ============================================================
+   Firebase Database & Auth Integration
+   ============================================================ */
+const firebaseConfig = {
+  apiKey: "AIzaSyDemoKeyProjectTrackProTrack12345",
+  authDomain: "protrack-project-tracker.firebaseapp.com",
+  projectId: "protrack-project-tracker",
+  storageBucket: "protrack-project-tracker.appspot.com",
+  messagingSenderId: "123456789012",
+  appId: "1:123456789012:web:demo1234567890"
+};
+
+const FB = {
+  app: null,
+  auth: null,
+  db: null,
+  active: false,
+
+  init() {
+    try {
+      if (typeof firebase !== 'undefined') {
+        if (!firebase.apps.length) {
+          FB.app = firebase.initializeApp(firebaseConfig);
+        } else {
+          FB.app = firebase.app();
+        }
+        FB.auth = firebase.auth();
+        FB.db = firebase.firestore();
+        FB.active = true;
+        console.log("Firebase Auth & Firestore initialized successfully.");
+        FB.listenState();
+      }
+    } catch(e) {
+      console.warn("Firebase initialization fallback:", e);
+    }
+  },
+
+  async loginEmail(email, pass) {
+    if (FB.active && FB.auth) {
+      try {
+        const res = await FB.auth.signInWithEmailAndPassword(email, pass);
+        return res.user;
+      } catch(err) {
+        if (err.code === 'auth/user-not-found' || err.code === 'auth/invalid-credential') {
+          try {
+            const res = await FB.auth.createUserWithEmailAndPassword(email, pass);
+            return res.user;
+          } catch(e) {}
+        }
+      }
+    }
+    return null;
+  },
+
+  async loginGoogle() {
+    if (FB.active && FB.auth) {
+      try {
+        const provider = new firebase.auth.GoogleAuthProvider();
+        const res = await FB.auth.signInWithPopup(provider);
+        return res.user;
+      } catch(err) {
+        console.warn("Firebase Google popup fallback to modal dialog:", err);
+      }
+    }
+    return null;
+  },
+
+  saveState(stateData) {
+    if (FB.active && FB.db) {
+      try {
+        FB.db.collection("projectTrack").doc("appState").set({
+          data: JSON.stringify(stateData),
+          updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        }, { merge: true }).catch(err => console.warn("Firestore save fallback:", err));
+      } catch(e) {}
+    }
+  },
+
+  listenState() {
+    if (FB.active && FB.db) {
+      try {
+        FB.db.collection("projectTrack").doc("appState").onSnapshot(doc => {
+          if (doc.exists && doc.data() && doc.data().data) {
+            try {
+              const remoteState = JSON.parse(doc.data().data);
+              if (remoteState && remoteState.users) {
+                DB.s = remoteState;
+                localStorage.setItem(K_STATE, JSON.stringify(DB.s));
+                if (App.me) App.render();
+              }
+            } catch(e) {}
+          }
+        });
+      } catch(e) {}
+    }
+  }
+};
+
 const DB={
   s:null,
   load(){ try{ DB.s=JSON.parse(localStorage.getItem(K_STATE)); }catch(e){ DB.s=null; }
     if(!DB.s||!DB.s.users){ DB.s=seed(); localStorage.setItem(K_STATE,JSON.stringify(DB.s)); } return DB.s; },
-  save(bc=true){ localStorage.setItem(K_STATE,JSON.stringify(DB.s)); if (API.active) API.push(); if(bc) Sync.push(); },
+  save(bc=true){ 
+    localStorage.setItem(K_STATE,JSON.stringify(DB.s)); 
+    if (API.active) API.push(); 
+    if (FB.active) FB.saveState(DB.s);
+    if(bc) Sync.push(); 
+  },
   reset(){ DB.s=seed(); DB.save(); }
 };
 
@@ -1768,7 +1874,7 @@ const App={
   me:null, tab:'dashboard', openGroup:null, openSubjectCode:null, topicFilter:null,
 
   boot(){
-    DB.load(); Sync.init(); FX.paint();
+    DB.load(); FB.init(); Sync.init(); FX.paint();
     // Initial check — renders stale state first, then re-renders with fresh server data
     API.check();
     // Poll server every 8 seconds to pick up invites from other sessions
@@ -4171,7 +4277,7 @@ const Export = {
           </tbody>
         </table>
 
-        <script>window.onload = function() { window.print(); };<\/script>
+        '<' + 'script>window.onload = function() { window.print(); };</' + 'script>'
       </body>
       </html>
     `);
