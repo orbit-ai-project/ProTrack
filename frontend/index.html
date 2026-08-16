@@ -4,7 +4,6 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Pro Track — Project Tracker</title>
-<link rel="icon" type="image/jpeg" href="assets/logo.jpg" />
 <style>
 :root{
   --bg:#F1F3F4;
@@ -701,7 +700,7 @@ tbody tr:hover{background:var(--surface-2)}
 <div id="shell" class="hidden">
   <aside class="side">
     <div class="sh">
-      <div class="logo" style="display:flex;align-items:center;"><img src="assets/logo.jpg" onerror="this.style.display='none'" style="width:30px;height:30px;border-radius:8px;object-fit:cover;margin-right:9px;box-shadow:0 3px 10px rgba(0,180,216,0.3);border:1px solid rgba(255,255,255,0.2);"><span style="font-weight:800;font-size:16.5px;letter-spacing:-0.02em;color:var(--ink);">Pro Track</span></div>
+      <div class="logo"><div class="m" id="logoMark"></div><span style="font-weight:800;letter-spacing:-0.02em;color:var(--ink);">Pro Track</span></div>
     </div>
     <nav class="nav" id="nav"></nav>
     <div class="sf">
@@ -1419,7 +1418,7 @@ const Auth={
     const f=box.querySelector('input'); if(f) setTimeout(()=>f.focus(),60);
   },
 
-  head(){ return `<div class="logo" style="display:flex;align-items:center;margin-bottom:14px;"><img src="assets/logo.jpg" onerror="this.style.display='none'" style="width:36px;height:36px;border-radius:10px;object-fit:cover;margin-right:10px;box-shadow:0 4px 14px rgba(0,180,216,0.35);border:1px solid rgba(255,255,255,0.2);"><span style="font-weight:800;font-size:19px;letter-spacing:-0.02em;color:var(--ink);">Pro Track</span></div>`; },
+  head(){ return `<div class="logo"><div class="m">${I.orbit(15)}</div><span style="font-weight:800;letter-spacing:-0.02em;color:var(--ink);">Pro Track</span></div>`; },
 
   signinHTML(){
     return `${Auth.head()}
