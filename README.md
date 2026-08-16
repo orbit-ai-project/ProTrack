@@ -1,6 +1,6 @@
 # 🛰️ Pro Track — College Project Tracker
 
-[![Live Demo](https://img.shields.io/badge/%F0%9F%9A%80_Live_Demo-Open_App-4C5FD5?style=for-the-badge)](https://orbit-ai-project.github.io/orbit-ai-project-tracker/)
+[![Live Demo](https://img.shields.io/badge/%F0%9F%9A%80_Live_Demo-Open_App-4C5FD5?style=for-the-badge)](https://orbit-ai-project.github.io/protrack-project-tracker/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-1E8A5C.svg?style=for-the-badge)](LICENSE)
 
 ![HTML5](https://img.shields.io/badge/HTML5-E34F26?logo=html5&logoColor=white)
@@ -9,7 +9,7 @@
 ![Express](https://img.shields.io/badge/Express-000000?logo=express&logoColor=white)
 ![Runs anywhere](https://img.shields.io/badge/Runs%20on-Windows%20%C2%B7%20Mac%20%C2%B7%20Linux-555)
 
-> **🔗 Live app:** https://orbit-ai-project.github.io/orbit-ai-project-tracker/ &nbsp;·&nbsp; 
+> **🔗 Live app:** https://orbit-ai-project.github.io/protrack-project-tracker/ &nbsp;·&nbsp; sign in with `aarav@college.edu` / `student123`
 
 An AI-assisted project-management app for college project teams and faculty, built
 around **Amrita Vishwa Vidyapeetham, Faridabad — B.Tech Artificial Intelligence &
