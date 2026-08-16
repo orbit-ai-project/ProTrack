@@ -5241,22 +5241,7 @@ const Modal={
     }
     DB.save(); FX.tap('done'); Modal.close(); App.render();
   },
-  toggleOAuth(provider){
-    if(!App.me) return;
-    App.me.oauth = App.me.oauth || {};
-    if (App.me.oauth[provider]) {
-      delete App.me.oauth[provider];
-      FX.tap('error');
-      toast(I.trash(15), `Disconnected ${provider} account`);
-    } else {
-      App.me.oauth[provider] = { connected: true, connectedAt: now() };
-      FX.tap('done');
-      toast(I.check(15), `Connected ${provider} account successfully!`);
-    }
-    DB.save();
-    API.push();
-    Modal.account('oauth');
-  },
+
 
   delTask(id){
     const t=DB.s.tasks.find(x=>x.id===id);
