@@ -1128,9 +1128,24 @@ const FB = {
         FB.active = true;
         console.log("🔥 Firebase Auth & Firestore database connected successfully.");
         FB.listenState();
+        FB.handleRedirectResult();
       }
     } catch(e) {
       console.warn("Firebase initialization note:", e);
+    }
+  },
+
+  async handleRedirectResult() {
+    try {
+      const result = await FB.auth.getRedirectResult();
+      if (result && result.user) {
+        const providerId = result.additionalUserInfo && result.additionalUserInfo.providerId;
+        const label = providerId === 'github.com' ? 'GitHub' : 'Google';
+        const email = result.user.email || `${result.user.uid}@users.noreply.github.com`;
+        Auth.handleOAuthSignInSuccess(email, result.user.displayName, label);
+      }
+    } catch (err) {
+      if (err && err.code) toast(I.alert(15), "Sign-in failed. Please try again.");
     }
   },
 
@@ -1151,30 +1166,16 @@ const FB = {
     return null;
   },
 
-  async loginGoogle() {
+  loginGoogle() {
     if (FB.active && FB.auth) {
-      try {
-        const provider = new firebase.auth.GoogleAuthProvider();
-        const res = await FB.auth.signInWithPopup(provider);
-        return res.user;
-      } catch(err) {
-        console.warn("Firebase Google popup fallback:", err.message);
-      }
+      FB.auth.signInWithRedirect(new firebase.auth.GoogleAuthProvider());
     }
-    return null;
   },
 
-  async loginGithub() {
+  loginGithub() {
     if (FB.active && FB.auth) {
-      try {
-        const provider = new firebase.auth.GithubAuthProvider();
-        const res = await FB.auth.signInWithPopup(provider);
-        return res.user;
-      } catch(err) {
-        console.warn("Firebase GitHub popup fallback:", err.message);
-      }
+      FB.auth.signInWithRedirect(new firebase.auth.GithubAuthProvider());
     }
-    return null;
   },
 
   saveState(stateData) {
@@ -1665,7 +1666,7 @@ const Auth={
       <div class="switcher">Starting a new project team? <button onclick="Auth.go('choose')">Create an account</button></div>`;
   },
 
-  async googleLogin(){
+  googleLogin(){
     FX.tap('med');
 
     if (!FB.active) {
@@ -1673,23 +1674,10 @@ const Auth={
       return;
     }
 
-    let fbUser;
-    try {
-      fbUser = await FB.loginGoogle();
-    } catch (err) {
-      toast(I.alert(15), "Google sign-in failed. Please try again.");
-      return;
-    }
-
-    if (!fbUser) {
-      toast(I.alert(15), "Google sign-in was cancelled or blocked. Please allow popups and try again.");
-      return;
-    }
-
-    Auth.handleOAuthSignInSuccess(fbUser.email, fbUser.displayName, 'Google');
+    FB.loginGoogle();
   },
 
-  async githubLogin(){
+  githubLogin(){
     FX.tap('med');
 
     if (!FB.active) {
@@ -1697,21 +1685,7 @@ const Auth={
       return;
     }
 
-    let fbUser;
-    try {
-      fbUser = await FB.loginGithub();
-    } catch (err) {
-      toast(I.alert(15), "GitHub sign-in failed. Please try again.");
-      return;
-    }
-
-    if (!fbUser) {
-      toast(I.alert(15), "GitHub sign-in was cancelled or blocked. Please allow popups and try again.");
-      return;
-    }
-
-    const email = fbUser.email || `${fbUser.uid}@users.noreply.github.com`;
-    Auth.handleOAuthSignInSuccess(email, fbUser.displayName, 'GitHub');
+    FB.loginGithub();
   },
 
   handleOAuthSignInSuccess(email, name, providerLabel) {
