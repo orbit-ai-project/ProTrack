@@ -1097,12 +1097,12 @@ if (typeof window !== 'undefined' && 'EventSource' in window) {
    Firebase Database & Auth Integration
    ============================================================ */
 const defaultFirebaseConfig = {
-  apiKey: "AIzaSyDemoKeyProjectTrackProTrack12345",
-  authDomain: "protrack-project-tracker.firebaseapp.com",
-  projectId: "protrack-project-tracker",
-  storageBucket: "protrack-project-tracker.appspot.com",
-  messagingSenderId: "123456789012",
-  appId: "1:123456789012:web:demo1234567890"
+  apiKey: "AIzaSyBGPXmwQ3IOqj16UhWBo9jUPemlJD5u4x0",
+  authDomain: "pro-track-3ee7c.firebaseapp.com",
+  projectId: "pro-track-3ee7c",
+  storageBucket: "pro-track-3ee7c.firebasestorage.app",
+  messagingSenderId: "513196663857",
+  appId: "1:513196663857:web:edcaf5cfa37888b449a110"
 };
 
 const FB = {
@@ -1164,6 +1164,19 @@ const FB = {
         return res.user;
       } catch(err) {
         console.warn("Firebase Google popup fallback:", err.message);
+      }
+    }
+    return null;
+  },
+
+  async loginGithub() {
+    if (FB.active && FB.auth) {
+      try {
+        const provider = new firebase.auth.GithubAuthProvider();
+        const res = await FB.auth.signInWithPopup(provider);
+        return res.user;
+      } catch(err) {
+        console.warn("Firebase GitHub popup fallback:", err.message);
       }
     }
     return null;
@@ -1649,123 +1662,64 @@ const Auth={
         <svg width="18" height="18" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/></svg> Sign in with Google
       </button>
 
+      <button class="btn gho blk" style="justify-content:center; gap:8px; font-weight:600; height:40px; font-size:13px; border:1px solid var(--line); width:100%; display:flex; align-items:center; cursor:pointer; background:var(--surface); margin-top:8px;" onclick="Auth.githubLogin()">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="#181717"><path d="M12 .5C5.73.5.5 5.73.5 12c0 5.08 3.29 9.39 7.86 10.91.58.1.79-.25.79-.56 0-.28-.01-1.02-.02-2-3.2.7-3.88-1.54-3.88-1.54-.52-1.33-1.28-1.68-1.28-1.68-1.04-.71.08-.7.08-.7 1.15.08 1.76 1.18 1.76 1.18 1.03 1.75 2.69 1.25 3.34.96.1-.75.4-1.25.73-1.54-2.56-.29-5.25-1.28-5.25-5.7 0-1.26.45-2.29 1.18-3.09-.12-.29-.51-1.46.11-3.04 0 0 .96-.31 3.14 1.18a10.9 10.9 0 0 1 2.86-.39c.97 0 1.95.13 2.86.39 2.18-1.49 3.14-1.18 3.14-1.18.62 1.58.23 2.75.11 3.04.73.8 1.18 1.83 1.18 3.09 0 4.43-2.69 5.41-5.26 5.69.41.36.78 1.06.78 2.13 0 1.54-.01 2.78-.01 3.16 0 .31.21.67.8.56C20.71 21.39 24 17.08 24 12c0-6.27-5.23-11.5-12-11.5z"/></svg> Sign in with GitHub
+      </button>
+
       <div class="banner info" style="margin-top:16px">${I.users(15)}<div><b>Team members (Developer, Tester, QnA):</b> you don't sign up here. Your team lead creates your account — you'll get your email and password from your team lead, then sign in with those.</div></div>
       <div class="switcher">Starting a new project team? <button onclick="Auth.go('choose')">Create an account</button></div>`;
   },
 
-  googleLogin(){
+  async googleLogin(){
     FX.tap('med');
 
-    const width = 500, height = 620;
-    const left = Math.max(0, Math.floor((window.screen.width - width) / 2));
-    const top = Math.max(0, Math.floor((window.screen.height - height) / 2));
-
-    const popup = window.open(
-      'about:blank',
-      'GoogleAccountSignIn',
-      `width=${width},height=${height},top=${top},left=${left},resizable=yes,scrollbars=yes,status=yes`
-    );
-
-    if (!popup) {
-      Auth.openGoogleModal();
+    if (!FB.active) {
+      toast(I.alert(15), "Google sign-in is not configured yet.");
       return;
     }
 
-    const popupHtml = `<!DOCTYPE html>
-<html>
-<head>
-  <title>Sign in - Google Accounts</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <style>
-    body { margin:0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background:#ffffff; color:#202124; display:flex; flex-direction:column; height:100vh; justify-content:space-between; box-sizing:border-box; }
-    .card { max-width:440px; margin:36px auto 0; padding:32px 36px; border:1px solid #dadce0; border-radius:8px; width:100%; box-sizing:border-box; }
-    .logo { text-align:center; margin-bottom:16px; }
-    h1 { font-size:22px; font-weight:500; text-align:center; margin:0 0 6px; color:#202124; }
-    .subtitle { font-size:14.5px; text-align:center; color:#5f6368; margin-bottom:24px; }
-    .acc-list { display:flex; flex-direction:column; border-top:1px solid #e8eaed; border-bottom:1px solid #e8eaed; margin-bottom:20px; }
-    .acc-item { display:flex; align-items:center; gap:14px; padding:12px 10px; cursor:pointer; border-radius:4px; transition:background 0.15s ease; border-bottom:1px solid #f1f3f4; }
-    .acc-item:last-child { border-bottom:none; }
-    .acc-item:hover { background:#f8f9fa; }
-    .avatar { width:36px; height:36px; border-radius:50%; background:#1a73e8; color:#fff; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:16px; flex-shrink:0; }
-    .acc-info { display:flex; flex-direction:column; flex:1; }
-    .acc-name { font-size:13.5px; font-weight:600; color:#3c4043; }
-    .acc-email { font-size:12px; color:#5f6368; }
-    .other-inp { display:none; margin-top:14px; background:#f8f9fa; padding:14px; border-radius:6px; border:1px solid #dadce0; }
-    .inp { width:100%; height:40px; border:1px solid #dadce0; border-radius:4px; padding:0 12px; font-size:13.5px; box-sizing:border-box; outline:none; margin-bottom:10px; }
-    .inp:focus { border-color:#1a73e8; }
-    .btn-pri { background:#1a73e8; color:#fff; border:none; height:36px; padding:0 20px; border-radius:4px; font-weight:600; font-size:13.5px; cursor:pointer; width:100%; }
-    .footer { padding:14px 32px; display:flex; justify-content:space-between; font-size:11.5px; color:#757575; border-top:1px solid #f1f3f4; }
-  </style>
-</head>
-<body>
-  <div class="card">
-    <div class="logo">
-      <svg width="42" height="42" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/></svg>
-    </div>
-    <h1>Choose an account</h1>
-    <div class="subtitle">to continue to <b>Pro Track Workspace</b></div>
-
-    <div class="acc-list">
-      <div class="acc-item" onclick="selectAccount('yugalgarg157@gmail.com', 'Yugal Garg')">
-        <div class="avatar">Y</div>
-        <div class="acc-info">
-          <span class="acc-name">Yugal Garg</span>
-          <span class="acc-email">yugalgarg157@gmail.com</span>
-        </div>
-      </div>
-      <div class="acc-item" onclick="toggleCustom()">
-        <div class="avatar" style="background:#5f6368">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-        </div>
-        <div class="acc-info">
-          <span class="acc-name">Use another Google account</span>
-        </div>
-      </div>
-    </div>
-
-    <div id="customBlock" class="other-inp">
-      <input type="email" id="customEmail" class="inp" placeholder="Enter your Gmail address..." onkeydown="if(event.key==='Enter')submitCustom()"/>
-      <button class="btn-pri" onclick="submitCustom()">Sign In with this Account</button>
-    </div>
-  </div>
-
-  <div class="footer">
-    <span>English (United States)</span>
-    <div>
-      <span style="margin-right:12px">Help</span>
-      <span style="margin-right:12px">Privacy</span>
-      <span>Terms</span>
-    </div>
-  </div>
-
-  <${'script'}>
-    function selectAccount(email, name) {
-      if (window.opener && window.opener.Auth) {
-        window.opener.Auth.handleGoogleSignInSuccess(email, name);
-      }
-      window.close();
+    let fbUser;
+    try {
+      fbUser = await FB.loginGoogle();
+    } catch (err) {
+      toast(I.alert(15), "Google sign-in failed. Please try again.");
+      return;
     }
 
-    function toggleCustom() {
-      const b = document.getElementById('customBlock');
-      b.style.display = b.style.display === 'block' ? 'none' : 'block';
-      if (b.style.display === 'block') document.getElementById('customEmail').focus();
+    if (!fbUser) {
+      toast(I.alert(15), "Google sign-in was cancelled or blocked. Please allow popups and try again.");
+      return;
     }
 
-    function submitCustom() {
-      const em = document.getElementById('customEmail').value.trim();
-      if (em) selectAccount(em, em.split('@')[0]);
-    }
-  </${'script'}>
-</body>
-</html>`;
-
-    popup.document.open();
-    popup.document.write(popupHtml);
-    popup.document.close();
+    Auth.handleOAuthSignInSuccess(fbUser.email, fbUser.displayName, 'Google');
   },
 
-  handleGoogleSignInSuccess(email, name) {
+  async githubLogin(){
+    FX.tap('med');
+
+    if (!FB.active) {
+      toast(I.alert(15), "GitHub sign-in is not configured yet.");
+      return;
+    }
+
+    let fbUser;
+    try {
+      fbUser = await FB.loginGithub();
+    } catch (err) {
+      toast(I.alert(15), "GitHub sign-in failed. Please try again.");
+      return;
+    }
+
+    if (!fbUser) {
+      toast(I.alert(15), "GitHub sign-in was cancelled or blocked. Please allow popups and try again.");
+      return;
+    }
+
+    const email = fbUser.email || `${fbUser.uid}@users.noreply.github.com`;
+    Auth.handleOAuthSignInSuccess(email, fbUser.displayName, 'GitHub');
+  },
+
+  handleOAuthSignInSuccess(email, name, providerLabel) {
     const em = String(email).trim().toLowerCase();
     let u = userByEmail(em);
     if (!u) {
@@ -1775,7 +1729,7 @@ const Auth={
         id: newId,
         name: displayName,
         email: em,
-        pass: hash('google123'),
+        pass: hash(uid() + uid()),
         role: 'Team Lead',
         groupId: 'g1',
         color: AVC[DB.s.users.length % AVC.length],
@@ -1788,74 +1742,7 @@ const Auth={
     FX.tap('done');
     App.signIn(u.id);
     if (typeof Modal !== 'undefined') Modal.close();
-    toast(I.check(15), `Signed in with Google as ${u.name}`);
-  },
-
-  openGoogleModal(presetEmail, presetName){
-    const defaultEmail = presetEmail || 'yugalgarg157@gmail.com';
-    Modal.open(`
-      <div class="mh">
-        <div style="display:flex;align-items:center;gap:8px">
-          <svg width="22" height="22" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/></svg>
-          <h3 style="font-size:16px;font-weight:700">Complete Your Google Profile</h3>
-        </div>
-        <button class="btn ico sm gho" onclick="Modal.close()">${I.x(15)}</button>
-      </div>
-      <div class="mb">
-        <p style="font-size:12.5px;color:var(--muted);margin-bottom:14px">Select your role and academic details to finish signing in with your Google account.</p>
-        <div class="field" style="margin-bottom:12px">
-          <label for="g_email">Google Email / Gmail</label>
-          <input class="inp" id="g_email" type="email" placeholder="you@gmail.com" value="${esc(defaultEmail)}" onkeydown="if(event.key==='Enter')Auth.submitGoogleLogin()"/>
-        </div>
-        <div class="field" style="margin-bottom:12px">
-          <label for="g_role">Select Role</label>
-          <select class="inp" id="g_role">
-            <option value="Team Lead" selected>Team Lead (Student)</option>
-            <option value="Faculty">Faculty / Guide</option>
-          </select>
-        </div>
-        <div id="g_err"></div>
-      </div>
-      <div class="mf">
-        <button class="btn gho" onclick="Modal.close()">Cancel</button>
-        <div class="sp"></div>
-        <button class="btn pri" style="background:#4285F4; border-color:#4285F4; font-weight:700" onclick="Auth.submitGoogleLogin()">Continue with Google</button>
-      </div>
-    `);
-  },
-
-  submitGoogleLogin(){
-    const emEl = document.getElementById('g_email');
-    const roleEl = document.getElementById('g_role');
-    let em = emEl ? emEl.value.trim().toLowerCase() : '';
-    if (!em) em = 'yugalgarg157@gmail.com';
-    if (!em.includes('@')) em += '@gmail.com';
-
-    const role = roleEl ? roleEl.value : 'Team Lead';
-    let u = userByEmail(em);
-
-    if (!u) {
-      const name = em.split('@')[0].replace(/[._-]/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
-      const newId = 'u-' + uid();
-      u = {
-        id: newId,
-        name: name,
-        email: em,
-        pass: hash('google123'),
-        role: role,
-        groupId: role === 'Team Lead' ? 'g1' : null,
-        color: AVC[DB.s.users.length % AVC.length],
-        createdAt: now(),
-        googleConnected: true
-      };
-      DB.s.users.push(u);
-      DB.save();
-      API.push();
-    }
-    FX.tap('done');
-    App.signIn(u.id);
-    Modal.close();
-    toast(I.check(15), `Signed in with Google as ${u.name}`);
+    toast(I.check(15), `Signed in with ${providerLabel} as ${u.name}`);
   },
 
 
@@ -1886,6 +1773,10 @@ const Auth={
 
       <button class="btn gho blk" style="justify-content:center; gap:8px; font-weight:600; height:40px; font-size:13px; border:1px solid var(--line); width:100%; display:flex; align-items:center; cursor:pointer; background:var(--surface);" onclick="Auth.googleLogin()">
         <svg width="18" height="18" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/></svg> Continue with Google
+      </button>
+
+      <button class="btn gho blk" style="justify-content:center; gap:8px; font-weight:600; height:40px; font-size:13px; border:1px solid var(--line); width:100%; display:flex; align-items:center; cursor:pointer; background:var(--surface); margin-top:8px;" onclick="Auth.githubLogin()">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="#181717"><path d="M12 .5C5.73.5.5 5.73.5 12c0 5.08 3.29 9.39 7.86 10.91.58.1.79-.25.79-.56 0-.28-.01-1.02-.02-2-3.2.7-3.88-1.54-3.88-1.54-.52-1.33-1.28-1.68-1.28-1.68-1.04-.71.08-.7.08-.7 1.15.08 1.76 1.18 1.76 1.18 1.03 1.75 2.69 1.25 3.34.96.1-.75.4-1.25.73-1.54-2.56-.29-5.25-1.28-5.25-5.7 0-1.26.45-2.29 1.18-3.09-.12-.29-.51-1.46.11-3.04 0 0 .96-.31 3.14 1.18a10.9 10.9 0 0 1 2.86-.39c.97 0 1.95.13 2.86.39 2.18-1.49 3.14-1.18 3.14-1.18.62 1.58.23 2.75.11 3.04.73.8 1.18 1.83 1.18 3.09 0 4.43-2.69 5.41-5.26 5.69.41.36.78 1.06.78 2.13 0 1.54-.01 2.78-.01 3.16 0 .31.21.67.8.56C20.71 21.39 24 17.08 24 12c0-6.27-5.23-11.5-12-11.5z"/></svg> Continue with GitHub
       </button>
 
       <div class="switcher">Already have an account? <button onclick="Auth.go('signin')">Sign in</button></div>`;
