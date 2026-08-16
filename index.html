@@ -111,30 +111,31 @@ select.inp{cursor:pointer;appearance:none;padding-right:28px;
 .sec{font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--faint)}
 
 /* ============ AUTH ============ */
-#auth{height:100%;display:flex;align-items:center;justify-content:center;background:var(--surface);padding:24px;overflow:auto}
-#auth .pane{width:min(400px,100%);display:flex;flex-direction:column;align-items:center;justify-content:center}
-.authbox{width:100%}
+#auth{height:100%;display:flex;align-items:center;justify-content:center;background:#F7F4E9;padding:24px;overflow:auto}
+#auth .pane{width:min(420px,100%);display:flex;flex-direction:column;align-items:center;justify-content:center}
+.authbox{width:100%;background:#FFFFFF;border:1.5px solid rgba(23,67,63,0.15);border-radius:16px;padding:32px 28px;box-shadow:0 16px 40px rgba(23,67,63,0.12)}
 
-.logo{display:flex;align-items:center;gap:9px}
-.logo .m{width:28px;height:28px;border-radius:9px;background:linear-gradient(135deg,#2E7387,#52AB98);display:grid;place-items:center;box-shadow:0 5px 12px -5px rgba(30,80,95,.6)}
-.logo .m svg{stroke:#fff}
-.logo span{font-size:15px;font-weight:600;letter-spacing:-.01em}
-
-.authbox h1{font-size:21px;font-weight:600;letter-spacing:-.02em;margin:26px 0 5px}
-.authbox .lede{color:var(--muted);font-size:13px;margin-bottom:22px}
-.form{display:grid;gap:14px}
-.switcher{margin-top:20px;padding-top:16px;border-top:1px solid var(--line-2);font-size:12.5px;color:var(--muted);text-align:center}
-.switcher button{color:var(--accent);font-weight:500}
-.switcher button:hover{text-decoration:underline}
-
-.rolecards{display:grid;gap:8px;margin-bottom:4px}
-.rolecards button{display:flex;gap:10px;align-items:flex-start;text-align:left;padding:11px 12px;border:1px solid var(--line);border-radius:var(--r2);background:#fff;transition:border-color .12s,background .12s}
-.rolecards button:hover{border-color:#CDD2DA;background:var(--surface-2)}
-.rolecards button.on{border-color:var(--accent);background:var(--accent-soft)}
-.rolecards .ri{width:30px;height:30px;border-radius:var(--r1);background:var(--gray-s);display:grid;place-items:center;color:var(--ink-2)}
-.rolecards button.on .ri{background:#fff;color:var(--accent)}
-.rolecards .rt{font-weight:600;font-size:13px}
-.rolecards .rd{font-size:12px;color:var(--muted);line-height:1.4;margin-top:1px}
+.role-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 24px 16px;
+  background: #FFFFFF;
+  border: 1.5px solid rgba(23,67,63,0.15);
+  border-radius: 16px;
+  cursor: pointer;
+  transition: all 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.role-card:hover {
+  border-color: #17433F;
+  background: #F1F5F9;
+  transform: translateY(-4px) scale(1.02);
+  box-shadow: 0 8px 24px rgba(23, 67, 63, 0.08);
+}
+.role-card:hover svg {
+  transform: scale(1.12);
+}
 
 .creds{width:100%;max-width:360px}
 .creds .t{font-size:12px;font-weight:600;margin-bottom:3px}
