@@ -1460,28 +1460,109 @@ const Auth={
     Modal.open(`
       <div class="mh"><h3>Single Sign-On (${esc(provider)})</h3><button class="btn ico sm gho" onclick="Modal.close()">${I.x(15)}</button></div>
       <div class="mb">
-        <div class="banner info">${I.shield(16)}<div>Sign in seamlessly with your verified <b>${esc(provider)}</b> account:</div></div>
-        <div style="display:grid; gap:10px; margin-top:14px;">
-          <button class="btn pri blk" style="height:42px; justify-content:center; font-weight:600;" onclick="Auth.doOAuthLogin('u-fac1', '${provider}')">
-            ${I.cap(16)} Sign in as Faculty (Dr. Anjali Sharma)
-          </button>
-          <button class="btn blk" style="height:42px; justify-content:center; font-weight:600; background:var(--surface-2); border:1px solid var(--line); color:var(--ink);" onclick="Auth.doOAuthLogin('u-g10', '${provider}')">
-            ${I.users(16)} Sign in as Team Lead (Aarav Mehta)
-          </button>
+        <div class="banner info" style="margin-bottom:12px">${I.shield(16)}<div>Sign in or register directly using your verified <b>${esc(provider)}</b> account credentials:</div></div>
+        
+        <div class="field" style="margin-bottom:12px">
+          <label for="oauth_email">Enter your ${esc(provider)} Email Address / Gmail</label>
+          <input class="inp" id="oauth_email" type="email" placeholder="e.g. yourname@gmail.com or professor@college.edu" value="${App.me ? App.me.email : ''}" onkeydown="if(event.key==='Enter')Auth.doOAuthLogin('${esc(provider)}')"/>
         </div>
+
+        <div class="field" style="margin-bottom:12px">
+          <label for="oauth_role">Select Account Role</label>
+          <select class="inp" id="oauth_role">
+            <option value="Faculty">Faculty / Project Guide</option>
+            <option value="Team Lead" selected>Team Lead (Student)</option>
+          </select>
+        </div>
+
+        <div id="oauth_err"></div>
       </div>
-      <div class="mf"><div class="sp"></div><button class="btn" onclick="Modal.close()">Cancel</button></div>
+      <div class="mf">
+        <div class="sp"></div>
+        <button class="btn" onclick="Modal.close()">Cancel</button>
+        <button class="btn pri" onclick="Auth.doOAuthLogin('${esc(provider)}')">Continue with ${esc(provider)}</button>
+      </div>
     `);
+    setTimeout(() => {
+      const el = document.getElementById('oauth_email');
+      if (el) el.focus();
+    }, 60);
   },
-  doOAuthLogin(userId, provider){
-    const u = user(userId);
-    if (!u) return;
+  doOAuthLogin(provider){
+    const emailEl = document.getElementById('oauth_email');
+    const roleEl = document.getElementById('oauth_role');
+    const email = emailEl ? emailEl.value.trim() : '';
+    const role = roleEl ? roleEl.value : 'Team Lead';
+
+    if (!email || !emailOk(email)) {
+      return Modal.err('oauth_err', 'Please enter a valid email address (e.g. name@gmail.com).');
+    }
+
+    // Check if account with this email exists
+    let u = userByEmail(email);
+
+    if (!u) {
+      // Create a fresh new account for this email!
+      const nameFromEmail = email.split('@')[0].replace(/[._-]/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+      const newId = 'u-' + uid();
+      
+      u = {
+        id: newId,
+        name: nameFromEmail,
+        email: email,
+        pass: hash('oauth123'),
+        role: role,
+        groupId: null,
+        color: AVC[DB.s.users.length % AVC.length],
+        createdAt: now(),
+        oauth: {}
+      };
+
+      if (role === 'Team Lead') {
+        const gid = 'g-' + uid().slice(0, 6);
+        u.groupId = gid;
+        DB.s.groups.push({
+          id: gid,
+          name: `${nameFromEmail}'s Team`,
+          project: 'AI Project Workspace',
+          subject: '23AID205 · Intro to AI & ML',
+          courseCode: '23AID205',
+          subjects: ['23AID205'],
+          semester: 3,
+          topics: {},
+          leadId: newId,
+          facultyIds: ['u-fac1'],
+          createdAt: now()
+        });
+
+        // Add 3 default team members under this lead
+        const roles = ['Developer', 'Tester', 'QnA / Analyst'];
+        roles.forEach((r, idx) => {
+          const mId = 'u-' + uid().slice(0, 6);
+          DB.s.users.push({
+            id: mId,
+            name: `Member ${idx + 1} (${r})`,
+            email: `${nameFromEmail.toLowerCase().replace(/\s+/g,'')}.m${idx+1}@college.edu`,
+            pass: hash('student123'),
+            role: r,
+            groupId: gid,
+            color: AVC[(DB.s.users.length + idx) % AVC.length],
+            createdAt: now()
+          });
+        });
+      }
+
+      DB.s.users.push(u);
+    }
+
     u.oauth = u.oauth || {};
     u.oauth[provider] = { connected: true, connectedAt: now() };
+
     DB.save();
+    API.push();
     App.signIn(u);
     Modal.close();
-    toast(I.check(15), `Signed in via ${provider} OAuth successfully!`);
+    toast(I.check(15), `Signed in as ${u.name} (${provider} OAuth)`);
   },
 
   chooseHTML(){
