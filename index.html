@@ -700,6 +700,11 @@ tbody tr:hover{background:var(--surface-2)}
   <div class="pane">
     <div class="authbox" id="authBox"></div>
   </div>
+  <aside class="aside">
+    <h3>Demo workspace credentials</h3>
+    <p class="lede" style="color:rgba(255,255,255,0.7);margin-bottom:16px">Click any row below to quickly auto-fill and sign in:</p>
+    <div class="credlist" id="credList"></div>
+  </aside>
 </div>
 
 <!-- ============ SHELL ============ -->
@@ -1647,6 +1652,7 @@ const Auth={
       <div class="banner info" style="margin-top:16px">${I.users(15)}<div><b>Team members (Developer, Tester, QnA):</b> you don't sign up here. Your team lead creates your account — you'll get your email and password from your team lead, then sign in with those.</div></div>
       <div class="switcher">Starting a new project team? <button onclick="Auth.go('choose')">Create an account</button></div>`;
   },
+
   googleLogin(){
     FX.tap('med');
 
@@ -1665,7 +1671,7 @@ const Auth={
       return;
     }
 
-    const popupContent = `<!DOCTYPE html>
+    const popupHtml = `<!DOCTYPE html>
 <html>
 <head>
   <title>Sign in - Google Accounts</title>
@@ -1732,7 +1738,7 @@ const Auth={
     </div>
   </div>
 
-  <script>
+  <${'script'}>
     function selectAccount(email, name) {
       if (window.opener && window.opener.Auth) {
         window.opener.Auth.handleGoogleSignInSuccess(email, name);
@@ -1748,16 +1754,14 @@ const Auth={
 
     function submitCustom() {
       const em = document.getElementById('customEmail').value.trim();
-      if (em) {
-        selectAccount(em, em.split('@')[0]);
-      }
+      if (em) selectAccount(em, em.split('@')[0]);
     }
-  </script>
+  </${'script'}>
 </body>
 </html>`;
 
     popup.document.open();
-    popup.document.write(popupContent);
+    popup.document.write(popupHtml);
     popup.document.close();
   },
 
@@ -2090,13 +2094,21 @@ const App={
   get isLead(){ return App.me && App.me.role==='Team Lead'; },
 
   signIn(id, silent){
-    App.me=user(id);
-    sessionStorage.setItem(K_SESSION,id);
+    const u = user(id);
+    if (!u) {
+      console.warn("User not found for id:", id);
+      Auth.render();
+      return;
+    }
+    App.me = u;
+    sessionStorage.setItem(K_SESSION, id);
     document.getElementById('auth').classList.add('hidden');
     document.getElementById('shell').classList.remove('hidden');
-    App.tab='dashboard'; App.openGroup=null;
-    Sync.beat(); App.render();
-    if(!silent){ FX.tap('med'); toast(I.check(15),`Signed in as ${App.me.name}`); }
+    App.tab = 'dashboard';
+    App.openGroup = null;
+    Sync.beat();
+    App.render();
+    if (!silent) { FX.tap('med'); toast(I.check(15), `Signed in as ${App.me.name}`); }
   },
 
   signOut(){
