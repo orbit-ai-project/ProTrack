@@ -1091,7 +1091,7 @@ if (typeof window !== 'undefined' && 'EventSource' in window) {
 /* ============================================================
    Firebase Database & Auth Integration
    ============================================================ */
-const firebaseConfig = {
+const defaultFirebaseConfig = {
   apiKey: "AIzaSyDemoKeyProjectTrackProTrack12345",
   authDomain: "protrack-project-tracker.firebaseapp.com",
   projectId: "protrack-project-tracker",
@@ -1106,22 +1106,31 @@ const FB = {
   db: null,
   active: false,
 
+  getConfig() {
+    try {
+      const stored = localStorage.getItem('FIREBASE_CUSTOM_CONFIG');
+      if (stored) return JSON.parse(stored);
+    } catch(e) {}
+    return defaultFirebaseConfig;
+  },
+
   init() {
     try {
       if (typeof firebase !== 'undefined') {
+        const config = FB.getConfig();
         if (!firebase.apps.length) {
-          FB.app = firebase.initializeApp(firebaseConfig);
+          FB.app = firebase.initializeApp(config);
         } else {
           FB.app = firebase.app();
         }
         FB.auth = firebase.auth();
         FB.db = firebase.firestore();
         FB.active = true;
-        console.log("Firebase Auth & Firestore initialized successfully.");
+        console.log("🔥 Firebase Auth & Firestore database connected successfully.");
         FB.listenState();
       }
     } catch(e) {
-      console.warn("Firebase initialization fallback:", e);
+      console.warn("Firebase initialization note:", e);
     }
   },
 
@@ -1149,7 +1158,7 @@ const FB = {
         const res = await FB.auth.signInWithPopup(provider);
         return res.user;
       } catch(err) {
-        console.warn("Firebase Google popup fallback to modal dialog:", err);
+        console.warn("Firebase Google popup fallback:", err.message);
       }
     }
     return null;
@@ -1158,10 +1167,28 @@ const FB = {
   saveState(stateData) {
     if (FB.active && FB.db) {
       try {
+        // Save overall app state document
         FB.db.collection("projectTrack").doc("appState").set({
           data: JSON.stringify(stateData),
           updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-        }, { merge: true }).catch(err => console.warn("Firestore save fallback:", err));
+        }, { merge: true }).catch(err => console.warn("Firestore state save note:", err));
+
+        // Save granular Firestore collections matching Firebase schema
+        if (stateData.users && Array.isArray(stateData.users)) {
+          stateData.users.forEach(u => {
+            if (u && u.id) FB.db.collection("users").doc(String(u.id)).set(u, { merge: true }).catch(() => {});
+          });
+        }
+        if (stateData.groups && Array.isArray(stateData.groups)) {
+          stateData.groups.forEach(g => {
+            if (g && g.id) FB.db.collection("groups").doc(String(g.id)).set(g, { merge: true }).catch(() => {});
+          });
+        }
+        if (stateData.tasks && Array.isArray(stateData.tasks)) {
+          stateData.tasks.forEach(t => {
+            if (t && t.id) FB.db.collection("tasks").doc(String(t.id)).set(t, { merge: true }).catch(() => {});
+          });
+        }
       } catch(e) {}
     }
   },
@@ -1173,15 +1200,73 @@ const FB = {
           if (doc.exists && doc.data() && doc.data().data) {
             try {
               const remoteState = JSON.parse(doc.data().data);
-              if (remoteState && remoteState.users) {
+              if (remoteState && remoteState.users && remoteState.users.length > 0) {
                 DB.s = remoteState;
                 localStorage.setItem(K_STATE, JSON.stringify(DB.s));
                 if (App.me) App.render();
               }
             } catch(e) {}
           }
-        });
+        }, err => console.warn("Firestore snapshot listener note:", err.message));
       } catch(e) {}
+    }
+  },
+
+  openConfigModal() {
+    const cfg = FB.getConfig();
+    Modal.open(`
+      <div class="mh">
+        <div style="display:flex;align-items:center;gap:8px">
+          <span style="font-size:20px">🔥</span>
+          <h3 style="font-size:16px;font-weight:700">Firebase Database & Auth Settings</h3>
+        </div>
+        <button class="btn ico sm gho" onclick="Modal.close()">${I.x(15)}</button>
+      </div>
+      <div class="mb">
+        <div class="banner info" style="margin-bottom:14px">
+          ${I.check(15)}
+          <div><b>Status:</b> ${FB.active ? 'Firebase Firestore & Auth Active' : 'Fallback Local Storage Mode'}</div>
+        </div>
+        <p style="font-size:12.5px;color:var(--muted);margin-bottom:14px">Enter your custom Firebase Project credentials to sync live across your own Firebase Firestore instance.</p>
+        <div class="field" style="margin-bottom:10px">
+          <label for="fb_apiKey">API Key</label>
+          <input class="inp" id="fb_apiKey" value="${esc(cfg.apiKey || '')}" placeholder="AIzaSy..."/>
+        </div>
+        <div class="field" style="margin-bottom:10px">
+          <label for="fb_projectId">Project ID</label>
+          <input class="inp" id="fb_projectId" value="${esc(cfg.projectId || '')}" placeholder="protrack-project-tracker"/>
+        </div>
+        <div class="field" style="margin-bottom:10px">
+          <label for="fb_authDomain">Auth Domain</label>
+          <input class="inp" id="fb_authDomain" value="${esc(cfg.authDomain || '')}" placeholder="project.firebaseapp.com"/>
+        </div>
+      </div>
+      <div class="mf">
+        <button class="btn gho" onclick="localStorage.removeItem('FIREBASE_CUSTOM_CONFIG'); location.reload();">Reset Default</button>
+        <div class="sp"></div>
+        <button class="btn pri" onclick="FB.saveConfigFromModal()">Save & Connect</button>
+      </div>
+    `);
+  },
+
+  saveConfigFromModal() {
+    const k = document.getElementById('fb_apiKey').value.trim();
+    const p = document.getElementById('fb_projectId').value.trim();
+    const d = document.getElementById('fb_authDomain').value.trim();
+    if (k && p) {
+      const cfg = {
+        apiKey: k,
+        projectId: p,
+        authDomain: d || `${p}.firebaseapp.com`,
+        storageBucket: `${p}.appspot.com`,
+        messagingSenderId: "123456789012",
+        appId: "1:123456789012:web:demo"
+      };
+      localStorage.setItem('FIREBASE_CUSTOM_CONFIG', JSON.stringify(cfg));
+      toast(I.check(15), "Firebase configuration saved! Reloading...");
+      setTimeout(() => location.reload(), 600);
+    } else {
+      toast(I.alert(15), "Please enter valid API Key and Project ID");
     }
   }
 };
