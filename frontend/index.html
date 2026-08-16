@@ -1491,14 +1491,18 @@ const Auth={
   doOAuthLogin(provider){
     const emailEl = document.getElementById('oauth_email');
     const roleEl = document.getElementById('oauth_role');
-    const email = emailEl ? emailEl.value.trim() : '';
+    let rawEmail = emailEl ? emailEl.value.trim().toLowerCase() : '';
     const role = roleEl ? roleEl.value : 'Team Lead';
 
-    if (!email || !emailOk(email)) {
-      return Modal.err('oauth_err', 'Please enter a valid email address (e.g. name@gmail.com).');
+    if (!rawEmail) {
+      return Modal.err('oauth_err', 'Please enter your Gmail / Email address.');
     }
 
-    // Check if account with this email exists
+    if (!rawEmail.includes('@')) {
+      rawEmail += '@gmail.com';
+    }
+
+    const email = rawEmail;
     let u = userByEmail(email);
 
     if (!u) {
