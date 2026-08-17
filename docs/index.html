@@ -1472,7 +1472,15 @@ const group=id=> { if(!DB.s) DB.load(); return (DB.s&&DB.s.groups)?DB.s.groups.f
 const membersOf=gid=> { if(!DB.s) DB.load(); return (DB.s&&DB.s.users)?DB.s.users.filter(u=>u.groupId===gid).sort((a,b)=>ROLES.indexOf(a.role)-ROLES.indexOf(b.role)):[]; };
 const facultyOf=gid=>((group(gid)||{}).facultyIds||[]).map(user).filter(Boolean);
 const allFaculty=()=> { if(!DB.s) DB.load(); return (DB.s&&DB.s.users)?DB.s.users.filter(u=>u.role==='Faculty'):[]; };
-const myGroups=()=> { if(!DB.s) DB.load(); return (DB.s&&DB.s.groups)?DB.s.groups.filter(g=>(g.facultyIds||[]).includes(App.me&&App.me.id)):[]; };
+const myGroups=()=> {
+  if(!DB.s) DB.load();
+  if(!App.me) return [];
+  if(App.isFaculty){
+    return (DB.s&&DB.s.groups)?DB.s.groups.filter(g=>(g.facultyIds||[]).includes(App.me.id)):[];
+  } else {
+    return (DB.s&&DB.s.groups)?DB.s.groups.filter(g=>g.id===App.me.groupId):[];
+  }
+};
 const canSeeGroup=gid=>App.isFaculty?(group(gid)&&(group(gid).facultyIds||[]).includes(App.me&&App.me.id)):(App.me&&App.me.groupId===gid);
 const tasksOf=gid=> { if(!DB.s) DB.load(); return (DB.s&&DB.s.tasks)?DB.s.tasks.filter(t=>t.groupId===gid):[]; };
 const tasksFor=uidv=> { if(!DB.s) DB.load(); return (DB.s&&DB.s.tasks)?DB.s.tasks.filter(t=>t.assigneeId===uidv):[]; };
@@ -2521,6 +2529,8 @@ const App={
     return [
       ['dashboard','Dashboard',I.home],
       ['assistant','AI Assistant',I.spark],
+      ['analytics','Analytics',I.chart],
+      ['teamchat','Team Chat',I.msg],
       ['subjects','Subjects',I.cap],
       ['deliverables','Deliverables',I.folder,delivCount||null],
       ['calendar','Calendar',I.cal],
@@ -2547,7 +2557,7 @@ const App={
        <div style="flex:1;min-width:0"><div class="nm">${esc(App.me.name)}</div><div class="rl">${esc(App.me.role)}</div></div>
        ${I.chev(14)}`;
 
-    const titles={dashboard:'Dashboard',assistant:'AI Assistant',analytics:'Analytics',subjects:'Subjects',calendar:'Calendar',deliverables:'Deliverables',groups:'Groups',people:'People',activity:'Activity',
+    const titles={dashboard:'Dashboard',assistant:'AI Assistant',analytics:'Analytics',teamchat:'Team Chat',subjects:'Subjects',calendar:'Calendar',deliverables:'Deliverables',groups:'Groups',people:'People',activity:'Activity',
       board:'Task Board',mytasks:'My Tasks',team:'My Team',groupactivity:'Activity',group:'Group',settings:'Settings'};
     const g=App.openGroup?group(App.openGroup):null;
     const subC=App.openSubjectCode?SEM3.find(s=>s.code===App.openSubjectCode):null;
@@ -2565,6 +2575,7 @@ const App={
       App.tab==='dashboard' ? (App.isFaculty?Page.facDash():Page.stuDash()) :
       App.tab==='assistant' ? Page.assistant() :
       App.tab==='analytics' ? Page.analytics() :
+      App.tab==='teamchat'  ? Page.teamchat() :
       App.tab==='subjects'  ? Page.subjectsHub() :
       App.tab==='subject'   ? Page.subjectDetail(App.openSubjectCode) :
       App.tab==='deliverables' ? Page.deliverablesHub() :
@@ -2583,6 +2594,12 @@ const App={
     v.scrollTop=sc;
     Board.bind(); AI.bind(); Tilt.bind();
     Sync.lastSig=Sync.sig();
+    
+    // Auto-scroll team chat log to bottom if visible
+    setTimeout(() => {
+      const el = document.getElementById('teamchat_log');
+      if (el) el.scrollTop = el.scrollHeight;
+    }, 10);
   }
 };
 
@@ -3297,6 +3314,35 @@ const Page={
       <div class="sec">Task board — read only</div><div style="flex:1"></div></div>
     ${Board.html(ts,false)}
 
+    <div class="card" style="margin-bottom:16px; display:flex; flex-direction:column; max-height:450px;">
+      <div class="ch"><h3>Group Discussion Board</h3><div class="sp"></div><div class="live"><i></i>Live Feed</div></div>
+      <div class="cb" id="teamchat_log" style="flex:1; overflow-y:auto; padding:12px; display:flex; flex-direction:column; gap:10px; max-height:280px; min-height:160px; background:var(--surface-2); border-radius:var(--r2);">
+        ${((DB.s.messages || []).filter(m => m.groupId === gid).slice().sort((a,b)=>a.ts-b.ts)).length ? ((DB.s.messages || []).filter(m => m.groupId === gid).slice().sort((a,b)=>a.ts-b.ts)).map(m => {
+          const isMe = m.senderId === App.me.id;
+          const sender = user(m.senderId) || { name: m.senderName, role: m.senderRole, color: '#888' };
+          return `
+            <div style="display:flex; gap:8px; align-items:flex-start; ${isMe ? 'flex-direction:row-reverse;' : ''}">
+              ${av(sender, 'xs')}
+              <div style="max-width:85%; display:flex; flex-direction:column; ${isMe ? 'align-items:flex-end;' : 'align-items:flex-start;'}">
+                <div style="font-size:10px; color:var(--muted); margin-bottom:1px;">
+                  <b>${esc(m.senderName)}</b> (${esc(m.senderRole)}) · ${ago(m.ts)}
+                </div>
+                <div style="padding:7px 11px; border-radius:10px; font-size:12px; line-height:1.4;
+                  ${isMe ? 'background:var(--accent); color:#fff; border-top-right-radius:2px;' : 'background:var(--surface); color:var(--ink); border-top-left-radius:2px; border:1px solid var(--line-2);'}">
+                  ${esc(m.text)}
+                </div>
+              </div>
+            </div>
+          `;
+        }).join('') : `<div style="text-align:center; color:var(--faint); font-size:12.5px; padding:20px 0;">No messages yet. Send a guidance message below.</div>`}
+      </div>
+      <div style="display:flex; gap:8px; padding:10px 12px; border-top:1px solid var(--line-2); background:var(--surface);">
+        <input class="inp" id="teamchat_in" placeholder="Post a guidance remark or question to the team..." style="flex:1; height:32px; font-size:12.5px;" 
+          onkeydown="if(event.key==='Enter'){Page.sendTeamMessage('${gid}');}" />
+        <button class="btn pri sm" onclick="Page.sendTeamMessage('${gid}')">${I.send(13)} Send</button>
+      </div>
+    </div>
+
     <div class="card" style="margin-top:16px">
       <div class="ch"><h3>Group activity</h3></div>
       ${Page.feed(DB.s.activity.filter(a=>a.groupId===gid).slice(0,20))}
@@ -3571,11 +3617,14 @@ const Page={
     const h=new Date().getHours();
     const greet=h<12?'Good morning':h<17?'Good afternoon':'Good evening';
     const incomplete=ms.length<4;
+    const ev = g.evaluation;
 
     return `
     <div class="ph">
       <div><h1>${greet}, ${esc(App.me.name.split(' ')[0])}</h1>
-        <p>${esc(g.name)} · ${esc(g.project)} · you are the ${esc(App.me.role)}</p></div>
+        <p>${esc(g.name)} · ${esc(g.project)} · you are the ${esc(App.me.role)} 
+        ${ev ? `<span class="tag" style="background:var(--green-s);color:var(--green);font-weight:700;margin-left:8px;vertical-align:middle;display:inline-flex;align-items:center;">★ Supervised Grade: ${esc(ev.grade)} (${ev.score})</span>` : ''}
+        </p></div>
       <div class="sp"></div>
       ${App.isLead?`<button class="btn pri" onclick="Modal.taskForm()">${I.plus(15)} Assign task</button>`:''}
       <button class="btn" onclick="App.go('board')">${I.board(15)} Open board</button>
@@ -3783,9 +3832,12 @@ const Page={
     return `<div class="ph">
         <div><h1>Task Board</h1><p>${esc(g.name)} · ${esc(g.project)}</p></div>
         <div class="sp"></div>
-        <span style="font-size:12px;color:var(--muted)">${App.isLead?'You can move and edit every task':'You can move only your own tasks'}</span>
+        <span style="font-size:12px;color:var(--muted);margin-right:8px;">${App.isLead?'You can move and edit every task':'You can move only your own tasks'}</span>
         <button class="btn sm gho" onclick="Export.toCSV('${g.id}')">📥 Export Board (CSV)</button>
-        ${App.isLead?`<button class="btn pri" onclick="Modal.taskForm()">${I.plus(15)} New task</button>`:''}
+        ${App.isLead?`
+          <button class="btn pri gho" style="border:1px dashed var(--accent);margin-right:4px;" onclick="AI.openSprintPlanner()">${I.spark(14)} AI Sprint Planner</button>
+          <button class="btn pri" onclick="Modal.taskForm()">${I.plus(15)} New task</button>
+        `:''}
       </div>
       ${Board.html(ts,App.isLead)}`;
   },
@@ -4148,6 +4200,88 @@ const Confetti={
         </div>
       </div>
     `;
+  },
+
+  teamchat() {
+    const g = group(App.me.groupId);
+    if (!g) return Page.noGroup();
+    
+    DB.s.messages = DB.s.messages || [];
+    const groupMsgs = DB.s.messages.filter(m => m.groupId === g.id).slice().sort((a,b)=>a.ts-b.ts);
+
+    return `
+      <div class="ph">
+        <div>
+          <h1>Team Discussion Board</h1>
+          <p>${esc(g.name)} · ${esc(g.project)} · Realtime Chat Feed</p>
+        </div>
+        <div class="sp"></div>
+        <div class="live"><i></i>Live Feed</div>
+      </div>
+
+      <div class="card" style="display:flex; flex-direction:column; height:calc(100vh - 210px); min-height:480px;">
+        <div class="chatlog" id="teamchat_log" style="flex:1; overflow-y:auto; padding:16px; display:flex; flex-direction:column; gap:12px; background:var(--surface);">
+          ${groupMsgs.length ? groupMsgs.map(m => {
+            const isMe = m.senderId === App.me.id;
+            const sender = user(m.senderId) || { name: m.senderName, role: m.senderRole, color: '#888' };
+            return `
+              <div style="display:flex; gap:10px; align-items:flex-start; ${isMe ? 'flex-direction:row-reverse;' : ''}">
+                ${av(sender, 'sm')}
+                <div style="max-width:70%; display:flex; flex-direction:column; ${isMe ? 'align-items:flex-end;' : 'align-items:flex-start;'}">
+                  <div style="font-size:11px; color:var(--muted); margin-bottom:2px;">
+                    <b>${esc(m.senderName)}</b> (${esc(m.senderRole)}) · ${ago(m.ts)}
+                  </div>
+                  <div style="padding:10px 14px; border-radius:12px; font-size:13px; line-height:1.45;
+                    ${isMe ? 'background:var(--accent); color:#fff; border-top-right-radius:2px;' : 'background:var(--surface-2); color:var(--ink); border-top-left-radius:2px; border:1px solid var(--line-2);'}">
+                    ${esc(m.text)}
+                  </div>
+                </div>
+              </div>
+            `;
+          }).join('') : `
+            <div class="empty" style="margin:auto; padding:40px 20px;">
+              ${I.msg(28)}
+              <div class="h">No messages yet</div>
+              <p>Start the conversation! Post project updates, links or daily standup notes.</p>
+            </div>
+          `}
+        </div>
+
+        <div style="display:flex; gap:8px; padding:12px 16px; background:var(--surface-2); border-top:1px solid var(--line-2);">
+          <input class="inp" id="teamchat_in" placeholder="Type a message, post links or stand-up notes..." 
+            style="flex:1;" onkeydown="if(event.key==='Enter'){Page.sendTeamMessage('${g.id}');}" />
+          <button class="btn pri ico" onclick="Page.sendTeamMessage('${g.id}')">${I.send(16)}</button>
+        </div>
+      </div>
+    `;
+  },
+
+  sendTeamMessage(gid) {
+    const inp = document.getElementById('teamchat_in');
+    if (!inp) return;
+    const txt = inp.value.trim();
+    if (!txt) return;
+
+    DB.s.messages = DB.s.messages || [];
+    DB.s.messages.push({
+      id: 'msg-' + uid(),
+      groupId: gid,
+      senderId: App.me.id,
+      senderName: App.me.name,
+      senderRole: App.me.role,
+      text: txt,
+      ts: now()
+    });
+
+    DB.save();
+    API.push();
+    FX.tap('done');
+    inp.value = '';
+    App.render();
+    setTimeout(() => {
+      const el = document.getElementById('teamchat_log');
+      if (el) el.scrollTop = el.scrollHeight;
+    }, 50);
   }
 };
 
@@ -4562,6 +4696,169 @@ const AI={
         <button class="btn pri" onclick="Export.printReport('${g.id}')">${I.chart(14)} Download Audit PDF</button>
       </div>
     `);
+  },
+
+  openSprintPlanner() {
+    const g = group(App.me.groupId);
+    if (!g) return toast(I.alert(15), "Create or join a group first.");
+    
+    // Get curriculum subjects for group's semester
+    const sem = g.semester || 3;
+    const courses = CURRICULUM[sem] || CURRICULUM[3];
+    const subjCode = g.courseCode || (courses[0] ? courses[0].code : '23AID205');
+    const course = courses.find(c => c.code === subjCode) || { name: 'Project Track' };
+
+    const taskTemplates = {
+      '23AID205': [
+        { title: 'Design dataset preprocessing pipeline', desc: 'Clean missing values and encode categorical features.', prio: 'high', topic: 'Dataset Prep' },
+        { title: 'Implement train-test split & validations', desc: 'Create stratified splits for robust ML validation.', prio: 'medium', topic: 'Dataset Prep' },
+        { title: 'Train baseline machine learning models', desc: 'Run Random Forest and Logistic Regression benchmarks.', prio: 'high', topic: 'Model Training' },
+        { title: 'Evaluate confusion matrix & metrics', desc: 'Compute accuracy, precision, recall, and ROC-AUC curves.', prio: 'medium', topic: 'Evaluation' },
+        { title: 'Hyper-parameter optimization (GridSearch)', desc: 'Find optimal parameters using Cross-Validation.', prio: 'low', topic: 'Optimization' },
+        { title: 'Wrap trained model in Flask/FastAPI', desc: 'Create endpoint for inference query processing.', prio: 'high', topic: 'Deployment' }
+      ],
+      '23AID214': [
+        { title: 'Design Entity-Relationship (ER) diagram', desc: 'Establish tables, keys, and relational constraints.', prio: 'high', topic: 'Schema Design' },
+        { title: 'Write DDL schema generation scripts', desc: 'Create tables, indexes, and initial reference tables.', prio: 'high', topic: 'Database Setup' },
+        { title: 'Implement database connection pooling', desc: 'Configure optimal connection pools for concurrent clients.', prio: 'medium', topic: 'Optimization' },
+        { title: 'Optimize query paths with Indexes', desc: 'Profile slow queries and add multi-column indexes.', prio: 'medium', topic: 'Optimization' },
+        { title: 'Create automated backup script', desc: 'Set up cron job to perform nightly database dumps.', prio: 'low', topic: 'DevOps' }
+      ],
+      '23AID211': [
+        { title: 'Build custom CNN/RNN architecture', desc: 'Implement network layers using PyTorch/TensorFlow.', prio: 'high', topic: 'Model Design' },
+        { title: 'Setup DataLoader with augmentations', desc: 'Configure image/text transformations for training.', prio: 'medium', topic: 'Data Pipeline' },
+        { title: 'Train model with Early Stopping', desc: 'Prevent overfitting by saving weights at minimum loss.', prio: 'high', topic: 'Model Training' },
+        { title: 'Export trained model to ONNX format', desc: 'Prepare deep learning model for cross-platform inference.', prio: 'low', topic: 'Deployment' }
+      ]
+    };
+
+    const defaultTasks = [
+      { title: 'Draft technical design document (TDD)', desc: 'Document architecture, API contracts, and user flows.', prio: 'high', topic: 'Planning' },
+      { title: 'Set up local developer environment', desc: 'Configure package.json, gitignore, and Docker container.', prio: 'high', topic: 'Setup' },
+      { title: 'Implement user login & auth UI', desc: 'Build responsive signup/signin pages with validations.', prio: 'medium', topic: 'Frontend' },
+      { title: 'Configure CI/CD build actions pipeline', desc: 'Deploy preview builds automatically on pull requests.', prio: 'low', topic: 'DevOps' },
+      { title: 'Perform accessibility & auditing check', desc: 'Audit performance and secure against security bugs.', prio: 'medium', topic: 'Testing' }
+    ];
+
+    const suggestions = taskTemplates[subjCode] || defaultTasks;
+
+    Modal.open(`
+      <div class="mh">
+        <div style="display:flex;align-items:center;gap:8px">
+          <span style="font-size:20px">🤖</span>
+          <h3 style="font-size:16px;font-weight:700">AI Sprint Planner &amp; Task Generator</h3>
+        </div>
+        <button class="btn ico sm gho" onclick="Modal.close()">${I.x(15)}</button>
+      </div>
+      <div class="mb">
+        <div class="banner info" style="margin-bottom:14px">
+          ${I.spark(16)}
+          <div><b>AI Suggestion Scope:</b> Automatically targeting course <b>${esc(subjCode)}</b> (${esc(course.name)}) for Semester ${sem}.</div>
+        </div>
+        
+        <p style="font-size:12.5px;color:var(--muted);margin-bottom:14px">Select the tasks you want to add to your group's active Sprint board:</p>
+
+        <div style="display:grid;gap:10px;" id="ai_suggested_list">
+          ${suggestions.map((t, idx) => `
+            <div style="display:flex;gap:11px;padding:12px;border:1px solid var(--line);border-radius:var(--r2);background:var(--surface)">
+              <input type="checkbox" checked id="ai_chk_${idx}" style="width:16px;height:16px;margin-top:2px;cursor:pointer;" />
+              <div style="flex:1;min-width:0;">
+                <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:4px;">
+                  <span style="font-weight:600;font-size:13px;color:var(--ink);">${esc(t.title)}</span>
+                  <span class="tag" style="background:var(--accent-soft);color:var(--accent);">${esc(t.topic)}</span>
+                  <span class="tag" style="background:${t.prio==='high'?'var(--red-s)':(t.prio==='medium'?'var(--amber-s)':'var(--gray-s)')};color:${t.prio==='high'?'var(--red)':(t.prio==='medium'?'var(--amber)':'var(--muted)')};text-transform:capitalize">${t.prio}</span>
+                </div>
+                <div style="font-size:12px;color:var(--muted);line-height:1.4">${esc(t.desc)}</div>
+              </div>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+      <div class="mf">
+        <button class="btn gho" onclick="Modal.close()">Cancel</button>
+        <div class="sp"></div>
+        <button class="btn pri" onclick="AI.importPlannerTasks('${subjCode}')">Add Tasks to Board</button>
+      </div>
+    `);
+  },
+
+  importPlannerTasks(subjCode) {
+    const g = group(App.me.groupId);
+    if (!g) return;
+    
+    const sem = g.semester || 3;
+    const courses = CURRICULUM[sem] || CURRICULUM[3];
+
+    const taskTemplates = {
+      '23AID205': [
+        { title: 'Design dataset preprocessing pipeline', desc: 'Clean missing values and encode categorical features.', prio: 'high', topic: 'Dataset Prep' },
+        { title: 'Implement train-test split & validations', desc: 'Create stratified splits for robust ML validation.', prio: 'medium', topic: 'Dataset Prep' },
+        { title: 'Train baseline machine learning models', desc: 'Run Random Forest and Logistic Regression benchmarks.', prio: 'high', topic: 'Model Training' },
+        { title: 'Evaluate confusion matrix & metrics', desc: 'Compute accuracy, precision, recall, and ROC-AUC curves.', prio: 'medium', topic: 'Evaluation' },
+        { title: 'Hyper-parameter optimization (GridSearch)', desc: 'Find optimal parameters using Cross-Validation.', prio: 'low', topic: 'Optimization' },
+        { title: 'Wrap trained model in Flask/FastAPI', desc: 'Create endpoint for inference query processing.', prio: 'high', topic: 'Deployment' }
+      ],
+      '23AID214': [
+        { title: 'Design Entity-Relationship (ER) diagram', desc: 'Establish tables, keys, and relational constraints.', prio: 'high', topic: 'Schema Design' },
+        { title: 'Write DDL schema generation scripts', desc: 'Create tables, indexes, and initial reference tables.', prio: 'high', topic: 'Database Setup' },
+        { title: 'Implement database connection pooling', desc: 'Configure optimal connection pools for concurrent clients.', prio: 'medium', topic: 'Optimization' },
+        { title: 'Optimize query paths with Indexes', desc: 'Profile slow queries and add multi-column indexes.', prio: 'medium', topic: 'Optimization' },
+        { title: 'Create automated backup script', desc: 'Set up cron job to perform nightly database dumps.', prio: 'low', topic: 'DevOps' }
+      ],
+      '23AID211': [
+        { title: 'Build custom CNN/RNN architecture', desc: 'Implement network layers using PyTorch/TensorFlow.', prio: 'high', topic: 'Model Design' },
+        { title: 'Setup DataLoader with augmentations', desc: 'Configure image/text transformations for training.', prio: 'medium', topic: 'Data Pipeline' },
+        { title: 'Train model with Early Stopping', desc: 'Prevent overfitting by saving weights at minimum loss.', prio: 'high', topic: 'Model Training' },
+        { title: 'Export trained model to ONNX format', desc: 'Prepare deep learning model for cross-platform inference.', prio: 'low', topic: 'Deployment' }
+      ]
+    };
+
+    const defaultTasks = [
+      { title: 'Draft technical design document (TDD)', desc: 'Document architecture, API contracts, and user flows.', prio: 'high', topic: 'Planning' },
+      { title: 'Set up local developer environment', desc: 'Configure package.json, gitignore, and Docker container.', prio: 'high', topic: 'Setup' },
+      { title: 'Implement user login & auth UI', desc: 'Build responsive signup/signin pages with validations.', prio: 'medium', topic: 'Frontend' },
+      { title: 'Configure CI/CD build actions pipeline', desc: 'Deploy preview builds automatically on pull requests.', prio: 'low', topic: 'DevOps' },
+      { title: 'Perform accessibility & auditing check', desc: 'Audit performance and secure against security bugs.', prio: 'medium', topic: 'Testing' }
+    ];
+
+    const suggestions = taskTemplates[subjCode] || defaultTasks;
+    let addedCount = 0;
+
+    suggestions.forEach((t, idx) => {
+      const chk = document.getElementById(`ai_chk_${idx}`);
+      if (chk && chk.checked) {
+        const taskId = 't-' + uid();
+        DB.s.tasks.push({
+          id: taskId,
+          groupId: g.id,
+          title: t.title,
+          desc: t.desc,
+          status: 'todo',
+          prio: t.prio,
+          progress: 0,
+          topic: t.topic,
+          courseCode: subjCode,
+          assigneeId: null,
+          creatorId: App.me.id,
+          due: now() + 7 * 864e5,
+          createdAt: now(),
+          updatedAt: now()
+        });
+        addedCount++;
+      }
+    });
+
+    if (addedCount > 0) {
+      log(g.id, `added <b>${addedCount} suggested tasks</b> via AI Sprint Planner`);
+      DB.save();
+      API.push();
+      FX.tap('done');
+      Modal.close();
+      toast(I.spark(15), `✓ Added ${addedCount} AI-suggested tasks to To-Do column!`);
+      App.render();
+    } else {
+      toast(I.alert(15), "No tasks were selected.");
+    }
   }
 };
 
@@ -6129,6 +6426,20 @@ const Modal={
       ts: now()
     };
     DB.s.remarks.unshift(remarkData);
+
+    // If Group evaluation, save directly to Group record too
+    if (memId === 'all') {
+      const gObj = group(gid);
+      if (gObj) {
+        gObj.evaluation = {
+          grade: grade || null,
+          score: score || null,
+          text: txt,
+          by: App.me ? App.me.name : 'Faculty',
+          ts: now()
+        };
+      }
+    }
 
     // Real-time Notification for Student(s)
     const targetUsers = targetM ? [targetM] : membersOf(gid);
