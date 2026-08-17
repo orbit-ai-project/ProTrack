@@ -2608,26 +2608,35 @@ const App={
 
     const v=document.getElementById('view'); const sc=v.scrollTop;
     Board._rects=Board.capture();
-    v.innerHTML=`<div class="wrap">${
-      App.tab==='dashboard' ? (App.isFaculty?Page.facDash():Page.stuDash()) :
-      App.tab==='assistant' ? Page.assistant() :
-      App.tab==='analytics' ? Page.analytics() :
-      App.tab==='teamchat'  ? Page.teamchat() :
-      App.tab==='subjects'  ? Page.subjectsHub() :
-      App.tab==='subject'   ? Page.subjectDetail(App.openSubjectCode) :
-      App.tab==='deliverables' ? Page.deliverablesHub() :
-      App.tab==='calendar'  ? Page.calendar() :
-      App.tab==='groups'    ? Page.groups() :
-      App.tab==='people'    ? Page.people() :
-      App.tab==='activity'  ? Page.activity(null) :
-      App.tab==='group'     ? Page.groupDetail(App.openGroup) :
-      App.tab==='board'     ? Page.board() :
-      App.tab==='mytasks'   ? Page.mytasks() :
-      App.tab==='team'      ? Page.team() :
-      App.tab==='requests'   ? Page.requestsPage() :
-      App.tab==='settings'   ? Page.settings() :
-      App.tab==='groupactivity' ? Page.activity(App.me.groupId) : ''
-    }</div>`;
+    let viewContent = '';
+    try {
+      viewContent = 
+        App.tab==='dashboard' ? (App.isFaculty?Page.facDash():Page.stuDash()) :
+        App.tab==='assistant' ? Page.assistant() :
+        App.tab==='analytics' ? Page.analytics() :
+        App.tab==='teamchat'  ? Page.teamchat() :
+        App.tab==='subjects'  ? Page.subjectsHub() :
+        App.tab==='subject'   ? Page.subjectDetail(App.openSubjectCode) :
+        App.tab==='deliverables' ? Page.deliverablesHub() :
+        App.tab==='calendar'  ? Page.calendar() :
+        App.tab==='groups'    ? Page.groups() :
+        App.tab==='people'    ? Page.people() :
+        App.tab==='activity'  ? Page.activity(null) :
+        App.tab==='group'     ? Page.groupDetail(App.openGroup) :
+        App.tab==='board'     ? Page.board() :
+        App.tab==='mytasks'   ? Page.mytasks() :
+        App.tab==='team'      ? Page.team() :
+        App.tab==='requests'   ? Page.requestsPage() :
+        App.tab==='settings'   ? Page.settings() :
+        App.tab==='groupactivity' ? Page.activity(App.me.groupId) : '';
+    } catch(err) {
+      console.error('Render crash:', err);
+      viewContent = `<div class="card"><div class="empty">${I.alert(24)}
+        <div class="h" style="color:var(--red)">Render Error in Tab: ${esc(App.tab)}</div>
+        <p style="margin-bottom:12px;">${esc(err.message)}</p>
+        <pre style="text-align:left;background:var(--surface-2);padding:14px;border-radius:6px;font-size:11.5px;color:var(--ink-2);overflow:auto;max-width:100%;border:1px solid var(--line);font-family:monospace">${esc(err.stack)}</pre></div></div>`;
+    }
+    v.innerHTML=`<div class="wrap">${viewContent}</div>`;
     v.scrollTop=sc;
     Board.bind(); AI.bind(); Tilt.bind();
     Sync.lastSig=Sync.sig();
