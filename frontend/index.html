@@ -1014,7 +1014,23 @@ function hash(pw){
 function seed(){
   const t=now(), day=864e5;
   const U=[], G=[], T=[], A=[];
-  U.push({id:'u-fac1',name:'Dr. Anjali Sharma',email:'sharma@college.edu',pass:hash('faculty123'),role:'Faculty',groupId:null,color:'#5A6BD8',createdAt:t-40*day});
+  U.push({
+    id: 'u-fac1',
+    name: 'Dr. Anjali Sharma',
+    email: 'sharma@college.edu',
+    pass: hash('faculty123'),
+    role: 'Faculty',
+    groupId: null,
+    color: '#5A6BD8',
+    semester: 3,
+    subjectCode: '23AID205',
+    subjects: [
+      { semester: 3, subjectCode: '23AID205' },
+      { semester: 3, subjectCode: '23AID204' },
+      { semester: 4, subjectCode: '23AID214' }
+    ],
+    createdAt: t - 40 * day
+  });
 
   const defs=[
     {g:'g1',name:'Group 01',project:'Smart Attendance System',
@@ -2313,27 +2329,22 @@ const Auth={
   handleOAuthSignInSuccess(email, name, providerLabel) {
     const em = String(email).trim().toLowerCase();
     let u = userByEmail(em);
-    if (!u) {
-      const displayName = name || em.split('@')[0].replace(/[._-]/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
-      const newId = 'Z9CVTVdTtnNxSUEz7agrXdSPLpS2';
-      u = {
-        id: newId,
-        name: displayName,
-        email: em,
-        pass: hash(uid() + uid()),
-        role: 'Team Lead',
-        groupId: 'g1',
-        color: AVC[DB.s.users.length % AVC.length],
-        createdAt: now(),
-        googleConnected: true
-      };
-      DB.s.users.push(u);
+    if (u) {
+      // Existing user — updates and signs in directly
+      u.googleConnected = true;
+      u.provider = providerLabel;
       DB.save();
+      FB.signInToFirebase(em, u.id).then(() => FB.saveState(DB.s));
+      FX.tap('done');
+      App.signIn(u.id);
+      if (typeof Modal !== 'undefined') Modal.close();
+      toast(I.check(15), `✓ Welcome back, ${u.name}!`);
+    } else {
+      // New user — show details and role picker modal
+      const newId = 'u-' + em.replace(/[^a-z0-9]/gi,'').toLowerCase().slice(0, 12);
+      const displayName = name || em.split('@')[0].replace(/[._-]/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+      Auth.showRolePickerModal(newId, em, displayName, providerLabel);
     }
-    FX.tap('done');
-    App.signIn(u.id);
-    if (typeof Modal !== 'undefined') Modal.close();
-    toast(I.check(15), `Signed in with ${providerLabel} as ${u.name} (Firebase UID: ${u.id})`);
   },
 
 
