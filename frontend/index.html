@@ -37,6 +37,9 @@
   --sh1:0 1px 2px rgba(30,70,85,.07);
   --sh2:0 2px 6px rgba(30,70,85,.09), 0 8px 20px rgba(30,70,85,.06);
   --sh3:0 14px 34px rgba(20,55,68,.16), 0 3px 8px rgba(30,20,60,.08);
+  --glass-bg: rgba(255, 255, 255, 0.88);
+  --glass-border: rgba(226, 232, 234, 0.7);
+  --glow-accent: rgba(43, 103, 119, 0.05);
   --ease:cubic-bezier(.2,.7,.3,1);
 }
 html.dark {
@@ -60,6 +63,9 @@ html.dark {
   --red: #EB5F5A;     --red-s: #451716;
   --amber: #E29E29;   --amber-s: #402E0F;
   --green: #4ECFB4;   --green-s: #153C33;
+  --glass-bg: rgba(18, 24, 26, 0.76);
+  --glass-border: rgba(32, 45, 49, 0.55);
+  --glow-accent: rgba(75, 162, 186, 0.16);
 }
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 html,body{height:100%}
@@ -173,7 +179,7 @@ select.inp{cursor:pointer;appearance:none;padding-right:28px;
 
 /* ============ SHELL ============ */
 #shell{height:100%;display:grid;grid-template-columns:216px 1fr}
-.side{background:var(--surface);border-right:1px solid var(--line);display:grid;grid-template-rows:auto 1fr auto;overflow:hidden}
+.side{background:var(--glass-bg);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border-right:1px solid var(--glass-border);display:grid;grid-template-rows:auto 1fr auto;overflow:hidden}
 .side .sh{padding:14px 14px 10px}
 .nav{padding:4px 8px;overflow:auto}
 .nav .lbl{padding:12px 8px 5px}
@@ -320,7 +326,7 @@ tbody tr:hover{background:var(--surface-2)}
 /* ---------- modal ---------- */
 .scrim{position:fixed;inset:0;background:rgba(16,24,40,.4);z-index:100;display:grid;place-items:center;padding:20px;overflow:auto;animation:fi .12s}
 @keyframes fi{from{opacity:0}to{opacity:1}}
-.modal{width:min(540px,100%);background:var(--surface);border-radius:var(--r3);box-shadow:var(--sh3);margin:auto;animation:mi .16s var(--ease)}
+.modal{width:min(540px,100%);background:var(--glass-bg);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:1px solid var(--glass-border);border-radius:var(--r3);box-shadow:var(--sh3);margin:auto;animation:mi .16s var(--ease)}
 @keyframes mi{from{opacity:0;transform:translateY(8px) scale(.99)}to{opacity:1;transform:none}}
 .modal .mh{display:flex;align-items:center;gap:10px;padding:15px 18px;border-bottom:1px solid var(--line-2)}
 .modal .mh h3{font-size:15px;font-weight:600;flex:1;letter-spacing:-.01em}
@@ -414,7 +420,7 @@ tbody tr:hover{background:var(--surface-2)}
 .badge{position:absolute;top:-4px;right:-4px;min-width:15px;height:15px;padding:0 3px;border-radius:99px;
   background:var(--red);color:#fff;font-size:9.5px;font-weight:700;display:grid;place-items:center;
   border:1.5px solid var(--surface);pointer-events:none}
-.notif{position:absolute;top:40px;right:0;width:340px;max-height:420px;background:var(--surface);border:1px solid var(--line);
+.notif{position:absolute;top:40px;right:0;width:340px;max-height:420px;background:var(--glass-bg);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);border:1px solid var(--glass-border);
   border-radius:var(--r2);box-shadow:var(--sh3);z-index:60;display:flex;flex-direction:column;overflow:hidden;
   animation:mi .14s var(--ease)}
 .notif .nh{display:flex;align-items:center;gap:8px;padding:12px 14px;border-bottom:1px solid var(--line-2)}
@@ -767,6 +773,7 @@ const I = {
   sun:s=>I._(`<circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>`,s),
   moon:s=>I._(`<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>`,s),
   search:s=>I._(`<circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/>`,s),
+  filter:s=>I._(`<path d="M22 3H2l8 9.46V19l4 2v-8.54L22 3z"/>`,s),
   link:s=>I._(`<path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>`,s),
   orbit:s=>I._(`<circle cx="12" cy="12" r="3"/><ellipse cx="12" cy="12" rx="10" ry="4.5" transform="rotate(-30 12 12)"/>`,s),
   home:s=>I._(`<path d="M4 11 12 4l8 7"/><path d="M6 9.5V20h12V9.5"/><path d="M10 20v-5h4v5"/>`,s),
@@ -1670,6 +1677,65 @@ const bar=(p,c)=>`<div class="bar"><i style="width:${p}%;background:${V_(c)}"></
 /* ============================================================
    CHARTS — self-contained SVG/HTML (no external libraries)
    ============================================================ */
+function renderBurndownChart(tasks) {
+  if (!tasks.length) return `<div class="empty">${I.chart(22)}<p>No tasks to plot burndown trend</p></div>`;
+
+  const total = tasks.length;
+  const start = new Date('2026-08-01').getTime();
+  const end = new Date('2026-10-31').getTime();
+  const step = (end - start) / 9;
+
+  const points = [];
+  const idealPoints = [];
+
+  for (let i = 0; i < 10; i++) {
+    const time = start + i * step;
+    const ideal = Math.max(0, total - (total * i / 9));
+    idealPoints.push({ x: i, y: ideal });
+
+    const remaining = tasks.filter(t => {
+      if (t.status !== 'done') return true;
+      const doneAt = t.updatedAt || end;
+      return doneAt > time;
+    }).length;
+    points.push({ x: i, y: remaining });
+  }
+
+  const w = 480, h = 180, padL = 35, padR = 20, padT = 15, padB = 25;
+  const iw = w - padL - padR, ih = h - padT - padB;
+  
+  const X = idx => padL + (idx * iw / 9);
+  const Y = val => padT + ih - (val * ih / total);
+
+  let gridLines = [];
+  for (let i = 0; i <= 4; i++) {
+    const yVal = total * i / 4;
+    const yPos = Y(yVal);
+    gridLines.push(`<line x1="${padL}" y1="${yPos.toFixed(1)}" x2="${w - padR}" y2="${yPos.toFixed(1)}" stroke="var(--line-2)" stroke-width="1"/>`);
+    gridLines.push(`<text x="${padL - 8}" y="${(yPos + 4).toFixed(1)}" font-size="9" fill="var(--muted)" text-anchor="end" font-weight="600">${Math.round(yVal)}</text>`);
+  }
+
+  const idealPath = `M ${idealPoints.map(p => `${X(p.x).toFixed(1)} ${Y(p.y).toFixed(1)}`).join(' L ')}`;
+  const actualPath = `M ${points.map(p => `${X(p.x).toFixed(1)} ${Y(p.y).toFixed(1)}`).join(' L ')}`;
+
+  const xLabels = ['Aug 1', 'Aug 10', 'Aug 20', 'Sep 1', 'Sep 10', 'Sep 20', 'Oct 1', 'Oct 10', 'Oct 20', 'Oct 30'];
+  const labels = xLabels.map((lbl, idx) => {
+    return `<text x="${X(idx).toFixed(1)}" y="${h - 6}" font-size="9" fill="var(--muted)" text-anchor="middle">${lbl}</text>`;
+  }).join('');
+
+  return `
+    <div style="position:relative; width:100%; height:100%;">
+      <svg viewBox="0 0 ${w} ${h}" width="100%" height="100%" preserveAspectRatio="xMidYMid meet">
+        ${gridLines.join('')}
+        <path d="${idealPath}" fill="none" stroke="var(--muted)" stroke-width="1.8" stroke-dasharray="4 4" opacity="0.6"/>
+        <path d="${actualPath}" fill="none" stroke="var(--accent)" stroke-width="2.5" stroke-linecap="round"/>
+        ${points.map((p, idx) => `<circle cx="${X(p.x).toFixed(1)}" cy="${Y(p.y).toFixed(1)}" r="3.5" fill="var(--accent)"/>`).join('')}
+        ${labels}
+      </svg>
+    </div>
+  `;
+}
+
 const Charts={
   /* extruded 3D ring, tilted + animated (see .donut3d CSS) */
   donut(segs,size=150,thick=24){
@@ -2606,6 +2672,7 @@ const Auth={
    ============================================================ */
 const App={
   me:null, tab:'dashboard', openGroup:null, openSubjectCode:null, topicFilter:null,
+  boardFilter:{ assignee: 'all', prio: 'all', topic: 'all', mine: false },
 
   boot(){
     Theme.init();
@@ -3159,6 +3226,11 @@ const Page={
               <span style="flex:1;color:var(--ink-2)">${s.label}</span>
               <b>${s.value}</b><span style="color:var(--faint);width:38px;text-align:right">${all.length?Math.round(100*s.value/all.length):0}%</span></div>`).join('')}
           </div>
+        </div></div>
+
+      <div class="card"><div class="ch">${I.trend(15)}<h3>Burndown Trend</h3><div class="sp"></div><span style="font-size:11.5px;color:var(--muted)">Ideal (dashed) vs. Actual remaining</span></div>
+        <div class="cb" style="height:150px;">
+          ${renderBurndownChart(all)}
         </div></div>
 
       <div class="card"><div class="ch">${I.chart(15)}<h3>Progress by group</h3></div>
@@ -4091,6 +4163,7 @@ const Page={
           <button class="btn pri" onclick="Modal.taskForm()">${I.plus(15)} New task</button>
         `:''}
       </div>
+      ${Board.filtersHTML(g.id, ts)}
       ${Board.html(ts,App.isLead)}`;
   },
 
@@ -4280,36 +4353,13 @@ const Page={
       </div>
 
       <div class="card">
-        <div class="ch">
-          ${I.board(18)} <h3>Task Gantt View (${tasks.length} tasks)</h3>
+        <div class="ch" style="margin-bottom:12px;">
+          ${I.board(18)} <h3>Project Gantt Timeline</h3>
           <div class="sp"></div>
           <button class="btn sm gho" onclick="Export.toCSV(${g ? "'" + g.id + "'" : ''})">${I.folder(14)} Export CSV</button>
         </div>
-        <div class="cb" style="display:grid; gap:12px;">
-          ${tasks.map(t => {
-            const u = user(t.assigneeId);
-            const st = stat(t.status);
-            const pr = t.progress || 0;
-            return `
-              <div style="padding:12px 14px; border:1px solid var(--line); border-radius:var(--r2); background:var(--surface);">
-                <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:6px;">
-                  <div style="display:flex; align-items:center; gap:8px;">
-                    <span class="mono" style="background:var(--accent-soft); color:var(--accent); font-weight:700; font-size:11px; padding:2px 7px; border-radius:4px">${esc(t.courseCode || '23AID201')}</span>
-                    <span style="font-weight:700; font-size:13.5px; color:var(--ink)">${esc(t.title)}</span>
-                  </div>
-                  <div style="display:flex; align-items:center; gap:8px;">
-                    <span class="tag" style="background:${S_(st.c)}; color:${V_(st.c)}; font-weight:600">${st.n}</span>
-                    ${av(u, 'xs')}
-                  </div>
-                </div>
-                <div style="display:flex; align-items:center; gap:12px; margin-top:8px;">
-                  <div class="bar" style="flex:1;"><i style="width:${pr}%; background:${V_(st.c)};"></i></div>
-                  <span class="mono" style="font-size:11.5px; font-weight:700; color:var(--muted)">${pr}%</span>
-                  <span style="font-size:11.5px; color:var(--muted)">Due ${dueOf(t.due).t}</span>
-                </div>
-              </div>
-            `;
-          }).join('')}
+        <div class="cb">
+          ${Board.ganttHTML(g, tasks)}
         </div>
       </div>
     `;
@@ -4591,9 +4641,77 @@ const Board={
     if(t.groupId!==App.me.groupId) return false;
     return App.isLead || t.assigneeId===App.me.id; },
 
+  filterList(tasks) {
+    App.boardFilter = App.boardFilter || { assignee: 'all', prio: 'all', topic: 'all', mine: false };
+    return tasks.filter(t => {
+      if (App.boardFilter.assignee !== 'all' && t.assigneeId !== App.boardFilter.assignee) return false;
+      if (App.boardFilter.prio !== 'all' && t.prio !== App.boardFilter.prio) return false;
+      if (App.boardFilter.topic !== 'all' && t.topic !== App.boardFilter.topic) return false;
+      if (App.boardFilter.mine && t.assigneeId !== App.me.id) return false;
+      return true;
+    });
+  },
+
+  filtersHTML(gid, tasks) {
+    App.boardFilter = App.boardFilter || { assignee: 'all', prio: 'all', topic: 'all', mine: false };
+    const ms = membersOf(gid);
+    const topics = Array.from(new Set(tasks.map(t => t.topic).filter(Boolean)));
+
+    return `
+      <div class="card" style="margin-bottom:14px; padding:10px 14px; display:flex; flex-wrap:wrap; align-items:center; gap:12px; font-size:12px;">
+        <div style="display:flex; align-items:center; gap:6px; color:var(--muted); font-weight:600;">
+          ${I.filter(14)} Filter Board:
+        </div>
+        
+        <div style="display:flex; align-items:center; gap:5px;">
+          <span style="color:var(--faint);">Assignee:</span>
+          <select class="inp" style="height:28px; width:130px; font-size:11.5px; padding:2px 6px; cursor:pointer;" 
+            onchange="App.boardFilter.assignee = this.value; App.render();">
+            <option value="all" ${App.boardFilter.assignee === 'all' ? 'selected' : ''}>All Assignees</option>
+            ${ms.map(m => `<option value="${m.id}" ${App.boardFilter.assignee === m.id ? 'selected' : ''}>${esc(m.name.split(' ')[0])}</option>`).join('')}
+          </select>
+        </div>
+
+        <div style="display:flex; align-items:center; gap:5px;">
+          <span style="color:var(--faint);">Priority:</span>
+          <select class="inp" style="height:28px; width:110px; font-size:11.5px; padding:2px 6px; cursor:pointer;" 
+            onchange="App.boardFilter.prio = this.value; App.render();">
+            <option value="all" ${App.boardFilter.prio === 'all' ? 'selected' : ''}>All Priorities</option>
+            <option value="high" ${App.boardFilter.prio === 'high' ? 'selected' : ''}>🔴 High</option>
+            <option value="medium" ${App.boardFilter.prio === 'medium' ? 'selected' : ''}>🟡 Medium</option>
+            <option value="low" ${App.boardFilter.prio === 'low' ? 'selected' : ''}>🔵 Low</option>
+          </select>
+        </div>
+
+        <div style="display:flex; align-items:center; gap:5px;">
+          <span style="color:var(--faint);">Topic:</span>
+          <select class="inp" style="height:28px; width:130px; font-size:11.5px; padding:2px 6px; cursor:pointer;" 
+            onchange="App.boardFilter.topic = this.value; App.render();">
+            <option value="all" ${App.boardFilter.topic === 'all' ? 'selected' : ''}>All Topics</option>
+            ${topics.map(tp => `<option value="${tp}" ${App.boardFilter.topic === tp ? 'selected' : ''}>${esc(tp)}</option>`).join('')}
+          </select>
+        </div>
+
+        <button class="btn sm ${App.boardFilter.mine ? 'pri' : 'gho'}" style="border:1px solid ${App.boardFilter.mine ? 'transparent' : 'var(--line)'};" 
+          onclick="App.boardFilter.mine = !App.boardFilter.mine; App.render();">
+          🙋 Only My Tasks
+        </button>
+
+        <div class="sp"></div>
+
+        ${(App.boardFilter.assignee !== 'all' || App.boardFilter.prio !== 'all' || App.boardFilter.topic !== 'all' || App.boardFilter.mine) ? `
+          <button class="btn sm dan" style="border:none;" onclick="App.boardFilter = { assignee: 'all', prio: 'all', topic: 'all', mine: false }; App.render();">
+            Clear Filters
+          </button>
+        ` : ''}
+      </div>
+    `;
+  },
+
   html(tasks,lead){
+    const filtered = Board.filterList(tasks);
     return `<div class="board">${STATUSES.map(s=>{
-      const list=tasks.filter(t=>t.status===s.id).sort((a,b)=>a.due-b.due);
+      const list=filtered.filter(t=>t.status===s.id).sort((a,b)=>a.due-b.due);
       return `<div class="col" data-status="${s.id}">
         <h4><span class="pt" style="background:${V_(s.c)}"></span>${s.n}<span class="n">${list.length}</span></h4>
         <div class="cards">${list.map(t=>Board.card(t)).join('')}</div>
@@ -4623,6 +4741,77 @@ const Board={
         <span class="sp"></span>
         <span class="due ${d.late&&t.status!=='done'?'late':''}">${t.status==='done'?'Done':d.t}</span>
       </div></div>`;
+  },
+
+  ganttHTML(g, tasks) {
+    if (!tasks || !tasks.length) {
+      return `<div class="empty" style="padding:40px">${I.board(24)}<p>No tasks scheduled to build Gantt chart.</p></div>`;
+    }
+
+    const projectStart = new Date('2026-08-01').getTime();
+    const projectEnd = new Date('2026-10-31').getTime();
+    const totalDuration = projectEnd - projectStart;
+
+    let weekMarkers = [];
+    const step = 7 * 24 * 3600 * 1000;
+    for (let time = projectStart; time <= projectEnd; time += step) {
+      const left = (100 * (time - projectStart) / totalDuration).toFixed(2);
+      weekMarkers.push(`<div style="position:absolute; left:${left}%; top:0; bottom:0; border-left:1px dashed var(--line-2); pointer-events:none;"></div>`);
+    }
+
+    return `
+      <div style="position:relative; border:1px solid var(--line); border-radius:var(--r2); background:var(--surface); overflow-x:auto;">
+        <div style="display:flex; border-bottom:1px solid var(--line); min-width:640px; background:var(--surface-2); font-weight:700; font-size:11px; text-transform:uppercase; color:var(--muted)">
+          <div style="width:160px; padding:10px 14px; border-right:1px solid var(--line); flex-shrink:0;">Project Tasks</div>
+          <div style="flex:1; display:flex; position:relative;">
+            <div style="width:33.3%; padding:10px 0; text-align:center; border-right:1px solid var(--line);">August 2026</div>
+            <div style="width:33.3%; padding:10px 0; text-align:center; border-right:1px solid var(--line);">September 2026</div>
+            <div style="width:33.4%; padding:10px 0; text-align:center;">October 2026</div>
+          </div>
+        </div>
+
+        <div style="position:relative; min-width:640px; display:flex; flex-direction:column; padding:10px 0;">
+          ${weekMarkers.join('')}
+
+          ${tasks.map(t => {
+            const u = user(t.assigneeId);
+            const st = stat(t.status);
+            const pr = t.progress || 0;
+            const tStart = t.createdAt || projectStart;
+            const tEnd = t.due || projectEnd;
+            
+            const left = Math.max(0, Math.min(95, 100 * (tStart - projectStart) / totalDuration));
+            const right = Math.max(5, Math.min(100, 100 * (tEnd - projectStart) / totalDuration));
+            const width = Math.max(12, right - left);
+
+            let barColor = 'var(--accent)';
+            if (t.status === 'done') barColor = 'var(--green)';
+            else if (t.status === 'blocked') barColor = 'var(--red)';
+            else if (t.status === 'progress') barColor = 'var(--blue)';
+
+            return `
+              <div style="display:flex; align-items:center; border-bottom:1px solid var(--line-2); padding:8px 0; position:relative;" class="gantt-row">
+                <div style="width:160px; padding:0 14px; border-right:1px solid var(--line-2); flex-shrink:0; font-weight:600; font-size:12px; color:var(--ink); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${esc(t.title)}">
+                  ${esc(t.title)}
+                </div>
+
+                <div style="flex:1; position:relative; height:32px; display:flex; align-items:center;">
+                  <div style="position:absolute; left:${left.toFixed(2)}%; width:${width.toFixed(2)}%; height:20px; background:${barColor}15; border:1px solid ${barColor}50; border-radius:4px; display:flex; align-items:center; padding:0 6px; cursor:pointer; transition:transform 0.15s;" 
+                    onclick="Modal.task('${t.id}')"
+                    title="${esc(t.title)} (${pr}% Complete) - Due ${dueOf(t.due).t}">
+                    <div style="position:absolute; left:0; top:0; bottom:0; width:${pr}%; background:${barColor}26; border-radius:3px 0 0 3px; pointer-events:none;"></div>
+                    
+                    <span style="font-size:10px; font-weight:700; color:${barColor}; z-index:2; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; flex:1;">
+                      ${pr}% ${u ? '· ' + esc(u.name.split(' ')[0]) : ''}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            `;
+          }).join('')}
+        </div>
+      </div>
+    `;
   },
 
   bind(){
@@ -5441,6 +5630,153 @@ const Export = {
     toast(I.check(15), 'Student grades report exported successfully!');
   },
 
+  gradePDF(gid) {
+    const g = group(gid); if (!g) return;
+    DB.s.grades = DB.s.grades || [];
+    const score = DB.s.grades.find(gr => gr.groupId === gid);
+    if (!score) return toast(I.alert(15), 'No evaluation grade posted yet.');
+
+    const ms = membersOf(gid);
+    const win = window.open('', '_blank');
+    if (!win) return toast(I.alert(15), 'Popup blocked! Please allow popups to print report.');
+
+    win.document.write(`
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Academic Evaluation Report — ${esc(g.name)}</title>
+        <style>
+          body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; padding: 40px; color: #1C2A2E; line-height: 1.5; }
+          .header { text-align: center; border-bottom: 2px double #E2E8EA; padding-bottom: 16px; margin-bottom: 24px; }
+          .header h1 { font-size: 22px; margin: 0; color: #2B6777; letter-spacing: -0.02em; }
+          .header h2 { font-size: 13px; font-weight: 600; margin: 5px 0 0; color: #6E7C81; text-transform: uppercase; }
+          .meta-table { width: 100%; margin-bottom: 24px; font-size: 13px; }
+          .meta-table td { padding: 6px 0; }
+          .meta-table td.lbl { font-weight: 700; color: #6E7C81; width: 130px; }
+          .members-list { margin-bottom: 24px; }
+          .members-list h3 { font-size: 14px; border-bottom: 1px solid #E2E8EA; padding-bottom: 5px; margin-bottom: 10px; color: #2B6777; }
+          .members-table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+          .members-table th { text-align: left; background: #F6F8F9; padding: 6px 10px; border: 1px solid #E2E8EA; }
+          .members-table td { padding: 6px 10px; border: 1px solid #E2E8EA; }
+          .grades-table { width: 100%; border-collapse: collapse; margin: 24px 0; font-size: 13px; }
+          .grades-table th { background: #2B6777; color: #ffffff; padding: 10px; text-align: left; font-weight: 600; }
+          .grades-table td { padding: 10px; border-bottom: 1px solid #EEF1F2; }
+          .grades-table tr.total-row { font-weight: 700; background: #F6F8F9; }
+          .comments-box { background: #F6F8F9; border: 1px solid #E2E8EA; padding: 16px; border-radius: 6px; margin-bottom: 30px; font-style: italic; font-size: 13px; }
+          .signatures { display: flex; justify-content: space-between; margin-top: 60px; font-size: 12px; }
+          .signatures div { text-align: center; width: 200px; border-top: 1px solid #9AA7AB; padding-top: 6px; }
+          @media print {
+            body { padding: 20px; }
+            button { display: none; }
+          }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <h1>ACADEMIC EVALUATION &amp; SCORECARD</h1>
+          <h2>Institution Board of Project Reviews</h2>
+        </div>
+
+        <table class="meta-table">
+          <tr>
+            <td class="lbl">Group Name:</td>
+            <td><b>${esc(g.name)}</b></td>
+            <td class="lbl">Semester:</td>
+            <td>Semester ${g.semester || 3}</td>
+          </tr>
+          <tr>
+            <td class="lbl">Project Title:</td>
+            <td>${esc(g.project)}</td>
+            <td class="lbl">Subject Code:</td>
+            <td><b>${esc(g.courseCode || '—')}</b></td>
+          </tr>
+        </table>
+
+        <div class="members-list">
+          <h3>Team Members</h3>
+          <table class="members-table">
+            <thead>
+              <tr>
+                <th>Student Name</th>
+                <th>Role</th>
+                <th>Email Address</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${ms.map(m => '<tr><td><b>' + esc(m.name) + '</b></td><td>' + esc(m.role) + '</td><td>' + esc(m.email) + '</td></tr>').join('')}
+            </tbody>
+          </table>
+        </div>
+
+        <h3>Rubric Evaluation Criteria</h3>
+        <table class="grades-table">
+          <thead>
+            <tr>
+              <th>Evaluation Component</th>
+              <th style="width: 120px; text-align: right;">Max Marks</th>
+              <th style="width: 120px; text-align: right;">Marks Obtained</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Literature Survey &amp; Topic Selection</td>
+              <td style="text-align: right;">10</td>
+              <td style="text-align: right; font-weight: 700;">${score.rubrics.literature}</td>
+            </tr>
+            <tr>
+              <td>System Design &amp; Architecture</td>
+              <td style="text-align: right;">20</td>
+              <td style="text-align: right; font-weight: 700;">${score.rubrics.design}</td>
+            </tr>
+            <tr>
+              <td>Implementation &amp; Code Quality</td>
+              <td style="text-align: right;">40</td>
+              <td style="text-align: right; font-weight: 700;">${score.rubrics.quality}</td>
+            </tr>
+            <tr>
+              <td>Final Presentation &amp; Viva-Voce</td>
+              <td style="text-align: right;">30</td>
+              <td style="text-align: right; font-weight: 700;">${score.rubrics.presentation}</td>
+            </tr>
+            <tr class="total-row">
+              <td>Total Marks Obtained</td>
+              <td style="text-align: right;">100</td>
+              <td style="text-align: right; font-size: 15px; color: #2B6777;">${score.total} / 100</td>
+            </tr>
+            <tr class="total-row" style="background:#E6F2EF;">
+              <td>Final Letter Grade</td>
+              <td style="text-align: right;">—</td>
+              <td style="text-align: right; font-size: 16px; color: #3E9B87;">Grade: ${score.grade}</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <h3>Review Remarks &amp; Feedback</h3>
+        <div class="comments-box">
+          "${esc(score.comments || 'No remarks provided.')}"
+        </div>
+
+        <div style="font-size: 11.5px; color: #6E7C81;">
+          Evaluated by: <b>${esc(score.gradedByName)}</b> on ${new Date(score.updatedAt || now()).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
+        </div>
+
+        <div class="signatures">
+          <div>Project Supervisor / Guide</div>
+          <div>Project Review Coordinator</div>
+        </div>
+
+        <script>
+          window.onload = function() {
+            window.print();
+            setTimeout(function() { window.close(); }, 500);
+          }
+        <\/script>
+      </body>
+      </html>
+    `);
+    win.document.close();
+  },
+
   remarksCSV(gid) {
     const gs = myGroups();
     if (!gs.length) return toast(I.alert(15), 'No groups found to export remarks');
@@ -5762,6 +6098,7 @@ function renderGroupEvaluationScorecard(gid) {
         </div>
         <div class="sp"></div>
         <span class="tag green" style="font-weight:800; font-size:12.5px;">Grade: ${esc(score.grade)}</span>
+        <button class="btn sm" style="margin-left:8px;" onclick="Export.gradePDF('${gid}')">${I.chart(13)} Download PDF</button>
         ${App.isFaculty ? `<button class="btn sm" style="margin-left:8px;" onclick="Modal.evaluateGroup('${gid}')">${I.edit(13)} Edit Evaluation</button>` : ''}
       </div>
       <div class="cb" style="display:grid; grid-template-columns: 1.2fr 1fr; gap:16px; align-items:start;">
