@@ -1134,12 +1134,53 @@ const FB = {
         FB.auth = firebase.auth();
         FB.db = firebase.firestore();
         FB.active = true;
-        console.log("🔥 Firebase Auth & Firestore database connected successfully.");
+        console.log('🔥 Firebase Auth & Firestore database connected successfully.');
+        // Listen to Firebase Auth state changes
+        FB.auth.onAuthStateChanged(fbUser => {
+          if (fbUser) {
+            console.log('🔥 Firebase Auth user signed in:', fbUser.email, fbUser.uid);
+            FB.syncUserToFirestore(fbUser.uid, fbUser.email, fbUser.displayName || fbUser.email.split('@')[0]);
+          }
+        });
         FB.listenState();
-        FB.handleRedirectResult();
       }
     } catch(e) {
-      console.warn("Firebase initialization note:", e);
+      console.warn('Firebase initialization note:', e);
+    }
+  },
+
+  // Sign in to Firebase with email (works on ALL domains, no popup needed)
+  async signInToFirebase(email, uid) {
+    if (!FB.active || !FB.auth) return;
+    try {
+      const pass = 'PT_' + uid.slice(0, 16) + '_secure';
+      try {
+        await FB.auth.signInWithEmailAndPassword(email, pass);
+      } catch(err) {
+        if (err.code === 'auth/user-not-found' || err.code === 'auth/invalid-credential' || err.code === 'auth/wrong-password' || err.code === 'auth/invalid-login-credentials') {
+          await FB.auth.createUserWithEmailAndPassword(email, pass);
+        }
+      }
+    } catch(e) {
+      console.warn('Firebase email sign-in note:', e.message);
+    }
+  },
+
+  // Sync user profile to Firestore users collection
+  async syncUserToFirestore(uid, email, name) {
+    if (!FB.active || !FB.db) return;
+    try {
+      const userData = {
+        id: uid, email, name,
+        googleConnected: true,
+        lastLogin: firebase.firestore.FieldValue.serverTimestamp()
+      };
+      await FB.db.collection('users').doc(uid).set(userData, { merge: true });
+      console.log('🔥 User synced to Firestore:', email);
+      // Save full app state
+      if (DB.s) FB.saveState(DB.s);
+    } catch(e) {
+      console.warn('Firestore user sync note:', e.message);
     }
   },
 
@@ -1201,29 +1242,48 @@ const FB = {
   saveState(stateData) {
     if (FB.active && FB.db) {
       try {
-        // Save overall app state document
-        FB.db.collection("projectTrack").doc("appState").set({
+        // Save overall app state document to Firestore
+        FB.db.collection('projectTrack').doc('appState').set({
           data: JSON.stringify(stateData),
           updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-        }, { merge: true }).catch(err => console.warn("Firestore state save note:", err));
+        }, { merge: true }).then(() => {
+          console.log('🔥 Firestore: App state saved successfully');
+        }).catch(err => console.warn('Firestore state save:', err.message));
 
-        // Save granular Firestore collections matching Firebase schema
+        // Save users collection
         if (stateData.users && Array.isArray(stateData.users)) {
           stateData.users.forEach(u => {
-            if (u && u.id) FB.db.collection("users").doc(String(u.id)).set(u, { merge: true }).catch(() => {});
+            if (u && u.id) {
+              FB.db.collection('users').doc(String(u.id)).set({
+                ...u,
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+              }, { merge: true }).catch(() => {});
+            }
           });
         }
+        // Save groups collection
         if (stateData.groups && Array.isArray(stateData.groups)) {
           stateData.groups.forEach(g => {
-            if (g && g.id) FB.db.collection("groups").doc(String(g.id)).set(g, { merge: true }).catch(() => {});
+            if (g && g.id) {
+              FB.db.collection('groups').doc(String(g.id)).set({
+                ...g,
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+              }, { merge: true }).catch(() => {});
+            }
           });
         }
+        // Save tasks collection
         if (stateData.tasks && Array.isArray(stateData.tasks)) {
           stateData.tasks.forEach(t => {
-            if (t && t.id) FB.db.collection("tasks").doc(String(t.id)).set(t, { merge: true }).catch(() => {});
+            if (t && t.id) {
+              FB.db.collection('tasks').doc(String(t.id)).set({
+                ...t,
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+              }, { merge: true }).catch(() => {});
+            }
           });
         }
-      } catch(e) {}
+      } catch(e) { console.warn('Firestore saveState error:', e.message); }
     }
   },
 
@@ -1772,7 +1832,7 @@ const Auth={
   handleFirebaseUserSuccess(uid, email, name, providerLabel) {
     const em = String(email).trim().toLowerCase();
     const userId = uid || 'Z9CVTVdTtnNxSUEz7agrXdSPLpS2';
-    let u = DB.s.users.find(x => x.id === userId || x.email === em);
+    let u = DB.s && DB.s.users ? DB.s.users.find(x => x.id === userId || x.email === em) : null;
 
     if (!u) {
       const displayName = name || em.split('@')[0].replace(/[._-]/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
@@ -1783,23 +1843,31 @@ const Auth={
         pass: hash(userId),
         role: 'Team Lead',
         groupId: 'g1',
-        color: AVC[DB.s.users.length % AVC.length],
+        color: AVC[(DB.s && DB.s.users ? DB.s.users.length : 0) % AVC.length],
         createdAt: now(),
-        googleConnected: true
+        googleConnected: true,
+        provider: providerLabel
       };
-      DB.s.users.push(u);
+      if (DB.s && DB.s.users) DB.s.users.push(u);
     } else {
       u.id = userId;
       u.email = em;
       if (name) u.name = name;
       u.googleConnected = true;
+      u.provider = providerLabel;
     }
 
     DB.save();
+
+    // 🔥 Sign in to Firebase Auth + sync to Firestore
+    FB.signInToFirebase(em, userId).then(() => {
+      FB.saveState(DB.s);
+    });
+
     FX.tap('done');
     App.signIn(u.id);
     if (typeof Modal !== 'undefined') Modal.close();
-    toast(I.check(15), `Signed in via Firebase Google Auth as ${u.name}`);
+    toast(I.check(15), `✓ Signed in with ${providerLabel} as ${u.name} — Firebase synced`);
   },
 
   githubLogin(){
