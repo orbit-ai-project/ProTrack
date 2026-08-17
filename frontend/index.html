@@ -81,9 +81,10 @@ button:focus-visible,a:focus-visible,.nav a:focus-visible,.crow:focus-visible,.g
 a{color:var(--accent);text-decoration:none}
 svg{display:block;flex:none}
 ::-webkit-scrollbar{width:11px;height:11px}
-::-webkit-scrollbar-thumb{background:#C4D3DA;border-radius:99px;border:3px solid transparent;background-clip:content-box}
-::-webkit-scrollbar-thumb:hover{background:#A6BEC8;background-clip:content-box}
+::-webkit-scrollbar-thumb{background:var(--muted);border-radius:99px;border:3px solid transparent;background-clip:content-box;opacity:0.7}
+::-webkit-scrollbar-thumb:hover{background:var(--ink-2);background-clip:content-box}
 ::-webkit-scrollbar-track{background:transparent}
+html.dark input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(1); }
 .hidden{display:none!important}
 
 /* ---------- primitives ---------- */
@@ -748,7 +749,7 @@ html.dark .tc.is-done .t{color:var(--green)}
       <h2 id="topTitle"></h2>
       <div class="sp"></div>
       <div style="position:relative; width:220px; margin-right:8px;">
-        <input type="text" id="globalSearchInp" placeholder="Search tasks, members..." onkeyup="GlobalSearch.onKey(event)" style="width:100%; padding:6px 10px 6px 30px; font-size:12px; border-radius:20px; border:1px solid var(--line); background:var(--surface-2); color:var(--ink); outline:none;">
+        <input type="text" id="globalSearchInp" placeholder="Search tasks, members..." onkeyup="GlobalSearch.onKey(event)" onfocus="if(this.value.trim()) document.getElementById('globalSearchResults').style.display='block';" style="width:100%; padding:6px 10px 6px 30px; font-size:12px; border-radius:20px; border:1px solid var(--line); background:var(--surface-2); color:var(--ink); outline:none;">
         <span style="position:absolute; left:10px; top:50%; transform:translateY(-50%); opacity:0.55; display:flex; pointer-events:none;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg></span>
         <div id="globalSearchResults" style="display:none; position:absolute; top:36px; left:0; right:0; background:var(--surface); border:1px solid var(--line); border-radius:var(--r2); box-shadow:var(--sh3); z-index:999; max-height:280px; overflow-y:auto; padding:6px;"></div>
       </div>
