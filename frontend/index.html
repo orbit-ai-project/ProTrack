@@ -320,7 +320,7 @@ tbody tr:hover{background:var(--surface-2)}
 /* ---------- modal ---------- */
 .scrim{position:fixed;inset:0;background:rgba(16,24,40,.4);z-index:100;display:grid;place-items:center;padding:20px;overflow:auto;animation:fi .12s}
 @keyframes fi{from{opacity:0}to{opacity:1}}
-.modal{width:min(540px,100%);background:#fff;border-radius:var(--r3);box-shadow:var(--sh3);margin:auto;animation:mi .16s var(--ease)}
+.modal{width:min(540px,100%);background:var(--surface);border-radius:var(--r3);box-shadow:var(--sh3);margin:auto;animation:mi .16s var(--ease)}
 @keyframes mi{from{opacity:0;transform:translateY(8px) scale(.99)}to{opacity:1;transform:none}}
 .modal .mh{display:flex;align-items:center;gap:10px;padding:15px 18px;border-bottom:1px solid var(--line-2)}
 .modal .mh h3{font-size:15px;font-weight:600;flex:1;letter-spacing:-.01em}
@@ -414,7 +414,7 @@ tbody tr:hover{background:var(--surface-2)}
 .badge{position:absolute;top:-4px;right:-4px;min-width:15px;height:15px;padding:0 3px;border-radius:99px;
   background:var(--red);color:#fff;font-size:9.5px;font-weight:700;display:grid;place-items:center;
   border:1.5px solid var(--surface);pointer-events:none}
-.notif{position:absolute;top:40px;right:0;width:340px;max-height:420px;background:#fff;border:1px solid var(--line);
+.notif{position:absolute;top:40px;right:0;width:340px;max-height:420px;background:var(--surface);border:1px solid var(--line);
   border-radius:var(--r2);box-shadow:var(--sh3);z-index:60;display:flex;flex-direction:column;overflow:hidden;
   animation:mi .14s var(--ease)}
 .notif .nh{display:flex;align-items:center;gap:8px;padding:12px 14px;border-bottom:1px solid var(--line-2)}
@@ -423,7 +423,7 @@ tbody tr:hover{background:var(--surface-2)}
 .ni{display:flex;gap:10px;padding:11px 14px;border-bottom:1px solid var(--line-2);cursor:pointer;transition:background .1s;position:relative}
 .ni:hover{background:var(--surface-2)}
 .ni.un{background:var(--accent-soft)}
-.ni.un:hover{background:#E6E9FC}
+.ni.un:hover{background:var(--accent-line)}
 .ni .nic{width:28px;height:28px;border-radius:8px;display:grid;place-items:center;flex:none}
 .ni .ntx{font-size:12.5px;line-height:1.45;color:var(--ink)}
 .ni .ntx b{font-weight:600}
