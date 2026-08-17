@@ -1899,7 +1899,7 @@ const Auth={
         <!-- Role Cards -->
         <div style="display:flex;flex-direction:column;gap:12px;padding:0 20px 24px;">
 
-          <button onclick="Auth.createGoogleUser('${userId}','${email}','${name}','Faculty','${providerLabel}')"
+          <button onclick="Auth.showRoleDetailsPicker('${userId}','${email}','${name}','Faculty','${providerLabel}')"
             style="display:flex;align-items:center;gap:16px;padding:18px;border:2px solid var(--line);border-radius:12px;background:var(--surface);cursor:pointer;text-align:left;transition:all 0.18s;width:100%;"
             onmouseover="this.style.borderColor='#4285f4';this.style.background='#f0f6ff'"
             onmouseout="this.style.borderColor='var(--line)';this.style.background='var(--surface)'">
@@ -1913,7 +1913,7 @@ const Auth={
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
           </button>
 
-          <button onclick="Auth.createGoogleUser('${userId}','${email}','${name}','Team Lead','${providerLabel}')"
+          <button onclick="Auth.showRoleDetailsPicker('${userId}','${email}','${name}','Team Lead','${providerLabel}')"
             style="display:flex;align-items:center;gap:16px;padding:18px;border:2px solid var(--line);border-radius:12px;background:var(--surface);cursor:pointer;text-align:left;transition:all 0.18s;width:100%;"
             onmouseover="this.style.borderColor='#34a853';this.style.background='#f0fff4'"
             onmouseout="this.style.borderColor='var(--line)';this.style.background='var(--surface)'">
@@ -1922,7 +1922,7 @@ const Auth={
             </div>
             <div style="flex:1;">
               <div style="font-size:16px;font-weight:700;color:var(--ink);margin-bottom:3px;">I am a Team Lead</div>
-              <div style="font-size:13px;color:var(--muted);line-height:1.4;">Lead your project group, manage tasks, add team members (Developer, Tester, QA).</div>
+              <div style="font-size:13px;color:var(--muted);line-height:1.4;">Lead your project group, manage tasks, choose your semester, add team members.</div>
             </div>
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
           </button>
@@ -1936,22 +1936,160 @@ const Auth={
     `);
   },
 
+  showRoleDetailsPicker(userId, email, name, role, providerLabel) {
+    const isFaculty = (role === 'Faculty');
+    const defaultSem = 3;
+    const initialSubjects = CURRICULUM[defaultSem] || [];
+
+    let bodyHTML = '';
+
+    if (isFaculty) {
+      bodyHTML = `
+        <div style="padding: 0 20px 24px;">
+          <h3 style="font-size:18px;font-weight:600;margin-bottom:12px;color:var(--ink);">Faculty Details</h3>
+          <p style="font-size:13.5px;color:var(--muted);margin-bottom:18px;">Please select the semester and teaching subject you supervise.</p>
+          
+          <div class="field" style="margin-bottom:12px;">
+            <label style="display:block;margin-bottom:6px;font-weight:600;font-size:12px;color:var(--ink);">Semester</label>
+            <select class="inp" id="g_f_sem" onchange="Auth.onGoogleFacultySemChange(this.value)" style="width:100%;">
+              ${[1,2,3,4,5,6,7,8].map(s=>`<option value="${s}" ${s===defaultSem?'selected':''}>Semester ${s}</option>`).join('')}
+            </select>
+          </div>
+
+          <div class="field" style="margin-bottom:18px;">
+            <label style="display:block;margin-bottom:6px;font-weight:600;font-size:12px;color:var(--ink);">Teaching Subject</label>
+            <select class="inp" id="g_f_subj" style="width:100%;">
+              ${initialSubjects.map(s=>`<option value="${s.code}">${s.code} — ${esc(s.name)}</option>`).join('')}
+            </select>
+          </div>
+
+          <div id="g_role_err" style="margin-bottom:12px;"></div>
+
+          <div style="display:flex;gap:10px;">
+            <button class="btn gho" style="flex:1;" onclick="Auth.showRolePickerModal('${userId}','${email}','${name}','${providerLabel}')">Back</button>
+            <button class="btn pri" style="flex:1;" onclick="Auth.submitGoogleFaculty('${userId}','${email}','${name}','${providerLabel}')">Complete Sign Up</button>
+          </div>
+        </div>
+      `;
+    } else {
+      // Team Lead (student) details
+      bodyHTML = `
+        <div style="padding: 0 20px 24px;">
+          <h3 style="font-size:18px;font-weight:600;margin-bottom:12px;color:var(--ink);">Student Team Details</h3>
+          <p style="font-size:13.5px;color:var(--muted);margin-bottom:18px;">Select your semester and configure your project group details.</p>
+
+          <div class="field" style="margin-bottom:12px;">
+            <label style="display:block;margin-bottom:6px;font-weight:600;font-size:12px;color:var(--ink);">Semester</label>
+            <select class="inp" id="g_s_sem" style="width:100%;">
+              ${[1,2,3,4,5,6,7,8].map(s=>`<option value="${s}" ${s===defaultSem?'selected':''}>Semester ${s}</option>`).join('')}
+            </select>
+          </div>
+
+          <div class="field" style="margin-bottom:12px;">
+            <label style="display:block;margin-bottom:6px;font-weight:600;font-size:12px;color:var(--ink);">Group Name</label>
+            <input class="inp" id="g_s_group" placeholder="e.g. Group 04" style="width:100%;"/>
+          </div>
+
+          <div class="field" style="margin-bottom:18px;">
+            <label style="display:block;margin-bottom:6px;font-weight:600;font-size:12px;color:var(--ink);">Project Title</label>
+            <input class="inp" id="g_s_project" placeholder="e.g. Library Management System" style="width:100%;"/>
+          </div>
+
+          <div id="g_role_err" style="margin-bottom:12px;"></div>
+
+          <div style="display:flex;gap:10px;">
+            <button class="btn gho" style="flex:1;" onclick="Auth.showRolePickerModal('${userId}','${email}','${name}','${providerLabel}')">Back</button>
+            <button class="btn pri" style="flex:1;" onclick="Auth.submitGoogleLead('${userId}','${email}','${name}','${providerLabel}')">Create Team &amp; Sign Up</button>
+          </div>
+        </div>
+      `;
+    }
+
+    Modal.open(`
+      <div style="max-width:460px;margin:0 auto;padding:4px;">
+        <!-- Header -->
+        <div style="text-align:center;padding:28px 20px 16px;">
+          <div style="width:64px;height:64px;border-radius:50%;background:linear-gradient(135deg,#4285f4,#34a853);margin:0 auto 14px;display:flex;align-items:center;justify-content:center;font-size:26px;font-weight:700;color:#fff;">
+            ${name.charAt(0).toUpperCase()}
+          </div>
+          <h2 style="font-size:22px;font-weight:600;color:var(--ink);margin:0 0 6px;">Setup Profile</h2>
+          <p style="font-size:14px;color:var(--muted);margin:0 0 10px;">${email}</p>
+        </div>
+
+        <!-- Form Body -->
+        ${bodyHTML}
+      </div>
+    `);
+  },
+
+  onGoogleFacultySemChange(sem) {
+    const list = CURRICULUM[sem] || [];
+    const sel = document.getElementById('g_f_subj');
+    if (sel) {
+      sel.innerHTML = list.map(s => `<option value="${s.code}">${s.code} — ${esc(s.name)}</option>`).join('');
+    }
+  },
+
+  submitGoogleFaculty(userId, email, name, providerLabel) {
+    const sem = document.getElementById('g_f_sem').value;
+    const subjectCode = document.getElementById('g_f_subj').value;
+    if (!subjectCode) {
+      document.getElementById('g_role_err').innerHTML = `<div class="errmsg">${I.alert(13)}Please select a subject</div>`;
+      return;
+    }
+    Auth.createGoogleUser(userId, email, name, 'Faculty', providerLabel, { semester: parseInt(sem, 10), subjectCode });
+  },
+
+  submitGoogleLead(userId, email, name, providerLabel) {
+    const sem = document.getElementById('g_s_sem').value;
+    const gname = document.getElementById('g_s_group').value.trim();
+    const proj = document.getElementById('g_s_project').value.trim();
+    if (!gname) {
+      document.getElementById('g_role_err').innerHTML = `<div class="errmsg">${I.alert(13)}Enter your Group Name</div>`;
+      return;
+    }
+    if (!proj) {
+      document.getElementById('g_role_err').innerHTML = `<div class="errmsg">${I.alert(13)}Enter your Project Title</div>`;
+      return;
+    }
+    Auth.createGoogleUser(userId, email, name, 'Team Lead', providerLabel, {
+      semester: parseInt(sem, 10),
+      groupName: gname,
+      projectTitle: proj
+    });
+  },
+
   // Create new Google user after role is selected
-  createGoogleUser(userId, email, name, role, providerLabel) {
+  createGoogleUser(userId, email, name, role, providerLabel, details = {}) {
     if (!DB.s || !DB.s.users) { DB.load(); if (!DB.s) return; }
     const color = AVC[DB.s.users.length % AVC.length];
 
-    // For Team Lead: pick or create a group
-    let groupId = 'g1';
-    if (role === 'Team Lead' && DB.s.groups && DB.s.groups.length > 0) {
-      // Find a group without a team lead or create new one
-      const grp = DB.s.groups.find(g => !DB.s.users.some(u => u.groupId === g.id && u.role === 'Team Lead'));
-      groupId = grp ? grp.id : 'g' + (DB.s.groups.length + 1);
-      if (!grp) {
-        DB.s.groups.push({ id: groupId, name: name + "'s Group", createdAt: now() });
-      }
+    let groupId = null;
+    let semester = details.semester || 3;
+    let subjectCode = details.subjectCode || null;
+
+    if (role === 'Team Lead') {
+      const gid = 'g-' + uid();
+      groupId = gid;
+      const semCourses = CURRICULUM[semester] || CURRICULUM[3];
+      const c = semCourses[0];
+      
+      const gname = details.groupName || (name + "'s Group");
+      const proj = details.projectTitle || "Project Topic";
+
+      DB.s.groups.push({
+        id: gid,
+        name: gname,
+        project: proj,
+        semester: semester,
+        subject: c ? c.code + ' · ' + c.name : '—',
+        courseCode: c ? c.code : null,
+        subjects: c ? [c.code] : [],
+        topics: {},
+        leadId: userId,
+        createdAt: now()
+      });
     }
-    if (role === 'Faculty') groupId = null;
 
     const u = {
       id: userId,
@@ -1960,6 +2098,8 @@ const Auth={
       pass: hash(userId),
       role,
       groupId,
+      semester: semester,
+      subjectCode: subjectCode,
       color,
       createdAt: now(),
       googleConnected: true,
@@ -1975,7 +2115,14 @@ const Auth={
     FX.tap('done');
     Modal.close();
     App.signIn(u.id);
-    toast(I.check(15), `✓ Account created as ${role}! Welcome, ${name} 🎉`);
+    
+    if (role === 'Team Lead') {
+      setTimeout(() => toast(I.check(15), `✓ Team created for Semester ${semester}. Add your members next.🎉`), 300);
+      App.tab = 'team';
+      App.render();
+    } else {
+      toast(I.check(15), `✓ Faculty account created · Semester ${semester} · Subject: ${subjectCode} 🎉`);
+    }
   },
 
   githubLogin(){
