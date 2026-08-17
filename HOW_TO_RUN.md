@@ -87,8 +87,8 @@ Both should print a version number.
 ### 1) Get the project onto your computer
 **Option A — clone with Git:**
 ```bash
-git clone https://github.com/orbit-ai-project/protrack-project-tracker.git
-cd protrack-project-tracker
+git clone https://github.com/orbit-ai-project/ProTrack.git
+cd ProTrack
 ```
 **Option B — download the ZIP** from GitHub (green **Code ▸ Download ZIP**), unzip it,
 then `cd` into the unzipped folder.
