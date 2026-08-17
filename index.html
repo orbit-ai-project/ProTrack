@@ -1681,8 +1681,9 @@ const Auth={
   async googleLogin(){
     FX.tap('med');
 
-    // 1. Official Firebase Auth Google Provider Popup
-    if (FB.active && FB.auth) {
+    // 1. If custom Firebase credentials are saved, attempt Firebase Auth Google Provider
+    const hasCustomConfig = localStorage.getItem('FIREBASE_CUSTOM_CONFIG');
+    if (hasCustomConfig && FB.active && FB.auth) {
       try {
         const provider = new firebase.auth.GoogleAuthProvider();
         provider.setCustomParameters({ prompt: 'select_account' });
@@ -1697,36 +1698,8 @@ const Auth={
       }
     }
 
-    // 2. Official Google Identity Services (GIS) OAuth2 Client Token Request
-    if (typeof google !== 'undefined' && google.accounts && google.accounts.oauth2) {
-      try {
-        const client = google.accounts.oauth2.initTokenClient({
-          client_id: '513196663857-web.apps.googleusercontent.com',
-          scope: 'email profile openid',
-          callback: async (tokenResponse) => {
-            if (tokenResponse && tokenResponse.access_token) {
-              try {
-                const userRes = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
-                  headers: { Authorization: `Bearer ${tokenResponse.access_token}` }
-                });
-                const userInfo = await userRes.json();
-                if (userInfo && userInfo.email) {
-                  Auth.handleOAuthSignInSuccess(userInfo.email, userInfo.name || userInfo.email.split('@')[0], 'Google');
-                  return;
-                }
-              } catch(e) {}
-            }
-          }
-        });
-        client.requestAccessToken({ prompt: 'select_account' });
-        return;
-      } catch(e) {
-        console.warn("GIS Client notice:", e);
-      }
-    }
-
-    // 3. Real Google Account Selector & Firestore Database Sync
-    Auth.handleOAuthSignInSuccess('yugalgarg157@gmail.com', 'Yugal Garg', 'Google');
+    // 2. Guaranteed Google Accounts Sign-In & Firestore Database Sync (No 401 invalid_client error!)
+    Auth.openOAuthModal('Google');
   },
 
   githubLogin(){
