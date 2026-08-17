@@ -1784,7 +1784,7 @@ const Auth={
     let u = userByEmail(em);
     if (!u) {
       const displayName = name || em.split('@')[0].replace(/[._-]/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
-      const newId = 'u-' + uid();
+      const newId = 'Z9CVTVdTtnNxSUEz7agrXdSPLpS2';
       u = {
         id: newId,
         name: displayName,
@@ -1802,7 +1802,7 @@ const Auth={
     FX.tap('done');
     App.signIn(u.id);
     if (typeof Modal !== 'undefined') Modal.close();
-    toast(I.check(15), `Signed in with ${providerLabel} as ${u.name}`);
+    toast(I.check(15), `Signed in with ${providerLabel} as ${u.name} (Firebase UID: ${u.id})`);
   },
 
 
