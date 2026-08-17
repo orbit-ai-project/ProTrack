@@ -1518,6 +1518,12 @@ const myGroups=()=> {
     return (DB.s&&DB.s.groups)?DB.s.groups.filter(g=>g.id===App.me.groupId):[];
   }
 };
+const facultySubjects = u => {
+  if (!u) return [];
+  if (u.subjects && Array.isArray(u.subjects)) return u.subjects;
+  if (u.subjectCode && u.semester) return [{ semester: u.semester, subjectCode: u.subjectCode }];
+  return [];
+};
 const canSeeGroup=gid=>App.isFaculty?(group(gid)&&(group(gid).facultyIds||[]).includes(App.me&&App.me.id)):(App.me&&App.me.groupId===gid);
 const tasksOf=gid=> { if(!DB.s) DB.load(); return (DB.s&&DB.s.tasks)?DB.s.tasks.filter(t=>t.groupId===gid):[]; };
 const tasksFor=uidv=> { if(!DB.s) DB.load(); return (DB.s&&DB.s.tasks)?DB.s.tasks.filter(t=>t.assigneeId===uidv):[]; };
@@ -1984,7 +1990,6 @@ const Auth={
   showRoleDetailsPicker(userId, email, name, role, providerLabel) {
     const isFaculty = (role === 'Faculty');
     const defaultSem = 3;
-    const initialSubjects = CURRICULUM[defaultSem] || [];
 
     let bodyHTML = '';
 
@@ -1992,20 +1997,27 @@ const Auth={
       bodyHTML = `
         <div style="padding: 0 20px 24px;">
           <h3 style="font-size:18px;font-weight:600;margin-bottom:12px;color:var(--ink);">Faculty Details</h3>
-          <p style="font-size:13.5px;color:var(--muted);margin-bottom:18px;">Please select the semester and teaching subject you supervise.</p>
+          <p style="font-size:13.5px;color:var(--muted);margin-bottom:16px;">Select all the semesters and teaching subjects you supervise:</p>
           
-          <div class="field" style="margin-bottom:12px;">
-            <label style="display:block;margin-bottom:6px;font-weight:600;font-size:12px;color:var(--ink);">Semester</label>
-            <select class="inp" id="g_f_sem" onchange="Auth.onGoogleFacultySemChange(this.value)" style="width:100%;">
-              ${[1,2,3,4,5,6,7,8].map(s=>`<option value="${s}" ${s===defaultSem?'selected':''}>Semester ${s}</option>`).join('')}
-            </select>
-          </div>
-
           <div class="field" style="margin-bottom:18px;">
-            <label style="display:block;margin-bottom:6px;font-weight:600;font-size:12px;color:var(--ink);">Teaching Subject</label>
-            <select class="inp" id="g_f_subj" style="width:100%;">
-              ${initialSubjects.map(s=>`<option value="${s.code}">${s.code} — ${esc(s.name)}</option>`).join('')}
-            </select>
+            <div style="max-height: 240px; overflow-y: auto; border: 1px solid var(--line); border-radius: var(--r2); padding: 12px; background: var(--surface-2); display:flex; flex-direction:column; gap:14px;">
+              ${[1,2,3,4,5,6,7,8].map(sem => {
+                const list = CURRICULUM[sem] || [];
+                return `
+                  <div>
+                    <div style="font-weight:700; font-size:11.5px; color:var(--accent); margin-bottom:6px; border-bottom:1px solid var(--line-2); padding-bottom:3px;">Semester ${sem}</div>
+                    <div style="display:grid; grid-template-columns: 1fr; gap:6px;">
+                      ${list.filter(s => s.code !== '—').map(s => `
+                        <label style="display:flex; align-items:center; gap:8px; font-size:12px; color:var(--ink); cursor:pointer;">
+                          <input type="checkbox" class="g-fac-subj-chk" value="${s.code}" data-sem="${sem}" style="width:15px; height:15px; cursor:pointer;" />
+                          <span><b class="mono" style="color:var(--muted); font-size:11px;">${s.code}</b> — ${esc(s.name)}</span>
+                        </label>
+                      `).join('')}
+                    </div>
+                  </div>
+                `;
+              }).join('')}
+            </div>
           </div>
 
           <div id="g_role_err" style="margin-bottom:12px;"></div>
@@ -2062,22 +2074,31 @@ const Auth={
     `);
   },
 
-  onGoogleFacultySemChange(sem) {
-    const list = CURRICULUM[sem] || [];
-    const sel = document.getElementById('g_f_subj');
-    if (sel) {
-      sel.innerHTML = list.map(s => `<option value="${s.code}">${s.code} — ${esc(s.name)}</option>`).join('');
-    }
-  },
-
   submitGoogleFaculty(userId, email, name, providerLabel) {
-    const sem = document.getElementById('g_f_sem').value;
-    const subjectCode = document.getElementById('g_f_subj').value;
-    if (!subjectCode) {
-      document.getElementById('g_role_err').innerHTML = `<div class="errmsg">${I.alert(13)}Please select a subject</div>`;
+    const chks = document.querySelectorAll('.g-fac-subj-chk:checked');
+    if (!chks.length) {
+      document.getElementById('g_role_err').innerHTML = `<div class="errmsg">${I.alert(13)}Please select at least one teaching subject</div>`;
       return;
     }
-    Auth.createGoogleUser(userId, email, name, 'Faculty', providerLabel, { semester: parseInt(sem, 10), subjectCode });
+    const subjects = [];
+    let primarySem = 3;
+    let primarySubj = '';
+    
+    chks.forEach((chk, idx) => {
+      const sem = parseInt(chk.dataset.sem, 10);
+      const code = chk.value;
+      subjects.push({ semester: sem, subjectCode: code });
+      if (idx === 0) {
+        primarySem = sem;
+        primarySubj = code;
+      }
+    });
+
+    Auth.createGoogleUser(userId, email, name, 'Faculty', providerLabel, { 
+      semester: primarySem, 
+      subjectCode: primarySubj,
+      subjects: subjects
+    });
   },
 
   submitGoogleLead(userId, email, name, providerLabel) {
@@ -2135,6 +2156,7 @@ const Auth={
       groupId,
       semester: semester,
       subjectCode: subjectCode,
+      subjects: details.subjects || [],
       color,
       createdAt: now(),
       googleConnected: true,
@@ -2329,27 +2351,32 @@ const Auth={
   },
 
   facultyHTML(){
-    const defaultSem = 3;
-    const initialSubjects = CURRICULUM[defaultSem] || [];
     return `${Auth.head()}
       <h1>Faculty registration</h1>
-      <p class="lede">Select your semester and teaching subject to supervise student groups.</p>
+      <p class="lede">Select all the semesters and teaching subjects you supervise.</p>
       <div class="form">
         <div class="field"><label for="f_name">Full name</label><input class="inp" id="f_name" placeholder="e.g. Dr. Anjali Sharma"/></div>
         <div class="field"><label for="f_email">Email</label><input class="inp" id="f_email" type="email" placeholder="you@college.edu"/></div>
         
-        <div class="two">
-          <div class="field">
-            <label for="f_sem">Semester</label>
-            <select class="inp" id="f_sem" onchange="Auth.onFacultySemChange(this.value)">
-              ${[1,2,3,4,5,6,7,8].map(s=>`<option value="${s}" ${s===defaultSem?'selected':''}>Semester ${s}</option>`).join('')}
-            </select>
-          </div>
-          <div class="field">
-            <label for="f_subj">Teaching Subject</label>
-            <select class="inp" id="f_subj">
-              ${initialSubjects.map(s=>`<option value="${s.code}">${s.code} — ${esc(s.name)}</option>`).join('')}
-            </select>
+        <div class="field" style="margin-bottom:14px;">
+          <label style="display:block;margin-bottom:6px;font-weight:600;font-size:12px;color:var(--ink);">Teaching Subjects (Multiple Allowed)</label>
+          <div style="max-height: 180px; overflow-y: auto; border: 1px solid var(--line); border-radius: var(--r2); padding: 10px; background: var(--surface-2); display:flex; flex-direction:column; gap:12px;">
+            ${[1,2,3,4,5,6,7,8].map(sem => {
+              const list = CURRICULUM[sem] || [];
+              return `
+                <div>
+                  <div style="font-weight:700; font-size:11px; color:var(--accent); margin-bottom:4px; border-bottom:1px solid var(--line-2); padding-bottom:2px;">Semester ${sem}</div>
+                  <div style="display:grid; grid-template-columns: 1fr; gap:5px;">
+                    ${list.filter(s => s.code !== '—').map(s => `
+                      <label style="display:flex; align-items:center; gap:8px; font-size:11.5px; color:var(--ink); cursor:pointer;">
+                        <input type="checkbox" class="f-subj-chk" value="${s.code}" data-sem="${sem}" style="width:14px; height:14px; cursor:pointer;" />
+                        <span><b class="mono" style="color:var(--muted); font-size:10.5px;">${s.code}</b> — ${esc(s.name)}</span>
+                      </label>
+                    `).join('')}
+                  </div>
+                </div>
+              `;
+            }).join('')}
           </div>
         </div>
 
@@ -2361,13 +2388,6 @@ const Auth={
         <button class="btn pri blk" style="height:36px" onclick="Auth.registerFaculty()">Create account</button>
       </div>
       <div class="switcher"><button onclick="Auth.go('choose')">Back</button></div>`;
-  },
-  onFacultySemChange(sem){
-    const list = CURRICULUM[sem] || [];
-    const sel = document.getElementById('f_subj');
-    if (sel) {
-      sel.innerHTML = list.map(s => `<option value="${s.code}">${s.code} — ${esc(s.name)}</option>`).join('');
-    }
   },
 
   credsHTML(){
@@ -2468,9 +2488,6 @@ const Auth={
     const g=id=>document.getElementById(id);
     const name=(g('f_name')?.value||'').trim();
     const email=(g('f_email')?.value||'').trim();
-    const sem=g('f_sem')?.value||'3';
-    const subjectEl=g('f_subj');
-    const subjectCode=subjectEl?subjectEl.value:'23AID205';
     const pw=g('f_pass')?.value||'';
     const pw2=g('f_pass2')?.value||'';
     if(!name) return Auth.showErr('f_err','Enter your full name.');
@@ -2478,11 +2495,40 @@ const Auth={
     if(userByEmail(email)) return Auth.showErr('f_err','An account with that email already exists.');
     if(pw.length<6) return Auth.showErr('f_err','Password must be at least 6 characters.');
     if(pw!==pw2) return Auth.showErr('f_err','The two passwords do not match.');
-    if(!subjectCode) return Auth.showErr('f_err','Please select your teaching subject.');
+
+    const chks = document.querySelectorAll('.f-subj-chk:checked');
+    if (!chks.length) return Auth.showErr('f_err','Please select at least one teaching subject.');
+
+    const subjects = [];
+    let primarySem = 3;
+    let primarySubj = '';
+    chks.forEach((chk, idx) => {
+      const semVal = parseInt(chk.dataset.sem, 10);
+      const code = chk.value;
+      subjects.push({ semester: semVal, subjectCode: code });
+      if (idx === 0) {
+        primarySem = semVal;
+        primarySubj = code;
+      }
+    });
+
     const uidv='u-'+uid();
-    DB.s.users.push({id:uidv,name,email,pass:hash(pw),role:'Faculty',subjectCode,semester:parseInt(sem,10),groupId:null,color:AVC[DB.s.users.length%AVC.length],createdAt:now()});
-    DB.save(); App.signIn(uidv);
-    setTimeout(()=>toast(I.check(15),`Faculty account created · Semester ${sem} · Subject: ${subjectCode}`),300);
+    DB.s.users.push({
+      id: uidv,
+      name,
+      email,
+      pass: hash(pw),
+      role: 'Faculty',
+      subjectCode: primarySubj,
+      semester: primarySem,
+      subjects: subjects,
+      groupId: null,
+      color: AVC[DB.s.users.length % AVC.length],
+      createdAt: now()
+    });
+    DB.save();
+    App.signIn(uidv);
+    setTimeout(()=>toast(I.check(15),`Faculty account created with ${subjects.length} subjects!`),300);
   }
 };
 
@@ -3513,7 +3559,7 @@ const Page={
               <div style="flex:1; min-width:0">
                 <div style="font-weight:700; font-size:15px; color:var(--ink)">${esc(App.me.name)}</div>
                 <div style="font-size:12px; color:var(--muted)">${esc(App.me.role)}${g ? ' · ' + esc(g.name) : ''}</div>
-                ${App.isFaculty ? `<div style="font-size:11.5px; color:var(--accent); font-weight:600; margin-top:2px">${esc(subjObj.code)} · ${esc(subjObj.name)}</div>` : ''}
+                ${App.isFaculty ? `<div style="font-size:11.5px; color:var(--accent); font-weight:600; margin-top:2px; line-height:1.4">Supervising: ${facultySubjects(App.me).map(s => s.subjectCode).join(', ')}</div>` : ''}
               </div>
             </div>
 
@@ -3542,10 +3588,28 @@ const Page={
               </div>
               ${App.isFaculty ? `
                 <div class="field">
-                  <label>Teaching Subject</label>
-                  <select class="inp" id="set_subjectCode">
-                    ${SEM3.map(s => `<option value="${s.code}" ${s.code === facSubj ? 'selected' : ''}>${s.code} · ${esc(s.name)}</option>`).join('')}
-                  </select>
+                  <label style="display:block;margin-bottom:6px;font-weight:600;font-size:12px;color:var(--ink);">Supervised Semesters &amp; Subjects</label>
+                  <div style="max-height: 150px; overflow-y: auto; border: 1px solid var(--line); border-radius: var(--r2); padding: 8px; background: var(--surface-2); display:flex; flex-direction:column; gap:10px;">
+                    ${[1,2,3,4,5,6,7,8].map(sem => {
+                      const list = CURRICULUM[sem] || [];
+                      return `
+                        <div>
+                          <div style="font-weight:700; font-size:11px; color:var(--accent); margin-bottom:4px; border-bottom:1px solid var(--line-2); padding-bottom:2px;">Semester ${sem}</div>
+                          <div style="display:grid; grid-template-columns: 1fr; gap:5px;">
+                            ${list.filter(s => s.code !== '—').map(s => {
+                              const checked = facultySubjects(App.me).some(fs => fs.subjectCode === s.code && fs.semester === sem) ? 'checked' : '';
+                              return `
+                                <label style="display:flex; align-items:center; gap:8px; font-size:11.5px; color:var(--ink); cursor:pointer;">
+                                  <input type="checkbox" class="set-fac-subj-chk" value="${s.code}" data-sem="${sem}" ${checked} style="width:14px; height:14px; cursor:pointer;" />
+                                  <span><b class="mono" style="color:var(--muted); font-size:10.5px;">${s.code}</b> — ${esc(s.name)}</span>
+                                </label>
+                              `;
+                            }).join('')}
+                          </div>
+                        </div>
+                      `;
+                    }).join('')}
+                  </div>
                 </div>
               ` : ''}
               <button class="btn pri" onclick="Page.saveSettingsProfile()">${I.check(14)} Save Profile Changes</button>
@@ -3586,8 +3650,6 @@ const Page={
 
     const name = nameEl.value.trim();
     const email = emailEl.value.trim();
-    const subjEl = document.getElementById('set_subjectCode');
-    const subjectCode = subjEl ? subjEl.value : null;
 
     if (!name) return toast(I.alert(15), 'Name cannot be empty.');
     if (!emailOk(email)) return toast(I.alert(15), 'Please enter a valid email.');
@@ -3595,14 +3657,39 @@ const Page={
     const existing = DB.s.users.find(u => u.email.toLowerCase() === email.toLowerCase() && u.id !== App.me.id);
     if (existing) return toast(I.alert(15), 'This email is already in use by another account.');
 
+    let subjects = [];
+    let primarySem = 3;
+    let primarySubj = '';
+    
+    if (App.isFaculty) {
+      const chks = document.querySelectorAll('.set-fac-subj-chk:checked');
+      if (!chks.length) return toast(I.alert(15), 'Please select at least one teaching subject.');
+      chks.forEach((chk, idx) => {
+        const semVal = parseInt(chk.dataset.sem, 10);
+        const code = chk.value;
+        subjects.push({ semester: semVal, subjectCode: code });
+        if (idx === 0) {
+          primarySem = semVal;
+          primarySubj = code;
+        }
+      });
+    }
+
     const u = user(App.me.id);
     if (u) {
       u.name = name;
       u.email = email;
-      if (subjectCode) u.subjectCode = subjectCode;
       App.me.name = name;
       App.me.email = email;
-      if (subjectCode) App.me.subjectCode = subjectCode;
+
+      if (App.isFaculty) {
+        u.subjectCode = primarySubj;
+        u.semester = primarySem;
+        u.subjects = subjects;
+        App.me.subjectCode = primarySubj;
+        App.me.semester = primarySem;
+        App.me.subjects = subjects;
+      }
 
       DB.save();
       API.push();
@@ -5725,17 +5812,21 @@ const Modal={
   },
 
   sendSupervisionRequest(){
-    const facSubj = App.me.subjectCode || '23AID205';
-    const subjObj = SEM3.find(s => s.code === facSubj) || { code: facSubj, name: 'Subject' };
+    const subjs = facultySubjects(App.me);
     Modal.open(`
       <div class="mh">
         ${I.mail(18)} <h3>Send Supervision Request</h3>
         <button class="btn ico sm gho" onclick="Modal.close()">${I.x(15)}</button>
       </div>
       <div class="mb">
-        <div class="banner info" style="margin-bottom:12px">
-          ${I.cap(16)}
-          <div><b>Teaching Subject:</b> <span class="mono">${esc(subjObj.code)}</span> · ${esc(subjObj.name)}</div>
+        <div class="field" style="margin-bottom:12px">
+          <label>Select Teaching Subject for Request</label>
+          <select class="inp" id="req_subject_select" style="width:100%">
+            ${subjs.length ? subjs.map(s => {
+              const detail = SEM3.find(x => x.code === s.subjectCode) || { name: 'Subject' };
+              return `<option value="${s.subjectCode}">Sem ${s.semester} · ${s.subjectCode} — ${esc(detail.name)}</option>`;
+            }).join('') : `<option value="23AID205">Sem 3 · 23AID205 — Introduction to AI and Machine Learning</option>`}
+          </select>
         </div>
         <div class="field">
           <label>Target Group Number or Team Lead Name</label>
@@ -5806,14 +5897,14 @@ const Modal={
     }
 
     const groupId = matchedGroup.id;
-    const facSubj = App.me.subjectCode || '23AID205';
+    const facSubj = document.getElementById('req_subject_select')?.value || App.me.subjectCode || '23AID205';
 
     // Check if already pending locally/in DB
     DB.s.invites = DB.s.invites || [];
-    const alreadyLocal = DB.s.invites.find(i => i.groupId === groupId && i.facultyId === App.me.id && i.status === 'pending');
+    const alreadyLocal = DB.s.invites.find(i => i.groupId === groupId && i.facultyId === App.me.id && i.subjectCode === facSubj && i.status === 'pending');
     if (alreadyLocal) {
       if (btn) { btn.disabled = false; btn.innerHTML = `${I.mail(14)} Send Request`; }
-      return Modal.err('req_err', `You already have a pending request for ${matchedGroup.name}.`);
+      return Modal.err('req_err', `You already have a pending request for ${matchedGroup.name} under ${facSubj}.`);
     }
 
     let sent = false;
