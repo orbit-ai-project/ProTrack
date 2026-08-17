@@ -24,12 +24,14 @@ boards; faculty supervise groups and leave review remarks.
 ---
 
 ## ✨ Key Features
+- **📊 Interactive Gantt Timeline** — Horizontal visual roadmap mapping out tasks, due dates, progress, and assignments against project weeks.
+- **📉 SVG Burndown Analytics Chart** — Dynamic ideal burndown curve vs. actual remaining task tracking.
+- **🔍 Kanban Board Quick Filters** — Real-time task board filtering by Assignee, Topic, Priority, or "Only My Tasks".
+- **🎓 Official Grade PDF Generator** — Institutional report exporter compiling grading rubrics, marks scorecard, and evaluator signatures.
+- **✨ Glassmorphic Layout Theme** — Modern blurred-glass overlays, glows, and dark mode contrast optimizations.
 - **Subject workspaces** — every Semester-3 course is a hub; open one to see its tasks and reports.
-- **Kanban task board** — drag-and-drop across To Do → In Progress → Blocked → In Review → Done, with animated card movement and a confetti celebration on completion.
+- **Confetti Celebration** — Confetti animation upon drag-and-drop completion of tasks.
 - **Roles & permissions** — Team Lead assigns tasks and members; members update their own tasks; Faculty get read-only supervision + remarks.
-- **Faculty adds groups** — teachers choose which teams they supervise.
-- **AI insights & project health** — data-driven risk detection, workload balance, and a health score.
-- **Calendar** of task deadlines and a **notifications** centre.
 - **Real Semester-3 subject list** with Amrita AI&DS course codes (23AID2xx, 23MAT204, …).
 
 ---
