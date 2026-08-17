@@ -677,6 +677,8 @@ tbody tr:hover{background:var(--surface-2)}
 /* completed tasks turn green (+ a one-shot flash the moment they're finished) */
 .tc.is-done{background:var(--green-s);border-color:#CBE7D6}
 .tc.is-done .t{color:#166A47}
+html.dark .tc.is-done{border-color:var(--accent-line)}
+html.dark .tc.is-done .t{color:var(--green)}
 @keyframes doneflash{0%{background:#B7E4C7;border-color:var(--green);box-shadow:0 0 0 3px rgba(30,138,92,.25)}
   100%{background:var(--green-s);border-color:#CBE7D6;box-shadow:var(--sh1)}}
 .tc.flash{animation:doneflash .95s var(--ease)}
