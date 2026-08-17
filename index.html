@@ -1364,17 +1364,16 @@ const Sync={
 /* ============================================================
    selectors
    ============================================================ */
-const user=id=>DB.s.users.find(u=>u.id===id);
-const userByEmail=e=>DB.s.users.find(u=>u.email.toLowerCase()===String(e).trim().toLowerCase());
-const group=id=>DB.s.groups.find(g=>g.id===id);
-const membersOf=gid=>DB.s.users.filter(u=>u.groupId===gid).sort((a,b)=>ROLES.indexOf(a.role)-ROLES.indexOf(b.role));
+const user=id=> { if(!DB.s) DB.load(); return (DB.s&&DB.s.users)?DB.s.users.find(u=>u.id===id):null; };
+const userByEmail=e=> { if(!DB.s) DB.load(); return (DB.s&&DB.s.users)?DB.s.users.find(u=>u.email&&u.email.toLowerCase()===String(e).trim().toLowerCase()):null; };
+const group=id=> { if(!DB.s) DB.load(); return (DB.s&&DB.s.groups)?DB.s.groups.find(g=>g.id===id):null; };
+const membersOf=gid=> { if(!DB.s) DB.load(); return (DB.s&&DB.s.users)?DB.s.users.filter(u=>u.groupId===gid).sort((a,b)=>ROLES.indexOf(a.role)-ROLES.indexOf(b.role)):[]; };
 const facultyOf=gid=>((group(gid)||{}).facultyIds||[]).map(user).filter(Boolean);
-const allFaculty=()=>DB.s.users.filter(u=>u.role==='Faculty');
-/* a faculty account only sees the groups whose team lead added them */
-const myGroups=()=>DB.s.groups.filter(g=>(g.facultyIds||[]).includes(App.me.id));
-const canSeeGroup=gid=>App.isFaculty?(group(gid)&&(group(gid).facultyIds||[]).includes(App.me.id)):App.me.groupId===gid;
-const tasksOf=gid=>DB.s.tasks.filter(t=>t.groupId===gid);
-const tasksFor=uidv=>DB.s.tasks.filter(t=>t.assigneeId===uidv);
+const allFaculty=()=> { if(!DB.s) DB.load(); return (DB.s&&DB.s.users)?DB.s.users.filter(u=>u.role==='Faculty'):[]; };
+const myGroups=()=> { if(!DB.s) DB.load(); return (DB.s&&DB.s.groups)?DB.s.groups.filter(g=>(g.facultyIds||[]).includes(App.me&&App.me.id)):[]; };
+const canSeeGroup=gid=>App.isFaculty?(group(gid)&&(group(gid).facultyIds||[]).includes(App.me&&App.me.id)):(App.me&&App.me.groupId===gid);
+const tasksOf=gid=> { if(!DB.s) DB.load(); return (DB.s&&DB.s.tasks)?DB.s.tasks.filter(t=>t.groupId===gid):[]; };
+const tasksFor=uidv=> { if(!DB.s) DB.load(); return (DB.s&&DB.s.tasks)?DB.s.tasks.filter(t=>t.assigneeId===uidv):[]; };
 /* subjects the team has taken up, and the topics defined under each */
 const groupSubjects=g=>(g&&g.subjects&&g.subjects.length)?g.subjects:(g&&g.courseCode?[g.courseCode]:[]);
 const groupTopics=(g,code)=>((g&&g.topics&&g.topics[code])||[]);
