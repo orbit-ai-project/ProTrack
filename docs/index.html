@@ -39,6 +39,28 @@
   --sh3:0 14px 34px rgba(20,55,68,.16), 0 3px 8px rgba(30,20,60,.08);
   --ease:cubic-bezier(.2,.7,.3,1);
 }
+html.dark {
+  --bg: #0B0F11;
+  --surface: #12181A;
+  --surface-2: #182023;
+  --ink: #EDF3F5;
+  --ink-2: #BDCBD0;
+  --muted: #83979D;
+  --faint: #56696E;
+  --line: #202D31;
+  --line-2: #162023;
+
+  --accent: #4BA2BA;
+  --accent-h: #67B6CC;
+  --accent-soft: #182C31;
+  --accent-line: #25444D;
+
+  --gray: #83979D;    --gray-s: #162023;
+  --blue: #4B90FA;    --blue-s: #142845;
+  --red: #EB5F5A;     --red-s: #451716;
+  --amber: #E29E29;   --amber-s: #402E0F;
+  --green: #4ECFB4;   --green-s: #153C33;
+}
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 html,body{height:100%}
 body{
@@ -726,6 +748,7 @@ tbody tr:hover{background:var(--surface-2)}
 
       <div class="bellwrap"><button class="btn ico sm gho" id="bellBtn" title="Notifications" onclick="event.stopPropagation();Notify.toggle()"></button></div>
       <button class="btn ico sm gho" id="fxBtn" title="Sound &amp; haptics" onclick="FX.toggle()"></button>
+      <button class="btn ico sm gho" id="themeBtn" title="Toggle theme" onclick="Theme.toggle()"></button>
     </div>
     <div class="body" id="view"></div>
   </div>
@@ -739,6 +762,8 @@ tbody tr:hover{background:var(--surface-2)}
    ============================================================ */
 const I = {
   _(d,s){ return `<svg width="${s||16}" height="${s||16}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">${d}</svg>`; },
+  sun:s=>I._(`<circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>`,s),
+  moon:s=>I._(`<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>`,s),
   search:s=>I._(`<circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/>`,s),
   link:s=>I._(`<path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>`,s),
   orbit:s=>I._(`<circle cx="12" cy="12" r="3"/><ellipse cx="12" cy="12" rx="10" ry="4.5" transform="rotate(-30 12 12)"/>`,s),
@@ -844,6 +869,32 @@ const FX = {
   }
 };
 document.addEventListener('pointerdown', e=>{ if(e.target.closest('button,.tc,.gcard,.crow,.fi,tbody tr')) FX.tap('light'); }, true);
+
+const Theme = {
+  active: localStorage.getItem('orbit.theme') || 'light',
+  init() {
+    if (Theme.active === 'dark') {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+    Theme.paint();
+  },
+  paint() {
+    const btn = document.getElementById('themeBtn');
+    if (btn) {
+      btn.innerHTML = Theme.active === 'dark' ? I.sun(15) : I.moon(15);
+      btn.title = Theme.active === 'dark' ? 'Switch to Light Theme' : 'Switch to Dark Theme';
+    }
+  },
+  toggle() {
+    Theme.active = Theme.active === 'dark' ? 'light' : 'dark';
+    localStorage.setItem('orbit.theme', Theme.active);
+    Theme.init();
+    FX.tap('done');
+    toast(Theme.active === 'dark' ? I.moon(15) : I.sun(15), `Switched to ${Theme.active} theme!`);
+  }
+};
 
 /* ============================================================
    constants
@@ -2538,6 +2589,7 @@ const App={
   me:null, tab:'dashboard', openGroup:null, openSubjectCode:null, topicFilter:null,
 
   boot(){
+    Theme.init();
     DB.load(); FB.init(); Sync.init(); FX.paint();
     // Initial check — renders stale state first, then re-renders with fresh server data
     API.check();
@@ -2627,6 +2679,7 @@ const App={
 
   render(){
     if(!App.me) return;
+    Theme.paint();
     App.me=user(App.me.id)||App.me;
     const items=App.navItems();
     document.getElementById('nav').innerHTML =
