@@ -1976,7 +1976,7 @@ const Auth={
       bodyHTML = `
         <div style="padding: 0 20px 24px;">
           <h3 style="font-size:18px;font-weight:600;margin-bottom:12px;color:var(--ink);">Student Team Details</h3>
-          <p style="font-size:13.5px;color:var(--muted);margin-bottom:18px;">Select your semester and configure your project group details.</p>
+          <p style="font-size:13.5px;color:var(--muted);margin-bottom:18px;">Select your semester and configure your group name.</p>
 
           <div class="field" style="margin-bottom:12px;">
             <label style="display:block;margin-bottom:6px;font-weight:600;font-size:12px;color:var(--ink);">Semester</label>
@@ -1985,14 +1985,9 @@ const Auth={
             </select>
           </div>
 
-          <div class="field" style="margin-bottom:12px;">
+          <div class="field" style="margin-bottom:18px;">
             <label style="display:block;margin-bottom:6px;font-weight:600;font-size:12px;color:var(--ink);">Group Name</label>
             <input class="inp" id="g_s_group" placeholder="e.g. Group 04" style="width:100%;"/>
-          </div>
-
-          <div class="field" style="margin-bottom:18px;">
-            <label style="display:block;margin-bottom:6px;font-weight:600;font-size:12px;color:var(--ink);">Project Title</label>
-            <input class="inp" id="g_s_project" placeholder="e.g. Library Management System" style="width:100%;"/>
           </div>
 
           <div id="g_role_err" style="margin-bottom:12px;"></div>
@@ -2043,19 +2038,14 @@ const Auth={
   submitGoogleLead(userId, email, name, providerLabel) {
     const sem = document.getElementById('g_s_sem').value;
     const gname = document.getElementById('g_s_group').value.trim();
-    const proj = document.getElementById('g_s_project').value.trim();
     if (!gname) {
       document.getElementById('g_role_err').innerHTML = `<div class="errmsg">${I.alert(13)}Enter your Group Name</div>`;
-      return;
-    }
-    if (!proj) {
-      document.getElementById('g_role_err').innerHTML = `<div class="errmsg">${I.alert(13)}Enter your Project Title</div>`;
       return;
     }
     Auth.createGoogleUser(userId, email, name, 'Team Lead', providerLabel, {
       semester: parseInt(sem, 10),
       groupName: gname,
-      projectTitle: proj
+      projectTitle: "Course Project"
     });
   },
 
