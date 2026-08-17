@@ -1166,10 +1166,28 @@ const FB = {
     return null;
   },
 
-  loginGoogle() {
+  async loginGoogle() {
     if (FB.active && FB.auth) {
-      FB.auth.signInWithRedirect(new firebase.auth.GoogleAuthProvider());
+      try {
+        const provider = new firebase.auth.GoogleAuthProvider();
+        provider.setCustomParameters({ prompt: 'select_account' });
+        const res = await FB.auth.signInWithPopup(provider);
+        if (res && res.user) {
+          const email = res.user.email || `${res.user.uid}@gmail.com`;
+          Auth.handleOAuthSignInSuccess(email, res.user.displayName, 'Google');
+          return res.user;
+        }
+      } catch(err) {
+        console.warn("Firebase Google popup note:", err.message);
+        if (err.code !== 'auth/popup-closed-by-user') {
+          try {
+            const provider = new firebase.auth.GoogleAuthProvider();
+            FB.auth.signInWithRedirect(provider);
+          } catch(e) {}
+        }
+      }
     }
+    return null;
   },
 
   loginGithub() {
