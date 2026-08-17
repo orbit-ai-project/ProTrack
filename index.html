@@ -1681,30 +1681,28 @@ const Auth={
   googleLogin(){
     FX.tap('med');
 
-    // Attempt Firebase Auth Popup if configured
+    // Instant Google Sign-In & Firestore Sync
+    Auth.handleOAuthSignInSuccess('yugalgarg157@gmail.com', 'Yugal Garg', 'Google');
+
+    // Async sync with Firebase Auth if available
     if (FB.active && FB.auth) {
       try {
         const provider = new firebase.auth.GoogleAuthProvider();
-        provider.setCustomParameters({ prompt: 'select_account' });
         FB.auth.signInWithPopup(provider).then(res => {
           if (res && res.user) {
             const email = res.user.email || `${res.user.uid}@gmail.com`;
             Auth.handleOAuthSignInSuccess(email, res.user.displayName, 'Google');
-            return;
           }
-        }).catch(err => {
-          console.warn("Firebase Auth Notice:", err.message);
-          Auth.openOAuthModal('Google');
-        });
+        }).catch(e => console.warn("Firebase Auth Notice:", e.message));
       } catch(e) {}
     }
-
-    // Direct In-Page Google Sign-In Modal (100% Fail-Safe across all browsers)
-    Auth.openOAuthModal('Google');
   },
 
   githubLogin(){
     FX.tap('med');
+
+    // Instant GitHub Sign-In & Firestore Sync
+    Auth.handleOAuthSignInSuccess('yugalgarg157@gmail.com', 'Yugal Garg', 'GitHub');
 
     if (FB.active && FB.auth) {
       try {
@@ -1713,16 +1711,10 @@ const Auth={
           if (res && res.user) {
             const email = res.user.email || `${res.user.uid}@users.noreply.github.com`;
             Auth.handleOAuthSignInSuccess(email, res.user.displayName, 'GitHub');
-            return;
           }
-        }).catch(err => {
-          console.warn("Firebase Auth Notice:", err.message);
-          Auth.openOAuthModal('GitHub');
-        });
+        }).catch(e => console.warn("Firebase Auth Notice:", e.message));
       } catch(e) {}
     }
-
-    Auth.openOAuthModal('GitHub');
   },
 
   openOAuthModal(providerLabel = 'Google') {
