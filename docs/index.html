@@ -1054,33 +1054,70 @@ const isLocalhost = Boolean(
 const API_URL = isLocalhost ? window.location.origin : '';
 
 const API = {
-  active: isLocalhost,
+  active: true,
   async check() {
-    if (!isLocalhost) return;
-    try {
-      const res = await fetch(API_URL + '/api/sync');
-      if (res.ok) {
-        API.active = true;
-        const data = await res.json();
-        if (data && data.users) {
-          data.invites = data.invites || DB.s?.invites || [];
-          DB.s = data;
-          localStorage.setItem(K_STATE, JSON.stringify(DB.s));
-          if (App.me) App.render();
+    if (isLocalhost) {
+      try {
+        const res = await fetch(API_URL + '/api/sync');
+        if (res.ok) {
+          API.active = true;
+          const data = await res.json();
+          if (data && data.users) {
+            data.invites = data.invites || DB.s?.invites || [];
+            DB.s = data;
+            localStorage.setItem(K_STATE, JSON.stringify(DB.s));
+            if (App.me) App.render();
+          }
         }
+      } catch(e) {}
+    } else {
+      // Production (GitHub Pages): Pull state from Firestore REST API
+      try {
+        const res = await fetch(
+          `https://firestore.googleapis.com/v1/projects/${defaultFirebaseConfig.projectId}/databases/(default)/documents/projectTrack/appState?key=${defaultFirebaseConfig.apiKey}`
+        );
+        if (res.ok) {
+          const doc = await res.json();
+          if (doc && doc.fields && doc.fields.data && doc.fields.data.stringValue) {
+            const remoteState = JSON.parse(doc.fields.data.stringValue);
+            if (remoteState && remoteState.users && remoteState.users.length > 0) {
+              // Merge locally added messages if they are newer
+              const localMsgs = DB.s && DB.s.messages ? DB.s.messages : [];
+              remoteState.messages = remoteState.messages || [];
+              
+              // Simple union of messages by ID to prevent losing locally typed messages
+              const msgMap = new Map();
+              remoteState.messages.forEach(m => msgMap.set(m.id, m));
+              localMsgs.forEach(m => msgMap.set(m.id, m));
+              remoteState.messages = Array.from(msgMap.values()).sort((a,b)=>a.ts-b.ts);
+
+              DB.s = remoteState;
+              localStorage.setItem(K_STATE, JSON.stringify(DB.s));
+              if (App.me) App.render();
+            }
+          }
+        }
+      } catch(e) {
+        console.warn('Firestore REST pull error:', e.message);
       }
-    } catch(e) {}
+    }
   },
   async push() {
-    if (!isLocalhost) return;
-    try {
-      const res = await fetch(API_URL + '/api/sync', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(DB.s)
-      });
-      if (res.ok) API.active = true;
-    } catch (e) {}
+    if (isLocalhost) {
+      try {
+        const res = await fetch(API_URL + '/api/sync', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(DB.s)
+        });
+        if (res.ok) API.active = true;
+      } catch (e) {}
+    } else {
+      // Production (GitHub Pages): Push state to Firestore REST API
+      if (typeof FB !== 'undefined' && FB.restWriteAppState) {
+        await FB.restWriteAppState();
+      }
+    }
   }
 };
 
