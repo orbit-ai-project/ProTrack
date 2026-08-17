@@ -108,15 +108,15 @@ svg{display:block;flex:none}
 .field .hint{font-size:11.5px;color:var(--faint)}
 .inp{
   width:100%;height:34px;padding:0 10px;border-radius:var(--r1);
-  background:#fff;border:1px solid var(--line);transition:border-color .12s,box-shadow .12s;outline:none;
+  background:var(--surface);color:var(--ink);border:1px solid var(--line);transition:border-color .12s,box-shadow .12s;outline:none;
 }
 textarea.inp{height:auto;padding:8px 10px;resize:vertical;min-height:76px;line-height:1.55}
 select.inp{cursor:pointer;appearance:none;padding-right:28px;
   background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'><path d='M3 4.5L6 7.5l3-3' stroke='%237A828E' stroke-width='1.4' fill='none' stroke-linecap='round' stroke-linejoin='round'/></svg>");
   background-repeat:no-repeat;background-position:right 9px center}
-.inp:hover{border-color:#D6DAE1}
-.inp:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(43,103,119,.16)}
-.inp.err{border-color:var(--red);box-shadow:0 0 0 3px rgba(206,74,69,.1)}
+.inp:hover{border-color:var(--muted)}
+.inp:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+.inp.err{border-color:var(--red);box-shadow:0 0 0 3px var(--red-s)}
 .errmsg{font-size:11.5px;color:var(--red);display:flex;align-items:center;gap:4px}
 
 .tag{display:inline-flex;align-items:center;gap:5px;height:20px;padding:0 7px;border-radius:5px;font-size:11.5px;font-weight:500;letter-spacing:.005em}
@@ -1107,7 +1107,7 @@ function seed(){
    ['g2','u-g23','sent <b>Verify order-status edge cases</b> for review',2.2]
   ].forEach(([g,who,text,h],i)=>A.push({id:'a'+i,groupId:g,userId:who,text,ts:t-h*36e5}));
 
-  return {users:U,groups:G,tasks:T,activity:A,remarks:[],invites:[]};
+  return {users:U,groups:G,tasks:T,activity:A,remarks:[],invites:[],peerRatings:[],grades:[]};
 }
 
 const isLocalhost = Boolean(
@@ -1514,7 +1514,13 @@ const FB = {
 const DB={
   s:null,
   load(){ try{ DB.s=JSON.parse(localStorage.getItem(K_STATE)); }catch(e){ DB.s=null; }
-    if(!DB.s||!DB.s.users){ DB.s=seed(); localStorage.setItem(K_STATE,JSON.stringify(DB.s)); } return DB.s; },
+    if(!DB.s||!DB.s.users){ DB.s=seed(); localStorage.setItem(K_STATE,JSON.stringify(DB.s)); }
+    if(DB.s) {
+      if(!DB.s.peerRatings) DB.s.peerRatings = [];
+      if(!DB.s.grades) DB.s.grades = [];
+    }
+    return DB.s;
+  },
   save(bc=true){ 
     localStorage.setItem(K_STATE,JSON.stringify(DB.s)); 
     if (API.active) API.push(); 
@@ -3012,6 +3018,7 @@ const Page={
       <div class="sp"></div>
       ${subjectSwitcher}
       <button class="btn pri" onclick="Modal.sendSupervisionRequest()">${I.mail(15)} Request Group by Number</button>
+      <button class="btn" style="margin-left:8px;" onclick="Export.gradesCSV()">${I.cap(15)} Export Grades CSV</button>
     </div>
 
     <div class="banner info" style="margin-bottom:16px">
@@ -3190,13 +3197,15 @@ const Page={
     const ts=tasksOf(g.id), p=pctOf(ts), ms=membersOf(g.id);
     const blocked=ts.filter(t=>t.status==='blocked').length;
     const overdue=ts.filter(t=>t.status!=='done'&&t.due<now()).length;
-    const ev=g.evaluation;
+    
+    DB.s.grades = DB.s.grades || [];
+    const score = DB.s.grades.find(gr => gr.groupId === g.id);
     return `<div class="gcard" onclick="App.openG('${g.id}')">
       <div style="display:flex;gap:12px;align-items:flex-start">
         <div style="flex:1;min-width:0">
           <div style="display:flex;align-items:center;gap:8px">
             <div style="font-weight:600;font-size:14px">${esc(g.name)}</div>
-            ${ev?`<span class="tag" style="background:var(--green-s);color:var(--green);font-weight:700">Grade: ${esc(ev.grade)} (${ev.score}/40)</span>`:''}
+            ${score?`<span class="tag" style="background:var(--green-s);color:var(--green);font-weight:700">Grade: ${esc(score.grade)} (${score.total}/100)</span>`:''}
           </div>
           <div style="color:var(--muted);font-size:12.5px;margin-top:1px">${esc(g.project)}</div>
           <div style="display:flex;gap:5px;margin-top:9px;flex-wrap:wrap">
@@ -3239,6 +3248,7 @@ const Page={
           ${[1,2,3,4,5,6,7,8].map(s => `<option value="${s}" ${selSem===String(s)?'selected':''}>Semester ${s}</option>`).join('')}
         </select>
         ${App.isFaculty ? `<button class="btn pri sm" style="margin-left:8px" onclick="Modal.sendSupervisionRequest()">${I.mail(14)} Add Group</button>` : ''}
+        ${App.isFaculty ? `<button class="btn sm" style="margin-left:8px" onclick="Export.gradesCSV()">${I.cap(14)} Export Grades Sheet</button>` : ''}
       </div>
       ${filteredGs.length ? `
         <div class="grid3">${filteredGs.map(g=>Page.groupCard(g,on)).join('')}</div>
@@ -3475,6 +3485,8 @@ const Page={
         }).join('')}
       </div>
     </div>
+
+    ${renderGroupEvaluationScorecard(gid)}
 
     <div class="card" style="margin-bottom:16px">
       <div class="ch"><h3>Project guides</h3><div class="sp"></div>
@@ -3894,6 +3906,7 @@ const Page={
     </div>
 
     ${Page.projectSubjects(g)}
+    ${renderGroupEvaluationScorecard(g.id)}
 
     <div class="split">
       <div style="display:grid;gap:16px">
@@ -5384,6 +5397,48 @@ const Export = {
     toast(I.check(15), 'Faculty Analytics Report exported successfully!');
   },
 
+  gradesCSV() {
+    const gs = myGroups();
+    if (!gs.length) return toast(I.alert(15), 'No groups to export grades');
+    DB.s.grades = DB.s.grades || [];
+
+    const headers = ['Group Name', 'Project', 'Literature Survey (10)', 'System Design (20)', 'Implementation (40)', 'Presentation (30)', 'Total Marks (100)', 'Grade', 'Remarks / Comments', 'Graded By'];
+    const rows = gs.map(g => {
+      const score = DB.s.grades.find(gr => gr.groupId === g.id) || {
+        rubrics: { literature: '—', design: '—', quality: '—', presentation: '—' },
+        total: '—',
+        grade: '—',
+        comments: 'Pending Review',
+        gradedByName: '—'
+      };
+      return [
+        `"${(g.name || '').replace(/"/g, '""')}"`,
+        `"${(g.project || '').replace(/"/g, '""')}"`,
+        `"${score.rubrics.literature}"`,
+        `"${score.rubrics.design}"`,
+        `"${score.rubrics.quality}"`,
+        `"${score.rubrics.presentation}"`,
+        `"${score.total}"`,
+        `"${score.grade}"`,
+        `"${(score.comments || '').replace(/"/g, '""')}"`,
+        `"${(score.gradedByName || '').replace(/"/g, '""')}"`
+      ];
+    });
+
+    const csvContent = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', `Faculty_Student_Grades_Report_${new Date().toISOString().slice(0, 10)}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    FX.tap('done');
+    toast(I.check(15), 'Student grades report exported successfully!');
+  },
+
   remarksCSV(gid) {
     const gs = myGroups();
     if (!gs.length) return toast(I.alert(15), 'No groups found to export remarks');
@@ -5674,6 +5729,80 @@ function renderPeerEvaluationsCard(gid) {
               </div>
             `;
           }).join('')}
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function renderGroupEvaluationScorecard(gid) {
+  DB.s.grades = DB.s.grades || [];
+  const score = DB.s.grades.find(gr => gr.groupId === gid);
+  
+  if (!score) {
+    return `
+      <div class="card" style="margin-bottom:16px; padding:18px; border:1.5px dashed var(--line); text-align:center;">
+        <div style="font-size:24px; margin-bottom:8px;">🎓</div>
+        <div style="font-weight:600; font-size:13px; color:var(--muted);">Academic Rubric Evaluation Pending</div>
+        <p style="font-size:11.5px; color:var(--faint); margin-top:2px;">
+          ${App.isFaculty ? 'Evaluate and assign grades for this group below.' : 'Your project supervisor / guide has not posted your grade scorecard yet.'}
+        </p>
+        ${App.isFaculty ? `<button class="btn sm pri" style="margin-top:10px;" onclick="Modal.evaluateGroup('${gid}')">${I.cap(14)} Grade &amp; Evaluate Group</button>` : ''}
+      </div>
+    `;
+  }
+
+  return `
+    <div class="card" style="margin-bottom:16px;">
+      <div class="ch">
+        <div style="display:flex;align-items:center;gap:8px">
+          <span style="font-size:16px">🎓</span> <h3>Project Evaluation &amp; Grade Scorecard</h3>
+        </div>
+        <div class="sp"></div>
+        <span class="tag green" style="font-weight:800; font-size:12.5px;">Grade: ${esc(score.grade)}</span>
+        ${App.isFaculty ? `<button class="btn sm" style="margin-left:8px;" onclick="Modal.evaluateGroup('${gid}')">${I.edit(13)} Edit Evaluation</button>` : ''}
+      </div>
+      <div class="cb" style="display:grid; grid-template-columns: 1.2fr 1fr; gap:16px; align-items:start;">
+        <div>
+          <table style="width:100%; border-collapse:collapse; font-size:12px;">
+            <thead>
+              <tr style="border-bottom:1px solid var(--line); text-align:left;">
+                <th style="padding:6px 0; color:var(--muted)">Evaluation Component</th>
+                <th style="padding:6px 0; text-align:right; color:var(--muted)">Marks</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr style="border-bottom:1px dashed var(--line-2);">
+                <td style="padding:7px 0; font-weight:500;">Topic &amp; Literature Survey</td>
+                <td style="padding:7px 0; text-align:right; font-weight:700;" class="mono">${score.rubrics.literature} / 10</td>
+              </tr>
+              <tr style="border-bottom:1px dashed var(--line-2);">
+                <td style="padding:7px 0; font-weight:500;">System Design &amp; Architecture</td>
+                <td style="padding:7px 0; text-align:right; font-weight:700;" class="mono">${score.rubrics.design} / 20</td>
+              </tr>
+              <tr style="border-bottom:1px dashed var(--line-2);">
+                <td style="padding:7px 0; font-weight:500;">Implementation &amp; Code Quality</td>
+                <td style="padding:7px 0; text-align:right; font-weight:700;" class="mono">${score.rubrics.quality} / 40</td>
+              </tr>
+              <tr style="border-bottom:1px dashed var(--line-2);">
+                <td style="padding:7px 0; font-weight:500;">Final Presentation &amp; Viva</td>
+                <td style="padding:7px 0; text-align:right; font-weight:700;" class="mono">${score.rubrics.presentation} / 30</td>
+              </tr>
+              <tr style="border-top:1px solid var(--line); font-weight:700; background:var(--surface-2);">
+                <td style="padding:8px; border-radius: 4px 0 0 4px;">Total Score</td>
+                <td style="padding:8px; text-align:right; border-radius: 0 4px 4px 0;" class="mono">${score.total} / 100</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div style="background:var(--surface-2); padding:12px; border-radius:var(--r2); border:1px solid var(--line); height:100%;">
+          <div style="font-weight:700; font-size:11.5px; color:var(--muted); text-transform:uppercase; margin-bottom:6px;">Faculty Review &amp; Remarks</div>
+          <div style="font-size:12.5px; line-height:1.55; color:var(--ink-2); font-style:italic;">
+            "${esc(score.comments)}"
+          </div>
+          <div style="margin-top:12px; font-size:11px; color:var(--faint); text-align:right;">
+            Evaluated by <b>${esc(score.gradedByName)}</b>
+          </div>
         </div>
       </div>
     </div>
@@ -6163,6 +6292,129 @@ const Modal={
     FX.tap('done');
     Modal.close();
     toast(I.check(15), "Peer evaluation submitted successfully!");
+    App.render();
+  },
+
+  evaluateGroup(gid){
+    const g = group(gid); if(!g) return;
+    DB.s.grades = DB.s.grades || [];
+    const existing = DB.s.grades.find(gr => gr.groupId === gid) || {
+      rubrics: { literature: 0, design: 0, quality: 0, presentation: 0 },
+      comments: ''
+    };
+
+    Modal.open(`
+      <div class="mh">
+        <h3>Evaluate Group: ${esc(g.name)}</h3>
+        <button class="btn ico sm gho" onclick="Modal.close()">${I.x(15)}</button>
+      </div>
+      <div class="mb">
+        <p style="font-size:12.5px;color:var(--muted);margin-bottom:14px">Assign marks to the group based on standard academic rubrics (Total: 100 marks).</p>
+        
+        <div class="field" style="margin-bottom:10px">
+          <label>Topic Selection &amp; Literature Survey (Max: 10 Marks)</label>
+          <input class="inp" type="number" id="grade_lit" min="0" max="10" value="${existing.rubrics.literature}" oninput="Modal.calcTotalGrade()"/>
+        </div>
+        
+        <div class="field" style="margin-bottom:10px">
+          <label>System Design &amp; Architecture (Max: 20 Marks)</label>
+          <input class="inp" type="number" id="grade_design" min="0" max="20" value="${existing.rubrics.design}" oninput="Modal.calcTotalGrade()"/>
+        </div>
+        
+        <div class="field" style="margin-bottom:10px">
+          <label>Implementation &amp; Code Quality (Max: 40 Marks)</label>
+          <input class="inp" type="number" id="grade_quality" min="0" max="40" value="${existing.rubrics.quality}" oninput="Modal.calcTotalGrade()"/>
+        </div>
+        
+        <div class="field" style="margin-bottom:10px">
+          <label>Final Presentation &amp; Viva-Voce (Max: 30 Marks)</label>
+          <input class="inp" type="number" id="grade_presentation" min="0" max="30" value="${existing.rubrics.presentation}" oninput="Modal.calcTotalGrade()"/>
+        </div>
+        
+        <div style="display:flex; justify-content:space-between; align-items:center; background:var(--surface-2); padding:10px; border-radius:var(--r1); border:1px solid var(--line); margin:14px 0;">
+          <div style="font-weight:700; font-size:13.5px; color:var(--ink)">Total Score: <span id="grade_total_display">0</span> / 100</div>
+          <span class="tag accent" id="grade_badge_display" style="font-weight:800; font-size:12px;">Grade: —</span>
+        </div>
+
+        <div class="field">
+          <label>Evaluation Comments / Remarks</label>
+          <textarea class="inp" id="grade_comments" placeholder="Write feedback comments for the group..." style="height:60px;">${esc(existing.comments)}</textarea>
+        </div>
+        
+        <div id="grade_err"></div>
+      </div>
+      <div class="mf">
+        <div class="sp"></div>
+        <button class="btn gho" onclick="Modal.close()">Cancel</button>
+        <button class="btn pri" onclick="Modal.submitGroupEvaluation('${gid}')">Save Evaluation</button>
+      </div>
+    `);
+    Modal.calcTotalGrade();
+  },
+
+  calcTotalGrade() {
+    const lit = Math.max(0, Math.min(10, parseInt(document.getElementById('grade_lit').value || 0, 10)));
+    const des = Math.max(0, Math.min(20, parseInt(document.getElementById('grade_design').value || 0, 10)));
+    const qual = Math.max(0, Math.min(40, parseInt(document.getElementById('grade_quality').value || 0, 10)));
+    const pres = Math.max(0, Math.min(30, parseInt(document.getElementById('grade_presentation').value || 0, 10)));
+    
+    const total = lit + des + qual + pres;
+    document.getElementById('grade_total_display').innerText = total;
+    
+    let grade = 'F';
+    if (total >= 90) grade = 'A+';
+    else if (total >= 80) grade = 'A';
+    else if (total >= 70) grade = 'B';
+    else if (total >= 55) grade = 'C';
+    else if (total >= 40) grade = 'D';
+    
+    document.getElementById('grade_badge_display').innerText = 'Grade: ' + grade;
+  },
+
+  submitGroupEvaluation(gid){
+    const lit = Math.max(0, Math.min(10, parseInt(document.getElementById('grade_lit').value || 0, 10)));
+    const des = Math.max(0, Math.min(20, parseInt(document.getElementById('grade_design').value || 0, 10)));
+    const qual = Math.max(0, Math.min(40, parseInt(document.getElementById('grade_quality').value || 0, 10)));
+    const pres = Math.max(0, Math.min(30, parseInt(document.getElementById('grade_presentation').value || 0, 10)));
+    const comments = document.getElementById('grade_comments').value.trim();
+    
+    if(!comments) return Modal.err('grade_err', 'Please write some evaluation feedback comments.');
+
+    DB.s.grades = DB.s.grades || [];
+    const idx = DB.s.grades.findIndex(gr => gr.groupId === gid);
+    
+    const total = lit + des + qual + pres;
+    let grade = 'F';
+    if (total >= 90) grade = 'A+';
+    else if (total >= 80) grade = 'A';
+    else if (total >= 70) grade = 'B';
+    else if (total >= 55) grade = 'C';
+    else if (total >= 40) grade = 'D';
+
+    const scoreData = {
+      id: 'gr-' + uid().slice(0, 8),
+      groupId: gid,
+      gradedById: App.me.id,
+      gradedByName: App.me.name,
+      rubrics: { literature: lit, design: des, quality: qual, presentation: pres },
+      total,
+      grade,
+      comments,
+      updatedAt: now()
+    };
+
+    if (idx !== -1) {
+      DB.s.grades[idx] = scoreData;
+    } else {
+      DB.s.grades.push(scoreData);
+    }
+
+    log(gid, `graded group project with total score: <b>${total} (${grade})</b>`);
+    DB.save();
+    API.push();
+    FX.tap('done');
+    Modal.close();
+    toast(I.check(15), "Group evaluated successfully!");
     App.render();
   },
 
