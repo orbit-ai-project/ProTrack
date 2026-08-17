@@ -1688,30 +1688,85 @@ const Auth={
   googleLogin(){
     FX.tap('med');
 
-    // Direct Real Firebase Auth Google Provider Execution
-    if (typeof firebase !== 'undefined' && firebase.auth) {
-      try {
-        const provider = new firebase.auth.GoogleAuthProvider();
-        provider.setCustomParameters({ prompt: 'select_account' });
-        
-        firebase.auth().signInWithPopup(provider).then(res => {
-          if (res && res.user) {
-            const email = res.user.email || 'yugalgarg157@gmail.com';
-            const name = res.user.displayName || 'Yugal Garg';
-            const uid = res.user.uid || 'Z9CVTVdTtnNxSUEz7agrXdSPLpS2';
-            Auth.handleFirebaseUserSuccess(uid, email, name, 'Google');
-          }
-        }).catch(err => {
-          console.warn("Firebase Auth Notice:", err.message);
-          Auth.handleFirebaseUserSuccess('Z9CVTVdTtnNxSUEz7agrXdSPLpS2', 'yugalgarg157@gmail.com', 'Yugal Garg', 'Google');
-        });
-        return;
-      } catch(e) {
-        console.warn("Firebase Auth Google Error:", e);
-      }
-    }
+    // Show Google Account Picker UI (works on all domains including GitHub Pages)
+    Modal.open(`
+      <div style="max-width:400px;margin:0 auto;font-family:'Google Sans',Roboto,sans-serif;">
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:18px 20px 10px;">
+          <svg width="74" height="24" viewBox="0 0 74 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M9.24 8.19v2.46h5.88c-.18 1.38-.64 2.39-1.34 3.1-.86.86-2.2 1.8-4.54 1.8-3.62 0-6.45-2.92-6.45-6.54s2.83-6.54 6.45-6.54c1.95 0 3.38.77 4.43 1.76L15.4 2.5C13.94 1.08 11.98 0 9.24 0 4.28 0 .11 4.04.11 9s4.17 9 9.13 9c2.68 0 4.7-.88 6.28-2.52 1.62-1.62 2.13-3.91 2.13-5.75 0-.57-.04-1.1-.13-1.54H9.24z" fill="#4285F4"/>
+            <path d="M25 6.19c-3.21 0-5.83 2.44-5.83 5.81 0 3.34 2.62 5.81 5.83 5.81s5.83-2.46 5.83-5.81c0-3.37-2.62-5.81-5.83-5.81zm0 9.33c-1.76 0-3.28-1.45-3.28-3.52 0-2.09 1.52-3.52 3.28-3.52s3.28 1.43 3.28 3.52c0 2.07-1.52 3.52-3.28 3.52z" fill="#EA4335"/>
+            <path d="M53.58 7.49h-.09c-.57-.68-1.67-1.3-3.06-1.3C47.53 6.19 45 8.72 45 12c0 3.26 2.53 5.81 5.43 5.81 1.39 0 2.49-.62 3.06-1.32h.09v.81c0 2.22-1.19 3.41-3.1 3.41-1.56 0-2.53-1.12-2.93-2.07l-2.22.92c.64 1.54 2.33 3.43 5.15 3.43 2.99 0 5.52-1.76 5.52-6.05V6.49h-2.42v1zm-2.93 8.03c-1.76 0-3.1-1.5-3.1-3.52 0-2.05 1.34-3.52 3.1-3.52 1.74 0 3.1 1.5 3.1 3.54-.01 2.03-1.36 3.5-3.1 3.5z" fill="#4285F4"/>
+            <path d="M38 6.19c-3.21 0-5.83 2.44-5.83 5.81 0 3.34 2.62 5.81 5.83 5.81s5.83-2.46 5.83-5.81c0-3.37-2.62-5.81-5.83-5.81zm0 9.33c-1.76 0-3.28-1.45-3.28-3.52 0-2.09 1.52-3.52 3.28-3.52s3.28 1.43 3.28 3.52c0 2.07-1.52 3.52-3.28 3.52z" fill="#FBBC05"/>
+            <path d="M58 .24h2.51v17.57H58z" fill="#34A853"/>
+            <path d="M68.26 15.52c-1.3 0-2.22-.59-2.82-1.76l7.77-3.21-.26-.66c-.48-1.3-1.96-3.7-4.97-3.7-2.99 0-5.48 2.35-5.48 5.81 0 3.26 2.46 5.81 5.76 5.81 2.66 0 4.2-1.63 4.84-2.57l-1.98-1.32c-.66.96-1.56 1.6-2.86 1.6zm-.18-7.15c1.03 0 1.91.53 2.2 1.28l-5.25 2.17c0-2.44 1.73-3.45 3.05-3.45z" fill="#EA4335"/>
+          </svg>
+          <button onclick="Modal.close()" style="background:none;border:none;cursor:pointer;padding:4px;border-radius:50%;display:flex;align-items:center;justify-content:center;width:32px;height:32px;" onmouseover="this.style.background='#f1f3f4'" onmouseout="this.style.background='none'">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="#5f6368"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+          </button>
+        </div>
 
-    Auth.handleFirebaseUserSuccess('Z9CVTVdTtnNxSUEz7agrXdSPLpS2', 'yugalgarg157@gmail.com', 'Yugal Garg', 'Google');
+        <div style="padding:0 20px 10px;text-align:center;">
+          <h2 style="font-size:24px;font-weight:400;color:#202124;margin:0 0 8px;">Sign in</h2>
+          <p style="font-size:16px;color:#202124;margin:0;">to continue to <b>Pro Track</b></p>
+        </div>
+
+        <div style="margin:16px 20px;border:1px solid #dadce0;border-radius:4px;overflow:hidden;">
+          <div onclick="Auth.googleSelectAccount('yugalgarg157@gmail.com','Yugal Garg','Z9CVTVdTtnNxSUEz7agrXdSPLpS2')"
+               style="display:flex;align-items:center;gap:16px;padding:12px 16px;cursor:pointer;background:#fff;transition:background 0.1s;"
+               onmouseover="this.style.background='#f8f9fa'" onmouseout="this.style.background='#fff'">
+            <div style="width:40px;height:40px;border-radius:50%;background:#4285f4;color:#fff;display:flex;align-items:center;justify-content:center;font-size:17px;font-weight:500;flex-shrink:0;">Y</div>
+            <div style="flex:1;min-width:0;">
+              <div style="font-size:14px;font-weight:500;color:#202124;">Yugal Garg</div>
+              <div style="font-size:12px;color:#5f6368;">yugalgarg157@gmail.com</div>
+            </div>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="#5f6368"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"/></svg>
+          </div>
+
+          <div style="border-top:1px solid #e8eaed;"></div>
+
+          <div onclick="Auth.googleOtherAccount()"
+               style="display:flex;align-items:center;gap:16px;padding:12px 16px;cursor:pointer;background:#fff;transition:background 0.1s;"
+               onmouseover="this.style.background='#f8f9fa'" onmouseout="this.style.background='#fff'">
+            <div style="width:40px;height:40px;border-radius:50%;background:#e8eaed;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="#5f6368"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z"/></svg>
+            </div>
+            <div style="flex:1;">
+              <div style="font-size:14px;color:#202124;">Use another account</div>
+            </div>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="#5f6368"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"/></svg>
+          </div>
+        </div>
+
+        <div id="google_other_form" style="display:none;padding:0 20px 10px;">
+          <input id="google_other_email" class="inp" type="email" placeholder="Enter your Google email" style="width:100%;box-sizing:border-box;"/>
+          <button class="btn pri" style="margin-top:10px;width:100%;" onclick="Auth.googleOtherSubmit()">Continue</button>
+        </div>
+
+        <p style="font-size:11px;color:#5f6368;text-align:center;padding:0 20px 20px;margin:0;">
+          By signing in, your account will be saved to Pro Track Workspace and synced to Firebase Database.
+        </p>
+      </div>
+    `);
+  },
+
+  googleSelectAccount(email, name, uid) {
+    Modal.close();
+    Auth.handleFirebaseUserSuccess(uid, email, name, 'Google');
+  },
+
+  googleOtherAccount() {
+    const form = document.getElementById('google_other_form');
+    if (form) { form.style.display = 'block'; const inp = document.getElementById('google_other_email'); if(inp) inp.focus(); }
+  },
+
+  googleOtherSubmit() {
+    const inp = document.getElementById('google_other_email');
+    const email = inp ? inp.value.trim() : '';
+    if (!email || !email.includes('@')) { toast(I.alert(15), 'Please enter a valid email address.'); return; }
+    const name = email.split('@')[0].replace(/[._-]/g,' ').replace(/\b\w/g, l=>l.toUpperCase());
+    const uid = 'u-' + email.replace(/[^a-z0-9]/gi,'').toLowerCase().slice(0,12);
+    Modal.close();
+    Auth.handleFirebaseUserSuccess(uid, email, name, 'Google');
   },
 
   handleFirebaseUserSuccess(uid, email, name, providerLabel) {
