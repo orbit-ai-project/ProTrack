@@ -4944,7 +4944,8 @@ const AI={
     // Get curriculum subjects for group's semester
     const sem = g.semester || 3;
     const courses = CURRICULUM[sem] || CURRICULUM[3];
-    const subjCode = g.courseCode || (courses[0] ? courses[0].code : '23AID205');
+    const gsubs = groupSubjects(g);
+    const subjCode = gsubs[0] || g.courseCode || (courses[0] ? courses[0].code : '23AID205');
     const course = courses.find(c => c.code === subjCode) || { name: 'Project Track' };
 
     const taskTemplates = {
@@ -4981,6 +4982,18 @@ const AI={
 
     const suggestions = taskTemplates[subjCode] || defaultTasks;
 
+    const subjectSelector = gsubs.length > 1 ? `
+      <div class="field" style="margin-bottom:12px">
+        <label style="font-weight:700">Choose Project Subject for Task Suggestions</label>
+        <select class="inp" onchange="AI.onSprintPlannerSubjectChange(this.value, '${g.id}')" style="width:100%">
+          ${gsubs.map(code => {
+            const c = SEM3.find(x => x.code === code) || { name: 'Subject' };
+            return `<option value="${code}" ${code === subjCode ? 'selected' : ''}>${code} — ${esc(c.name)}</option>`;
+          }).join('')}
+        </select>
+      </div>
+    ` : '';
+
     Modal.open(`
       <div class="mh">
         <div style="display:flex;align-items:center;gap:8px">
@@ -4990,7 +5003,9 @@ const AI={
         <button class="btn ico sm gho" onclick="Modal.close()">${I.x(15)}</button>
       </div>
       <div class="mb">
-        <div class="banner info" style="margin-bottom:14px">
+        ${subjectSelector}
+        
+        <div class="banner info" id="sprint_planner_banner" style="margin-bottom:14px">
           ${I.spark(16)}
           <div><b>AI Suggestion Scope:</b> Automatically targeting course <b>${esc(subjCode)}</b> (${esc(course.name)}) for Semester ${sem}.</div>
         </div>
@@ -5016,9 +5031,78 @@ const AI={
       <div class="mf">
         <button class="btn gho" onclick="Modal.close()">Cancel</button>
         <div class="sp"></div>
-        <button class="btn pri" onclick="AI.importPlannerTasks('${subjCode}')">Add Tasks to Board</button>
+        <button class="btn pri" id="ai_import_btn" onclick="AI.importPlannerTasks('${subjCode}')">Add Tasks to Board</button>
       </div>
     `);
+  },
+
+  onSprintPlannerSubjectChange(code, gid) {
+    const g = group(gid);
+    if (!g) return;
+    const sem = g.semester || 3;
+    const courses = CURRICULUM[sem] || CURRICULUM[3];
+    const course = courses.find(c => c.code === code) || { name: 'Project Track' };
+
+    const taskTemplates = {
+      '23AID205': [
+        { title: 'Design dataset preprocessing pipeline', desc: 'Clean missing values and encode categorical features.', prio: 'high', topic: 'Dataset Prep' },
+        { title: 'Implement train-test split & validations', desc: 'Create stratified splits for robust ML validation.', prio: 'medium', topic: 'Dataset Prep' },
+        { title: 'Train baseline machine learning models', desc: 'Run Random Forest and Logistic Regression benchmarks.', prio: 'high', topic: 'Model Training' },
+        { title: 'Evaluate confusion matrix & metrics', desc: 'Compute accuracy, precision, recall, and ROC-AUC curves.', prio: 'medium', topic: 'Evaluation' },
+        { title: 'Hyper-parameter optimization (GridSearch)', desc: 'Find optimal parameters using Cross-Validation.', prio: 'low', topic: 'Optimization' },
+        { title: 'Wrap trained model in Flask/FastAPI', desc: 'Create endpoint for inference query processing.', prio: 'high', topic: 'Deployment' }
+      ],
+      '23AID214': [
+        { title: 'Design Entity-Relationship (ER) diagram', desc: 'Establish tables, keys, and relational constraints.', prio: 'high', topic: 'Schema Design' },
+        { title: 'Write DDL schema generation scripts', desc: 'Create tables, indexes, and initial reference tables.', prio: 'high', topic: 'Database Setup' },
+        { title: 'Implement database connection pooling', desc: 'Configure optimal connection pools for concurrent clients.', prio: 'medium', topic: 'Optimization' },
+        { title: 'Optimize query paths with Indexes', desc: 'Profile slow queries and add multi-column indexes.', prio: 'medium', topic: 'Optimization' },
+        { title: 'Create automated backup script', desc: 'Set up cron job to perform nightly database dumps.', prio: 'low', topic: 'DevOps' }
+      ],
+      '23AID211': [
+        { title: 'Build custom CNN/RNN architecture', desc: 'Implement network layers using PyTorch/TensorFlow.', prio: 'high', topic: 'Model Design' },
+        { title: 'Setup DataLoader with augmentations', desc: 'Configure image/text transformations for training.', prio: 'medium', topic: 'Data Pipeline' },
+        { title: 'Train model with Early Stopping', desc: 'Prevent overfitting by saving weights at minimum loss.', prio: 'high', topic: 'Model Training' },
+        { title: 'Export trained model to ONNX format', desc: 'Prepare deep learning model for cross-platform inference.', prio: 'low', topic: 'Deployment' }
+      ]
+    };
+
+    const defaultTasks = [
+      { title: 'Draft technical design document (TDD)', desc: 'Document architecture, API contracts, and user flows.', prio: 'high', topic: 'Planning' },
+      { title: 'Set up local developer environment', desc: 'Configure package.json, gitignore, and Docker container.', prio: 'high', topic: 'Setup' },
+      { title: 'Implement user login & auth UI', desc: 'Build responsive signup/signin pages with validations.', prio: 'medium', topic: 'Frontend' },
+      { title: 'Configure CI/CD build actions pipeline', desc: 'Deploy preview builds automatically on pull requests.', prio: 'low', topic: 'DevOps' },
+      { title: 'Perform accessibility & auditing check', desc: 'Audit performance and secure against security bugs.', prio: 'medium', topic: 'Testing' }
+    ];
+
+    const suggestions = taskTemplates[code] || defaultTasks;
+
+    const banner = document.getElementById('sprint_planner_banner');
+    if (banner) {
+      banner.innerHTML = `${I.spark(16)}<div><b>AI Suggestion Scope:</b> Automatically targeting course <b>${esc(code)}</b> (${esc(course.name)}) for Semester ${sem}.</div>`;
+    }
+
+    const listDiv = document.getElementById('ai_suggested_list');
+    if (listDiv) {
+      listDiv.innerHTML = suggestions.map((t, idx) => `
+        <div style="display:flex;gap:11px;padding:12px;border:1px solid var(--line);border-radius:var(--r2);background:var(--surface)">
+          <input type="checkbox" checked id="ai_chk_${idx}" style="width:16px;height:16px;margin-top:2px;cursor:pointer;" />
+          <div style="flex:1;min-width:0;">
+            <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:4px;">
+              <span style="font-weight:600;font-size:13px;color:var(--ink);">${esc(t.title)}</span>
+              <span class="tag" style="background:var(--accent-soft);color:var(--accent);">${esc(t.topic)}</span>
+              <span class="tag" style="background:${t.prio==='high'?'var(--red-s)':(t.prio==='medium'?'var(--amber-s)':'var(--gray-s)')};color:${t.prio==='high'?'var(--red)':(t.prio==='medium'?'var(--amber)':'var(--muted)')};text-transform:capitalize">${t.prio}</span>
+            </div>
+            <div style="font-size:12px;color:var(--muted);line-height:1.4">${esc(t.desc)}</div>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    const impBtn = document.getElementById('ai_import_btn');
+    if (impBtn) {
+      impBtn.setAttribute('onclick', `AI.importPlannerTasks('${code}')`);
+    }
   },
 
   importPlannerTasks(subjCode) {
