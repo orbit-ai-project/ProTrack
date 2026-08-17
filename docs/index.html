@@ -1178,13 +1178,7 @@ const FB = {
           return res.user;
         }
       } catch(err) {
-        console.warn("Firebase Google popup note:", err.message);
-        if (err.code !== 'auth/popup-closed-by-user') {
-          try {
-            const provider = new firebase.auth.GoogleAuthProvider();
-            FB.auth.signInWithRedirect(provider);
-          } catch(e) {}
-        }
+        console.warn("Firebase Auth Note:", err.message);
       }
     }
     return null;
@@ -1687,14 +1681,22 @@ const Auth={
   async googleLogin(){
     FX.tap('med');
 
+    // Launch Google Account Selector Popup synchronously on click so popup blockers never interfere
+    Auth.launchGooglePopup();
+
+    // If Firebase Auth is active, attempt background authentication
     if (FB.active && FB.auth) {
       try {
-        const user = await FB.loginGoogle();
-        if (user) return;
+        const provider = new firebase.auth.GoogleAuthProvider();
+        provider.setCustomParameters({ prompt: 'select_account' });
+        FB.auth.signInWithPopup(provider).then(res => {
+          if (res && res.user) {
+            const email = res.user.email || `${res.user.uid}@gmail.com`;
+            Auth.handleOAuthSignInSuccess(email, res.user.displayName, 'Google');
+          }
+        }).catch(e => console.warn("Firebase Auth Notice:", e.message));
       } catch(e) {}
     }
-
-    Auth.launchGooglePopup();
   },
 
   launchGooglePopup(){
