@@ -1684,17 +1684,20 @@ const Auth={
       <div class="switcher">Starting a new project team? <button onclick="Auth.go('choose')">Create an account</button></div>`;
   },
 
-  googleLogin(){
+  async googleLogin(){
     FX.tap('med');
 
-    // First try Firebase Auth if active with user credentials
     if (FB.active && FB.auth) {
       try {
-        FB.loginGoogle();
+        const user = await FB.loginGoogle();
+        if (user) return;
       } catch(e) {}
     }
 
-    // Open Real Google Accounts Sign In Popup Window Synchronously on Click
+    Auth.launchGooglePopup();
+  },
+
+  launchGooglePopup(){
     const width = 500, height = 620;
     const left = Math.max(0, Math.floor((window.screen.width - width) / 2));
     const top = Math.max(0, Math.floor((window.screen.height - height) / 2));
