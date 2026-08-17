@@ -2910,58 +2910,99 @@ const Page={
 
   /* ---------- FACULTY ---------- */
   facDash(){
-    const gs=myGroups(), on=online();
-    const facSubj = App.me.subjectCode || '23AID205';
-    const subjObj = SEM3.find(s => s.code === facSubj) || { code: facSubj, name: 'Subject' };
-    if(!gs.length) return Page.notAssigned();
+    const subjs = facultySubjects(App.me);
+    const activeSubj = App.activeFacultySubject || (subjs[0] ? subjs[0].subjectCode : '23AID205');
+    if (!App.activeFacultySubject && subjs[0]) App.activeFacultySubject = subjs[0].subjectCode;
 
-    const ids=gs.map(g=>g.id);
-    // Show all tasks for supervised groups — subjectCode is used to highlight subject badge only
-    const all=DB.s.tasks.filter(t=>ids.includes(t.groupId));
-    // Tasks specifically for faculty's teaching subject
-    const mySubjTasks=all.filter(t=>t.courseCode===facSubj);
-    const students=gs.reduce((a,g)=>a+membersOf(g.id).length,0);
-    const done=mySubjTasks.filter(t=>t.status==='done').length;
-    const blocked=mySubjTasks.filter(t=>t.status==='blocked');
-    const overdue=mySubjTasks.filter(t=>t.status!=='done'&&t.due<now());
+    const gsAll = myGroups(), on = online();
+    const gs = gsAll.filter(g => g.courseCode === activeSubj);
+    const subjObj = SEM3.find(s => s.code === activeSubj) || { code: activeSubj, name: 'Subject' };
+
+    if (!gsAll.length) return Page.notAssigned();
+
+    const ids = gs.map(g => g.id);
+    const all = DB.s.tasks.filter(t => ids.includes(t.groupId));
+    const mySubjTasks = all.filter(t => t.courseCode === activeSubj);
+    const done = mySubjTasks.filter(t => t.status === 'done').length;
+    const blocked = mySubjTasks.filter(t => t.status === 'blocked');
+    const overdue = mySubjTasks.filter(t => t.status !== 'done' && t.due < now());
+
+    const subjectSwitcher = subjs.length > 1 ? `
+      <div style="display:flex; align-items:center; gap:8px; background:var(--surface); border:1px solid var(--line); padding:4px 10px; border-radius:var(--r2);">
+        <span style="font-size:12px; font-weight:600; color:var(--muted)">Guide Course:</span>
+        <select class="inp" style="height:28px; font-size:12px; padding:2px 6px; width:190px; cursor:pointer;" 
+          onchange="App.activeFacultySubject=this.value; App.render();">
+          ${subjs.map(s => {
+            const detail = SEM3.find(x => x.code === s.subjectCode) || { name: 'Subject' };
+            return `<option value="${s.subjectCode}" ${s.subjectCode === activeSubj ? 'selected' : ''}>Sem ${s.semester} · ${s.subjectCode}</option>`;
+          }).join('')}
+        </select>
+      </div>
+    ` : '';
 
     return `
     <div class="ph">
-      <div><h1>Dashboard</h1><p>${gs.length} group${gs.length===1?'':'s'} supervised · Subject: <b>${esc(subjObj.code)} · ${esc(subjObj.name)}</b></p></div>
+      <div>
+        <h1>Dashboard</h1>
+        <p>${gs.length} group${gs.length === 1 ? '' : 's'} under <b>${esc(subjObj.code)} · ${esc(subjObj.name)}</b></p>
+      </div>
       <div class="sp"></div>
+      ${subjectSwitcher}
       <button class="btn pri" onclick="Modal.sendSupervisionRequest()">${I.mail(15)} Request Group by Number</button>
     </div>
 
     <div class="banner info" style="margin-bottom:16px">
       ${I.cap(16)}
-      <div style="flex:1"><b>Teaching Subject:</b> <span class="mono" style="font-weight:700">${esc(subjObj.code)}</span> · ${esc(subjObj.name)}. You see tasks &amp; progress strictly for your subject.</div>
+      <div style="flex:1"><b>Supervision Scope:</b> Currently viewing groups &amp; tasks registered under <b>${esc(subjObj.code)}</b> (${esc(subjObj.name)}).</div>
       <button class="btn sm" onclick="Modal.sendSupervisionRequest()">${I.plus(13)} Add Group Request</button>
     </div>
 
-    ${blocked.length||overdue.length ? `<div class="banner warn" style="margin-bottom:16px">${I.alert(16)}
-      <div><b>Needs attention (${esc(facSubj)}).</b> ${blocked.length} task${blocked.length===1?' is':'s are'} blocked and ${overdue.length} ${overdue.length===1?'is':'are'} past the due date.</div></div>`:''}
+    ${blocked.length || overdue.length ? `<div class="banner warn" style="margin-bottom:16px">${I.alert(16)}
+      <div><b>Attention Required (${esc(activeSubj)}):</b> ${blocked.length} task${blocked.length === 1 ? ' is' : 's are'} blocked and ${overdue.length} ${overdue.length === 1 ? 'is' : 'are'} overdue.</div></div>` : ''}
 
     <div class="split">
       <div>
-        <div class="sec" style="margin-bottom:9px">Groups you supervise (${esc(facSubj)})</div>
-        <div class="grid3">${gs.map(g=>Page.groupCard(g,on)).join('')}</div>
+        <div class="sec" style="margin-bottom:9px">Groups supervising (${esc(activeSubj)})</div>
+        ${gs.length ? `<div class="grid3">${gs.map(g => Page.groupCard(g, on)).join('')}</div>` : `
+          <div class="card" style="padding:40px 20px; text-align:center;">
+            <div style="font-size:24px; margin-bottom:8px;">📁</div>
+            <div style="font-weight:600; font-size:13.5px; color:var(--ink);">No groups supervising for ${esc(activeSubj)} yet</div>
+            <p style="font-size:12px; color:var(--muted); margin-top:4px;">Request student groups by their group number above.</p>
+          </div>
+        `}
       </div>
-      <div style="display:grid;gap:16px">
+      <div style="display:grid; gap:16px">
         ${Page.renderCompactWidget()}
         <div class="card">
           <div class="ch"><h3>Recent activity</h3><div class="sp"></div><div class="live"><i></i>Live</div></div>
-          ${Page.feed(DB.s.activity.filter(a=>ids.includes(a.groupId)).slice(0,20))}
+          ${Page.feed(DB.s.activity.filter(a => ids.includes(a.groupId)).slice(0, 20))}
         </div>
       </div>
     </div>`;
   },
 
   notAssigned(){
-    const facSubj = App.me ? (App.me.subjectCode || '23AID205') : '23AID205';
-    const subjObj = SEM3.find(s => s.code === facSubj) || { code: facSubj, name: 'Subject' };
+    const subjs = facultySubjects(App.me);
+    const activeSubj = App.activeFacultySubject || (subjs[0] ? subjs[0].subjectCode : '23AID205');
+    const subjObj = SEM3.find(s => s.code === activeSubj) || { code: activeSubj, name: 'Subject' };
+    
+    const subjectSwitcher = subjs.length > 1 ? `
+      <div style="display:flex; align-items:center; gap:8px; background:var(--surface); border:1px solid var(--line); padding:4px 10px; border-radius:var(--r2);">
+        <span style="font-size:12px; font-weight:600; color:var(--muted)">Guide Course:</span>
+        <select class="inp" style="height:28px; font-size:12px; padding:2px 6px; width:190px; cursor:pointer;" 
+          onchange="App.activeFacultySubject=this.value; App.render();">
+          ${subjs.map(s => {
+            const detail = SEM3.find(x => x.code === s.subjectCode) || { name: 'Subject' };
+            return `<option value="${s.subjectCode}" ${s.subjectCode === activeSubj ? 'selected' : ''}>Sem ${s.semester} · ${s.subjectCode}</option>`;
+          }).join('')}
+        </select>
+      </div>
+    ` : '';
+
     return `<div class="ph">
-        <div><h1>Dashboard</h1><p>Teaching Subject: <b>${esc(subjObj.code)} · ${esc(subjObj.name)}</b></p></div>
+        <div><h1>Dashboard</h1><p>Supervised Subject: <b>${esc(subjObj.code)} · ${esc(subjObj.name)}</b></p></div>
         <div class="sp"></div>
+        ${subjectSwitcher}
         <button class="btn pri" onclick="Modal.sendSupervisionRequest()">${I.mail(15)} Request Group by Number</button>
       </div>
       <div class="card"><div class="cb" style="padding:30px 22px;text-align:center">
