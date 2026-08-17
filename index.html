@@ -1149,39 +1149,81 @@ const FB = {
     }
   },
 
-  // Sign in to Firebase with email (works on ALL domains, no popup needed)
+  // Sign in to Firebase — tries Google popup first (localhost), then Firestore REST API (all domains)
   async signInToFirebase(email, uid) {
-    if (!FB.active || !FB.auth) return;
-    try {
-      const pass = 'PT_' + uid.slice(0, 16) + '_secure';
+    // Try Google popup on localhost where domain is authorized
+    if (isLocalhost && FB.active && FB.auth) {
       try {
-        await FB.auth.signInWithEmailAndPassword(email, pass);
-      } catch(err) {
-        if (err.code === 'auth/user-not-found' || err.code === 'auth/invalid-credential' || err.code === 'auth/wrong-password' || err.code === 'auth/invalid-login-credentials') {
-          await FB.auth.createUserWithEmailAndPassword(email, pass);
+        const provider = new firebase.auth.GoogleAuthProvider();
+        provider.setCustomParameters({ prompt: 'select_account', login_hint: email });
+        const res = await FB.auth.signInWithPopup(provider);
+        if (res && res.user) {
+          console.log('🔥 Firebase Google Auth success:', res.user.uid);
+          await FB.syncUserToFirestore(res.user.uid, res.user.email, res.user.displayName);
+          return;
         }
+      } catch(e) {
+        console.warn('Firebase popup note:', e.message);
       }
-    } catch(e) {
-      console.warn('Firebase email sign-in note:', e.message);
     }
+
+    // Firestore REST API — works on ALL domains including GitHub Pages, no domain auth needed
+    await FB.restWriteUser(uid, email);
+    await FB.restWriteAppState();
   },
 
-  // Sync user profile to Firestore users collection
+  // Write user directly to Firestore via REST API (no domain restriction)
+  async restWriteUser(uid, email) {
+    try {
+      const name = (DB.s && DB.s.users) ? (DB.s.users.find(u => u.id === uid || u.email === email) || {}).name || email.split('@')[0] : email.split('@')[0];
+      const body = {
+        fields: {
+          id:             { stringValue: uid },
+          email:          { stringValue: email },
+          name:           { stringValue: name },
+          googleConnected:{ booleanValue: true },
+          provider:       { stringValue: 'Google' },
+          lastLogin:      { stringValue: new Date().toISOString() }
+        }
+      };
+      const res = await fetch(
+        `https://firestore.googleapis.com/v1/projects/${defaultFirebaseConfig.projectId}/databases/(default)/documents/users/${uid}?key=${defaultFirebaseConfig.apiKey}`,
+        { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }
+      );
+      if (res.ok) console.log('🔥 Firestore REST: User saved → users/' + uid);
+      else console.warn('Firestore REST user write error:', await res.text());
+    } catch(e) { console.warn('Firestore REST user error:', e.message); }
+  },
+
+  // Write full appState directly to Firestore via REST API
+  async restWriteAppState() {
+    if (!DB.s) return;
+    try {
+      const body = {
+        fields: {
+          data:       { stringValue: JSON.stringify(DB.s) },
+          updatedAt:  { stringValue: new Date().toISOString() }
+        }
+      };
+      const res = await fetch(
+        `https://firestore.googleapis.com/v1/projects/${defaultFirebaseConfig.projectId}/databases/(default)/documents/projectTrack/appState?key=${defaultFirebaseConfig.apiKey}`,
+        { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }
+      );
+      if (res.ok) console.log('🔥 Firestore REST: App state saved → projectTrack/appState');
+      else console.warn('Firestore REST appState error:', await res.text());
+    } catch(e) { console.warn('Firestore REST appState error:', e.message); }
+  },
+
+  // Sync user profile to Firestore via SDK (when auth is available)
   async syncUserToFirestore(uid, email, name) {
     if (!FB.active || !FB.db) return;
     try {
-      const userData = {
-        id: uid, email, name,
-        googleConnected: true,
-        lastLogin: firebase.firestore.FieldValue.serverTimestamp()
-      };
-      await FB.db.collection('users').doc(uid).set(userData, { merge: true });
-      console.log('🔥 User synced to Firestore:', email);
-      // Save full app state
+      await FB.db.collection('users').doc(uid).set({
+        id: uid, email, name, googleConnected: true, lastLogin: firebase.firestore.FieldValue.serverTimestamp()
+      }, { merge: true });
+      console.log('🔥 Firestore SDK: User synced:', email);
       if (DB.s) FB.saveState(DB.s);
-    } catch(e) {
-      console.warn('Firestore user sync note:', e.message);
-    }
+    } catch(e) { console.warn('Firestore SDK user sync:', e.message); }
   },
 
   async handleRedirectResult() {
