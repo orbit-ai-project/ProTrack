@@ -4137,7 +4137,8 @@ const Notify={
     Notify.cur=Notify.build();
     const r=Notify.read(), un=Notify.cur.filter(n=>!r.includes(n.id)).length;
     b.innerHTML=I.bell(16);
-    const wrap=b.parentElement; let bad=wrap.querySelector('.badge');
+    const wrap=b.parentElement; if(!wrap) return;
+    let bad=wrap.querySelector('.badge');
     if(un){ if(!bad){ bad=document.createElement('span'); bad.className='badge'; wrap.appendChild(bad); } bad.textContent=un>9?'9+':un; }
     else if(bad) bad.remove();
     const p=document.getElementById('notifPanel'); if(p) Notify.fill(p);
