@@ -1979,8 +1979,14 @@ const Auth={
 
   fill(email,pw){
     Auth.go('signin');
-    setTimeout(()=>{ document.getElementById('si_email').value=email;
-      document.getElementById('si_pass').value=pw; FX.tap('med'); },40);
+    setTimeout(()=>{ 
+      const e = document.getElementById('si_email');
+      const p = document.getElementById('si_pass');
+      if(e) e.value = email;
+      if(p) p.value = pw;
+      FX.tap('med');
+      Auth.signin();
+    }, 50);
   },
 
   go(s){ Auth.screen=s; FX.tap('med'); Auth.render(); },
