@@ -1043,13 +1043,20 @@ function seed(){
   return {users:U,groups:G,tasks:T,activity:A,remarks:[],invites:[]};
 }
 
-const API_URL = (window.location.origin && window.location.origin.includes(':4000'))
-  ? window.location.origin
-  : 'http://localhost:4000';
+const isLocalhost = Boolean(
+  typeof window !== 'undefined' && window.location && (
+    window.location.hostname === 'localhost' ||
+    window.location.hostname === '127.0.0.1' ||
+    (window.location.origin && window.location.origin.includes(':4000'))
+  )
+);
+
+const API_URL = isLocalhost ? window.location.origin : '';
 
 const API = {
-  active: true,
+  active: isLocalhost,
   async check() {
+    if (!isLocalhost) return;
     try {
       const res = await fetch(API_URL + '/api/sync');
       if (res.ok) {
@@ -1065,6 +1072,7 @@ const API = {
     } catch(e) {}
   },
   async push() {
+    if (!isLocalhost) return;
     try {
       const res = await fetch(API_URL + '/api/sync', {
         method: 'POST',
@@ -1076,7 +1084,7 @@ const API = {
   }
 };
 
-if (typeof window !== 'undefined' && 'EventSource' in window) {
+if (isLocalhost && typeof window !== 'undefined' && 'EventSource' in window) {
   try {
     const ev = new EventSource(API_URL + '/api/events');
     ev.onmessage = e => {
