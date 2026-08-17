@@ -5604,16 +5604,16 @@ const Export = {
         gradedByName: '—'
       };
       return [
-        `"${(g.name || '').replace(/"/g, '""')}"`,
-        `"${(g.project || '').replace(/"/g, '""')}"`,
+        `"${(g.name || '').replace(/"/g, '""').replace(/\r?\n/g, ' ')}"`,
+        `"${(g.project || '').replace(/"/g, '""').replace(/\r?\n/g, ' ')}"`,
         `"${score.rubrics.literature}"`,
         `"${score.rubrics.design}"`,
         `"${score.rubrics.quality}"`,
         `"${score.rubrics.presentation}"`,
         `"${score.total}"`,
         `"${score.grade}"`,
-        `"${(score.comments || '').replace(/"/g, '""')}"`,
-        `"${(score.gradedByName || '').replace(/"/g, '""')}"`
+        `"${(score.comments || '').replace(/"/g, '""').replace(/\r?\n/g, ' ')}"`,
+        `"${(score.gradedByName || '').replace(/"/g, '""').replace(/\r?\n/g, ' ')}"`
       ];
     });
 
@@ -5795,25 +5795,25 @@ const Export = {
         if (mRemarks.length) {
           mRemarks.forEach(r => {
             rows.push([
-              `"${(g.name || '').replace(/"/g, '""')}"`,
-              `"${(g.project || '').replace(/"/g, '""')}"`,
-              `"${(m.name || '').replace(/"/g, '""')}"`,
-              `"${(m.role || '').replace(/"/g, '""')}"`,
-              `"${(m.email || '').replace(/"/g, '""')}"`,
-              `"${(r.grade || 'N/A').replace(/"/g, '""')}"`,
-              `"${(r.score || 'N/A').replace(/"/g, '""')}"`,
-              `"${(r.text || '').replace(/"/g, '""')}"`,
-              `"${(r.by || 'Faculty').replace(/"/g, '""')}"`,
+              `"${(g.name || '').replace(/"/g, '""').replace(/\r?\n/g, ' ')}"`,
+              `"${(g.project || '').replace(/"/g, '""').replace(/\r?\n/g, ' ')}"`,
+              `"${(m.name || '').replace(/"/g, '""').replace(/\r?\n/g, ' ')}"`,
+              `"${(m.role || '').replace(/"/g, '""').replace(/\r?\n/g, ' ')}"`,
+              `"${(m.email || '').replace(/"/g, '""').replace(/\r?\n/g, ' ')}"`,
+              `"${(r.grade || 'N/A').replace(/"/g, '""').replace(/\r?\n/g, ' ')}"`,
+              `"${(r.score || 'N/A').replace(/"/g, '""').replace(/\r?\n/g, ' ')}"`,
+              `"${(r.text || '').replace(/"/g, '""').replace(/\r?\n/g, ' ')}"`,
+              `"${(r.by || 'Faculty').replace(/"/g, '""').replace(/\r?\n/g, ' ')}"`,
               `"${new Date(r.ts || Date.now()).toLocaleDateString()}"`
             ]);
           });
         } else {
           rows.push([
-            `"${(g.name || '').replace(/"/g, '""')}"`,
-            `"${(g.project || '').replace(/"/g, '""')}"`,
-            `"${(m.name || '').replace(/"/g, '""')}"`,
-            `"${(m.role || '').replace(/"/g, '""')}"`,
-            `"${(m.email || '').replace(/"/g, '""')}"`,
+            `"${(g.name || '').replace(/"/g, '""').replace(/\r?\n/g, ' ')}"`,
+            `"${(g.project || '').replace(/"/g, '""').replace(/\r?\n/g, ' ')}"`,
+            `"${(m.name || '').replace(/"/g, '""').replace(/\r?\n/g, ' ')}"`,
+            `"${(m.role || '').replace(/"/g, '""').replace(/\r?\n/g, ' ')}"`,
+            `"${(m.email || '').replace(/"/g, '""').replace(/\r?\n/g, ' ')}"`,
             `"Not Graded"`,
             `"N/A"`,
             `"No individual remarks posted yet"`,
@@ -5949,8 +5949,8 @@ const Export = {
       const p = prio(t.prio);
       const d = dueOf(t.due);
       return [
-        `"${(t.title || '').replace(/"/g, '""')}"`,
-        `"${(t.desc || '').replace(/"/g, '""')}"`,
+        `"${(t.title || '').replace(/"/g, '""').replace(/\r?\n/g, ' ')}"`,
+        `"${(t.desc || '').replace(/"/g, '""').replace(/\r?\n/g, ' ')}"`,
         `"${t.courseCode || ''}"`,
         `"${u ? u.name : 'Unassigned'}"`,
         `"${u ? u.role : ''}"`,
