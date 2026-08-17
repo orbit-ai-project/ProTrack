@@ -2343,7 +2343,6 @@ const Auth={
           </div>
           <div class="field"><label for="r_group">Group name</label><input class="inp" id="r_group" placeholder="e.g. Group 04"/></div>
         </div>
-        <div class="field"><label for="r_project">Project title</label><input class="inp" id="r_project" placeholder="e.g. Library Management System"/></div>
         <div id="r_err"></div>
         <button class="btn pri blk" style="height:36px" onclick="Auth.registerLead()">Create team and continue</button>
       </div>
@@ -2462,15 +2461,15 @@ const Auth={
   registerLead(){
     const g=id=>document.getElementById(id).value.trim();
     const name=g('r_name'), email=g('r_email'), pw=document.getElementById('r_pass').value,
-          pw2=document.getElementById('r_pass2').value, sem=g('r_sem')||'3', gname=g('r_group'), proj=g('r_project');
+          pw2=document.getElementById('r_pass2').value, sem=g('r_sem')||'3', gname=g('r_group');
     if(!name) return Auth.showErr('r_err','Enter your full name.');
     if(!emailOk(email)) return Auth.showErr('r_err','Enter a valid email address.');
     if(userByEmail(email)) return Auth.showErr('r_err','An account with that email already exists.');
     if(pw.length<6) return Auth.showErr('r_err','Password must be at least 6 characters.');
     if(pw!==pw2) return Auth.showErr('r_err','The two passwords do not match.');
     if(!gname) return Auth.showErr('r_err','Give your group a name.');
-    if(!proj) return Auth.showErr('r_err','Enter your project title.');
 
+    const proj = "Course Project";
     const gid='g-'+uid(), uidv='u-'+uid();
     const semInt=parseInt(sem,10);
     const semCourses=CURRICULUM[semInt]||CURRICULUM[3];
