@@ -1,0 +1,21 @@
+{
+  "name": "pro-track-backend",
+  "version": "1.0.0",
+  "description": "Backend API for Pro Track project tracker (Express + JWT + JSON store). Pure JavaScript — runs on any PC or Mac with Node.js, no build tools.",
+  "type": "commonjs",
+  "main": "server.js",
+  "engines": {
+    "node": ">=16"
+  },
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.21.0",
+    "jsonwebtoken": "^9.0.2"
+  }
+}

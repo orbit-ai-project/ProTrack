@@ -1,0 +1,10 @@
+{
+  "name": "ProTrack",
+  "version": "1.0.0",
+  "description": "Pro Track - Project Tracker App",
+  "main": "backend/server.js",
+  "scripts": {
+    "start": "cd backend && npm start",
+    "dev": "cd backend && npm run dev"
+  }
+}
