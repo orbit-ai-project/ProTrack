@@ -68,7 +68,7 @@ Orbit-AI-Project/
 │   └── index.html             ← the complete web app (HTML + CSS + JavaScript)
 ├── backend/
 │   ├── server.js              ← Express REST API (auth, tasks, groups, remarks…)
-│   ├── db.js                  ← SQLite schema + demo-data seed
+│   ├── db.js                  ← JSON-file store (data.json) + demo-data seed
 │   ├── package.json           ← dependencies & scripts
 │   ├── package-lock.json
 │   ├── .env.example           ← config template (copy to .env)

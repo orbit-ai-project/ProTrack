@@ -128,13 +128,18 @@ then `loadAll()` to refresh. The response fields already use the frontend's name
 
 ## Deploying the backend
 - **Render / Railway / Fly.io** (free tiers) — push this folder, set `JWT_SECRET`,
-  start command `npm start`. `data.json` is written to disk; on hosts with an
-  ephemeral filesystem, attach a small persistent volume (or move to a managed
-  database) so data survives restarts.
+  `HOST=0.0.0.0`, and `CORS_ORIGIN=https://your-frontend-url`, start command
+  `npm start`. `data.json` is written to disk; on hosts with an ephemeral
+  filesystem, attach a small persistent volume (or move to a managed database)
+  so data survives restarts.
 - Point the frontend's `const API = ...` at your deployed URL, then host the frontend
   on Netlify/Vercel (see `../docs/DEPLOYMENT_GUIDE.md`).
 
 ## Security notes
 - Passwords are hashed with bcrypt — never stored in plaintext.
 - Change `JWT_SECRET` before deploying.
-- CORS is fully open for development; restrict `origin` in production.
+- The server binds to `127.0.0.1` (localhost-only) by default — set `HOST=0.0.0.0`
+  in `.env` only when deploying behind Render/Railway/Fly.io.
+- CORS only allows the origins listed in `CORS_ORIGIN` (defaults to the local demo
+  origins); add your deployed frontend URL there when hosting frontend and backend
+  separately.

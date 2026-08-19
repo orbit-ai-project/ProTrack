@@ -13,15 +13,36 @@ const { store, save, uid, SUBJECTS } = require('./db');
 
 const app = express();
 const PORT = process.env.PORT || 4000;
+const HOST = process.env.HOST || '127.0.0.1';
 const SECRET = process.env.JWT_SECRET || 'dev-secret-change-me';
 
-app.use(cors());
+if (SECRET === 'dev-secret-change-me') {
+  console.warn('⚠️  JWT_SECRET is not set — using the insecure default. Set JWT_SECRET in .env before deploying anywhere reachable from the internet.');
+}
+
+// Only origins in this list may call the API from a browser. Defaults cover the
+// local full-stack demo (backend also serves the frontend on the same origin);
+// set CORS_ORIGIN to a comma-separated list when deploying frontend and backend separately.
+const ALLOWED_ORIGINS = (process.env.CORS_ORIGIN || `http://localhost:${PORT},http://127.0.0.1:${PORT}`)
+  .split(',').map(s => s.trim()).filter(Boolean);
+
+app.use(cors({
+  origin(origin, cb) {
+    if (!origin || ALLOWED_ORIGINS.includes(origin)) return cb(null, true);
+    cb(new Error('CORS_BLOCKED'));
+  }
+}));
+app.use((err, req, res, next) => {
+  if (err && err.message === 'CORS_BLOCKED') return res.status(403).json({ error: 'Origin not allowed.' });
+  next(err);
+});
 app.use(express.json());
 
 /* ---------- helpers ---------- */
 const now = () => Date.now();
 const emailOk = e => /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(String(e || ''));
 const sign = id => jwt.sign({ id }, SECRET, { expiresIn: '7d' });
+const escHtml = s => String(s ?? '').replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]));
 
 const findUser  = id => store.profiles.find(u => u.id === id);
 const byEmail   = e => store.profiles.find(u => u.email.toLowerCase() === String(e).trim().toLowerCase());
@@ -137,7 +158,7 @@ app.post('/api/members', auth, (req, res) => {
   const u = { id: 'u-' + uid().slice(0, 8), name, email, passHash: bcrypt.hashSync(password, 10),
     role, groupId: req.user.groupId, color: '#2E8A6B', createdAt: now() };
   store.profiles.push(u);
-  logAct(req.user.groupId, req.user.id, `added <b>${name}</b> as ${role}`);
+  logAct(req.user.groupId, req.user.id, `added <b>${escHtml(name)}</b> as ${escHtml(role)}`);
   save();
   res.json(publicUser(u));
 });
@@ -158,7 +179,7 @@ app.delete('/api/members/:id', auth, (req, res) => {
     return res.status(400).json({ error: 'Cannot remove that member.' });
   store.tasks.forEach(t => { if (t.assigneeId === m.id) t.assigneeId = req.user.id; });
   store.profiles = store.profiles.filter(u => u.id !== m.id);
-  logAct(req.user.groupId, req.user.id, `removed <b>${m.name}</b> from the team`);
+  logAct(req.user.groupId, req.user.id, `removed <b>${escHtml(m.name)}</b> from the team`);
   save();
   res.json({ ok: true });
 });
@@ -180,7 +201,7 @@ app.patch('/api/groups/:id/subject', auth, (req, res) => {
   if (!c) return res.status(400).json({ error: 'Unknown subject code.' });
   const g = findGroup(req.params.id);
   g.courseCode = c.code; g.subject = `${c.code} · ${c.name}`;
-  logAct(g.id, req.user.id, `set the project subject to <b>${c.code} ${c.name}</b>`);
+  logAct(g.id, req.user.id, `set the project subject to <b>${escHtml(c.code)} ${escHtml(c.name)}</b>`);
   save();
   res.json({ ok: true });
 });
@@ -191,7 +212,7 @@ app.post('/api/groups/:id/supervise', auth, (req, res) => {
   if (!g) return res.status(404).json({ error: 'Group not found.' });
   g.facultyIds = g.facultyIds || [];
   if (!g.facultyIds.includes(req.user.id)) g.facultyIds.push(req.user.id);
-  logAct(g.id, req.user.id, `<b>${req.user.name}</b> started supervising this group`);
+  logAct(g.id, req.user.id, `<b>${escHtml(req.user.name)}</b> started supervising this group`);
   save();
   res.json({ ok: true });
 });
@@ -222,7 +243,7 @@ app.post('/api/tasks', auth, (req, res) => {
     courseCode: courseCode || null, due: due || now() + 5*864e5,
     createdAt: now(), updatedAt: now(), comments: [] };
   store.tasks.push(t);
-  logAct(req.user.groupId, req.user.id, `assigned <b>${title}</b>`);
+  logAct(req.user.groupId, req.user.id, `assigned <b>${escHtml(title)}</b>`);
   save();
   res.json(t);
 });
@@ -236,7 +257,7 @@ app.patch('/api/tasks/:id', auth, (req, res) => {
     .forEach(f => { if (b[f] !== undefined) t[f] = b[f]; });
   if (b.status === 'done' && b.progress === undefined) t.progress = 100;
   t.updatedAt = now();
-  logAct(t.groupId, req.user.id, `updated <b>${t.title}</b>`);
+  logAct(t.groupId, req.user.id, `updated <b>${escHtml(t.title)}</b>`);
   save();
   res.json(t);
 });
@@ -247,7 +268,7 @@ app.delete('/api/tasks/:id', auth, (req, res) => {
   if (!isLead(req.user) || t.groupId !== req.user.groupId)
     return res.status(403).json({ error: 'Only the Team Lead can delete tasks.' });
   store.tasks = store.tasks.filter(x => x.id !== t.id);
-  logAct(t.groupId, req.user.id, `deleted <b>${t.title}</b>`);
+  logAct(t.groupId, req.user.id, `deleted <b>${escHtml(t.title)}</b>`);
   save();
   res.json({ ok: true });
 });
@@ -324,7 +345,7 @@ app.post('/api/invites/send', auth, (req, res) => {
   };
 
   store.invites.unshift(inv);
-  logAct(targetGroup.id, req.user.id, `sent a supervision request for subject ${inv.subjectCode}`);
+  logAct(targetGroup.id, req.user.id, `sent a supervision request for subject ${escHtml(inv.subjectCode)}`);
   save();
   broadcastSync();
   res.json({ ok: true, invite: inv });
@@ -347,9 +368,9 @@ app.post('/api/invites/respond', auth, (req, res) => {
       g.subjectFacultyMap = g.subjectFacultyMap || {};
       g.subjectFacultyMap[inv.subjectCode] = inv.facultyId;
     }
-    logAct(inv.groupId, req.user.id, `accepted supervision request from ${inv.facultyName} for ${inv.subjectCode}`);
+    logAct(inv.groupId, req.user.id, `accepted supervision request from ${escHtml(inv.facultyName)} for ${escHtml(inv.subjectCode)}`);
   } else {
-    logAct(inv.groupId, req.user.id, `declined supervision request from ${inv.facultyName}`);
+    logAct(inv.groupId, req.user.id, `declined supervision request from ${escHtml(inv.facultyName)}`);
   }
 
   save();
@@ -366,6 +387,7 @@ app.post('/api/invites/direct', (req, res) => {
   if (!targetGroup) return res.status(404).json({ error: 'Group not found.' });
 
   const facUser = store.profiles.find(u => u.id === facultyId && u.role === 'Faculty');
+  if (!facUser) return res.status(404).json({ error: 'Faculty account not found.' });
 
   store.invites = store.invites || [];
   const existing = store.invites.find(i =>
@@ -386,7 +408,7 @@ app.post('/api/invites/direct', (req, res) => {
   };
 
   store.invites.unshift(inv);
-  logAct(targetGroup.id, facultyId, `sent a supervision request for subject ${inv.subjectCode}`);
+  logAct(targetGroup.id, facultyId, `sent a supervision request for subject ${escHtml(inv.subjectCode)}`);
   save();
   broadcastSync();
   res.json({ ok: true, invite: inv });
@@ -415,9 +437,9 @@ app.post('/api/invites/respond-direct', (req, res) => {
       g.subjectFacultyMap = g.subjectFacultyMap || {};
       g.subjectFacultyMap[inv.subjectCode] = inv.facultyId;
     }
-    logAct(inv.groupId, userId, `accepted supervision request from ${inv.facultyName} for ${inv.subjectCode}`);
+    logAct(inv.groupId, userId, `accepted supervision request from ${escHtml(inv.facultyName)} for ${escHtml(inv.subjectCode)}`);
   } else {
-    logAct(inv.groupId, userId, `declined supervision request from ${inv.facultyName}`);
+    logAct(inv.groupId, userId, `declined supervision request from ${escHtml(inv.facultyName)}`);
   }
 
   save();
@@ -465,4 +487,4 @@ app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, '../frontend/index.html'));
 });
 
-app.listen(PORT, () => console.log(`\n🚀 ProTrack Web App & API running at http://localhost:${PORT}\n`));
+app.listen(PORT, HOST, () => console.log(`\n🚀 ProTrack Web App & API running at http://${HOST}:${PORT}\n   (bound to ${HOST} — set HOST=0.0.0.0 only when deploying behind a real host like Render/Railway)\n`));
